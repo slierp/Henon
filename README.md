@@ -1,9 +1,7 @@
 Henon
 =====
 
-Visual C++ program for exploring the Hénon attractor
-
-For an explanation of what the Hénon attractor is please see <a href="http://en.wikipedia.org/wiki/H%C3%A9non_map">Wikipedia</a>.
+Visual C++ program for exploring the Hénon attractor. For an explanation of what the Hénon attractor is please see <a href="http://en.wikipedia.org/wiki/H%C3%A9non_map">Wikipedia</a>.
 
 <b>How to use the program</b>
 
