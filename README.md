@@ -1,16 +1,12 @@
 Hénon
 =====
 
-Visual C++ program for exploring the Hénon attractor. For an explanation of what the Hénon attractor is please see <a href="http://en.wikipedia.org/wiki/H%C3%A9non_map">Wikipedia</a>.
+A Python program for exploring the Hénon attractor. For an explanation of what the Hénon attractor is please see <a href="http://en.wikipedia.org/wiki/H%C3%A9non_map">Wikipedia</a>.
 
 <b>How to use the program</b>
 
-With this program you can draw the Henon attractor and interact with it in various ways. You can zoom in, change parameters and animate parameters. In the Help menu you can find a readme with more detailed information and there are also several demonstrations in the Help menu, including two animations.
-
-<b>Installation</b>
-
-You can download the release file which contains a normal windows installer that you can use.
+With this program you can draw the Hénon attractor and interact with it in various ways. You can currently only zoom in by selecting an area, but later you will be able to change the Henon parameters and make animations with them. Several demonstrations will be included.
 
 <b>Sidenote</b>
 
-This is an old program which is not being maintained, but should still be functional up until Windows 7 at least.
+This program is a re-implementation of an old Visual C++ program. The installer of that program is still functional up until Windows 7 at least. The old installer is available as the first release.
