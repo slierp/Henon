@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 from OpenGL import GL
+from OpenGL.arrays import vbo
 from PyQt4 import QtOpenGL, QtGui, QtCore
+import numpy as np
 
 class Henon(QtOpenGL.QGLWidget):
     
-    def __init__(self, parent = None):
+    def __init__(self, _parent = None):
         
-        super(Henon, self).__init__(parent)
+        super(Henon, self).__init__(_parent)
 
+        self.parent = _parent
         self.xleft = -1.5
         self.ytop = 0.4
         self.xright = 1.5
@@ -19,11 +22,15 @@ class Henon(QtOpenGL.QGLWidget):
         self.heny = 0.1
         self.calc_limit = 100000
         self.first_run = True
+        self.do_not_draw = False # prevent re-draw during area selection as it is a bit slow currently
 
         # For selecting areas        
-        self.rubberBand = QtGui.QRubberBand(QtGui.QRubberBand.Rectangle, self)
+        self.rubberBand = QtGui.QRubberBand(QtGui.QRubberBand.Rectangle, self)     
 
     def paintGL(self):
+
+        if self.do_not_draw:
+            return
         
         # set color and draw pixels
         GL.glColor3f(1.0, 1.0, 1.0)
@@ -33,8 +40,11 @@ class Henon(QtOpenGL.QGLWidget):
             for j in range(self.window_height):
                 if self.window_representation[i][j]:
                     GL.glVertex2f(i, j)
-                    
+
         GL.glEnd()
+        
+        #GL.glDrawPixels() # faster implementation, but does not work yet
+        #GL.glFlush()
 
     def resizeGL(self, w, h):
 
@@ -44,10 +54,8 @@ class Henon(QtOpenGL.QGLWidget):
         self.window_width = w
         self.window_height = h
 
-        # make new window representation        
-        self.window_representation = []
-        for i in range(self.window_width):
-            self.window_representation.append([False for rows in range(self.window_height)])
+        # make new window representation
+        self.window_representation = np.zeros([self.window_width,self.window_height], dtype=np.bool)
         
         # calculate new x, y ratios
         self.xratio = self.window_width/(self.xright-self.xleft) # ratio screenwidth to valuewidth
@@ -89,7 +97,7 @@ class Henon(QtOpenGL.QGLWidget):
         # Register left mouse click for drawing selection area        
         
         if event.button() == QtCore.Qt.LeftButton:
-         
+            self.do_not_draw = True
             self.select_begin = QtCore.QPoint(event.pos())
             self.rubberBand.setGeometry(QtCore.QRect(self.select_begin, QtCore.QSize()))
             self.rubberBand.show()
@@ -106,10 +114,11 @@ class Henon(QtOpenGL.QGLWidget):
         # Register left mouse button release to finish selection area and process selection
      
         if event.button() == QtCore.Qt.LeftButton:
+            self.do_not_draw = False            
             self.rubberBand.hide()
             self.select_end = QtCore.QPoint(event.pos())
             
-            if ((self.select_end.x() - self.select_begin.x()) > 10) and ((self.select_end.y() - self.select_begin.y()) > 10):
+            if (abs(self.select_end.x() - self.select_begin.x()) > 10) and (abs(self.select_end.y() - self.select_begin.y()) > 10):
                 # avoid accidental zoom-in with extremely small selected areas
                 self.zoom_selected_area()
             
@@ -187,6 +196,8 @@ class Henon(QtOpenGL.QGLWidget):
       
         self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
         self.updateGL()
+        
+        self.parent.statusBar().showMessage(self.tr("Press space to zoom out again"))        
 
     def reset_scale(self):
         
@@ -195,4 +206,5 @@ class Henon(QtOpenGL.QGLWidget):
         self.xright = 1.5
         self.ybottom = -0.4
         self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
-        self.updateGL()       
+        self.updateGL()
+        self.parent.statusBar().showMessage(self.tr("Ready"))

@@ -32,7 +32,7 @@ class MainGui(QtGui.QMainWindow):
         self.setStyleSheet('font-size: 12pt;') 
         
         self.create_menu()
-        self.create_main_frame()       
+        self.create_main_frame()
 
     def on_about(self):
         msg = self.tr("Henon explorer\n\n- Author: Ronald Naber (rnaber@tempress.nl)\n- License: Public domain")
@@ -43,10 +43,10 @@ class MainGui(QtGui.QMainWindow):
         if e.key() == QtCore.Qt.Key_Space:
             self.Henon_widget.reset_scale()
 
-    def create_main_frame(self):           
+    def create_main_frame(self):
         
-        vbox = QtGui.QVBoxLayout()
-        self.Henon_widget = Henon()
+        self.Henon_widget = Henon(self)
+        vbox = QtGui.QVBoxLayout()        
         vbox.addWidget(self.Henon_widget)
 
         main_frame = QtGui.QWidget()                                                         
