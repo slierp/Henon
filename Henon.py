@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 from OpenGL import GL
-from OpenGL.arrays import vbo
 from PyQt4 import QtOpenGL, QtGui, QtCore
 import numpy as np
+
+"""
+TODO
+
+Implement glDrawPixels for much faster drawing
+Implement multiprocessing for faster Henon calculation (with different seed number)
+
+"""
+
 
 class Henon(QtOpenGL.QGLWidget):
     
@@ -20,12 +28,11 @@ class Henon(QtOpenGL.QGLWidget):
         self.henb = 0.3
         self.henx = 0.1
         self.heny = 0.1
-        self.calc_limit = 100000
         self.first_run = True
-        self.do_not_draw = False # prevent re-draw during area selection as it is a bit slow currently
-
+        self.do_not_draw = False # prevent re-draw during area selection
+        
         # For selecting areas        
-        self.rubberBand = QtGui.QRubberBand(QtGui.QRubberBand.Rectangle, self)     
+        self.rubberBand = QtGui.QRubberBand(QtGui.QRubberBand.Rectangle, self)
 
     def paintGL(self):
 
@@ -33,18 +40,9 @@ class Henon(QtOpenGL.QGLWidget):
             return
         
         # set color and draw pixels
-        GL.glColor3f(1.0, 1.0, 1.0)
-        GL.glBegin(GL.GL_POINTS)
-        
-        for i in range(self.window_width):
-            for j in range(self.window_height):
-                if self.window_representation[i][j]:
-                    GL.glVertex2f(i, j)
-
-        GL.glEnd()
-        
-        #GL.glDrawPixels() # faster implementation, but does not work yet
-        #GL.glFlush()
+        GL.glColor3f(1.0, 1.0, 1.0)        
+        GL.glDrawPixels(self.window_width, self.window_height, GL.GL_RGBA, GL.GL_UNSIGNED_INT_8_8_8_8, np.ascontiguousarray(self.window_representation.transpose()))
+        GL.glFlush()       
 
     def resizeGL(self, w, h):
 
@@ -53,19 +51,14 @@ class Henon(QtOpenGL.QGLWidget):
 
         self.window_width = w
         self.window_height = h
+        self.drawn_pixels = 0        
 
         # make new window representation
-        self.window_representation = np.zeros([self.window_width,self.window_height], dtype=np.bool)
+        self.window_representation = np.zeros([self.window_width,self.window_height], dtype=np.uint32)
         
         # calculate new x, y ratios
         self.xratio = self.window_width/(self.xright-self.xleft) # ratio screenwidth to valuewidth
         self.yratio = self.window_height/(self.ytop-self.ybottom)
-
-        if(not self.first_run): # resize is called twice during initialization
-            # perform Henon iteration
-            self.calc_henon()
-        else:
-            self.first_run = False
 
         # set mode to 2D        
         GL.glViewport(0, 0, w, h)
@@ -73,16 +66,24 @@ class Henon(QtOpenGL.QGLWidget):
         GL.glLoadIdentity()
         GL.glOrtho(0.0, w, 0.0, h, 0.0, 1.0)
         GL.glMatrixMode (GL.GL_MODELVIEW)
-        GL.glLoadIdentity()        
+        GL.glLoadIdentity()
+
+        if(not self.first_run): # resize is called twice during initialization
+            # perform Henon iteration
+            for i in range(100):
+                self.calc_henon(1000)
+                self.updateGL()
+        else:
+            self.first_run = False        
 
     def initializeGL(self):
         
         # clear screen
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         
-    def calc_henon(self):
+    def calc_henon(self,calc_limit):
         
-        for i in range(self.calc_limit):
+        for i in range(calc_limit):
             henxtemp = 1-(self.hena*self.henx*self.henx) + self.heny
             self.heny = self.henb * self.henx
             self.henx = henxtemp
@@ -90,7 +91,8 @@ class Henon(QtOpenGL.QGLWidget):
             y_draw = int((self.heny-self.ybottom) * self.yratio)
             
             if (0 < x_draw < self.window_width) and (0 < y_draw < self.window_height):
-                self.window_representation[x_draw][y_draw] = True
+                self.window_representation[x_draw][y_draw] = 0xFFFFFFFF
+                self.drawn_pixels += 1
               
     def mousePressEvent(self, event):
         
@@ -197,7 +199,7 @@ class Henon(QtOpenGL.QGLWidget):
         self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
         self.updateGL()
         
-        self.parent.statusBar().showMessage(self.tr("Press space to zoom out again"))        
+        self.parent.statusBar().showMessage(self.tr("Press space to zoom out again"))
 
     def reset_scale(self):
         
