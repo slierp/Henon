@@ -4,30 +4,19 @@ from OpenGL import GL
 from PyQt4 import QtOpenGL, QtGui, QtCore
 import numpy as np
 
-"""
-TODO
-
-Implement glDrawPixels for much faster drawing
-Implement multiprocessing for faster Henon calculation (with different seed number)
-
-"""
-
-
-class Henon(QtOpenGL.QGLWidget):
+class HenonWidget(QtOpenGL.QGLWidget):
     
     def __init__(self, _parent = None):
         
-        super(Henon, self).__init__(_parent)
-
+        super(HenonWidget, self).__init__(_parent)
+       
         self.parent = _parent
+        
         self.xleft = -1.5
         self.ytop = 0.4
         self.xright = 1.5
         self.ybottom = -0.4
-        self.hena = 1.4
-        self.henb = 0.3
-        self.henx = 0.1
-        self.heny = 0.1
+        
         self.first_run = True
         self.do_not_draw = False # prevent re-draw during area selection
         
@@ -51,7 +40,6 @@ class Henon(QtOpenGL.QGLWidget):
 
         self.window_width = w
         self.window_height = h
-        self.drawn_pixels = 0        
 
         # make new window representation
         self.window_representation = np.zeros([self.window_width,self.window_height], dtype=np.uint32)
@@ -68,31 +56,17 @@ class Henon(QtOpenGL.QGLWidget):
         GL.glMatrixMode (GL.GL_MODELVIEW)
         GL.glLoadIdentity()
 
-        if(not self.first_run): # resize is called twice during initialization
-            # perform Henon iteration
-            for i in range(100):
-                self.calc_henon(1000)
-                self.updateGL()
+        if (not self.first_run):
+            # resize is called twice during start-up for some reason
+            # only initialize calculation threads when screen dimensions are fixed
+            self.parent.initialize_calculation()
         else:
-            self.first_run = False        
+            self.first_run = False
 
     def initializeGL(self):
         
         # clear screen
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        
-    def calc_henon(self,calc_limit):
-        
-        for i in range(calc_limit):
-            henxtemp = 1-(self.hena*self.henx*self.henx) + self.heny
-            self.heny = self.henb * self.henx
-            self.henx = henxtemp
-            x_draw = int((self.henx-self.xleft) * self.xratio)
-            y_draw = int((self.heny-self.ybottom) * self.yratio)
-            
-            if (0 < x_draw < self.window_width) and (0 < y_draw < self.window_height):
-                self.window_representation[x_draw][y_draw] = 0xFFFFFFFF
-                self.drawn_pixels += 1
               
     def mousePressEvent(self, event):
         
@@ -100,6 +74,7 @@ class Henon(QtOpenGL.QGLWidget):
         
         if event.button() == QtCore.Qt.LeftButton:
             self.do_not_draw = True
+            self.parent.give_stop_signal()           
             self.select_begin = QtCore.QPoint(event.pos())
             self.rubberBand.setGeometry(QtCore.QRect(self.select_begin, QtCore.QSize()))
             self.rubberBand.show()
@@ -198,8 +173,6 @@ class Henon(QtOpenGL.QGLWidget):
       
         self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
         self.updateGL()
-        
-        self.parent.statusBar().showMessage(self.tr("Press space to zoom out again"))
 
     def reset_scale(self):
         
@@ -209,4 +182,7 @@ class Henon(QtOpenGL.QGLWidget):
         self.ybottom = -0.4
         self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
         self.updateGL()
-        self.parent.statusBar().showMessage(self.tr("Ready"))
+        
+    def restart(self):
+        self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
+        self.updateGL()
