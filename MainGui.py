@@ -5,11 +5,11 @@ import HenonResources
 from HenonUpdate import HenonUpdate
 from HenonWidget import HenonWidget
 from HenonCalc import HenonCalc
+from HenonHelp import HenonHelp
 
 """
 TODO
 
-Implement help file
 Implement dialog for setting a,b values
 One thread for animations of the whole attractor in a,b space
 
@@ -125,6 +125,11 @@ class MainGui(QtGui.QMainWindow):
         # processes will continue after window close otherwise
         self.stop_calculation()
 
+    def open_help_dialog(self):
+        help_dialog = HenonHelp(self)
+        help_dialog.setModal(True)
+        help_dialog.show()        
+
     def create_main_frame(self):
         
         self.Henon_widget = HenonWidget(self)
@@ -192,6 +197,14 @@ class MainGui(QtGui.QMainWindow):
            
         self.help_menu = self.menuBar().addMenu(self.tr("Help"))
 
+        tip = self.tr("Help information")        
+        help_action = QtGui.QAction(self.tr("Help..."), self)
+        help_action.setIcon(QtGui.QIcon(":info.png"))
+        help_action.triggered.connect(self.open_help_dialog)         
+        help_action.setToolTip(tip)
+        help_action.setStatusTip(tip)
+        help_action.setShortcut('H')
+
         tip = self.tr("About the application")        
         about_action = QtGui.QAction(self.tr("About..."), self)
         about_action.setIcon(QtGui.QIcon(":info.png"))
@@ -200,4 +213,5 @@ class MainGui(QtGui.QMainWindow):
         about_action.setStatusTip(tip)
         about_action.setShortcut('F1')
 
+        self.help_menu.addAction(help_action)
         self.help_menu.addAction(about_action)
