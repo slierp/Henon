@@ -1,25 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 from PyQt4 import QtCore
-from time import sleep
 from random import uniform
-from multiprocessing import Process, Array, cpu_count
+from multiprocessing import Process, Array, Value, cpu_count
 import numpy as np
-import numpy.ma as ma
-
-class Signal(QtCore.QObject):
-    sig = QtCore.pyqtSignal()
+from math import log
 
 class HenonCalc(QtCore.QObject):
 
-    def __init__(self, _parent, _window_representation, _params):
+    def __init__(self, _window_representation, _params):
         QtCore.QObject.__init__(self)
         
-        self.parent = _parent
         self.window_representation = _window_representation
         self.params = _params
-        self.stop_signal = False
-        self.signal = Signal()
         
         self.xleft = self.params['xleft']
         self.ytop = self.params['ytop']
@@ -28,36 +21,55 @@ class HenonCalc(QtCore.QObject):
         self.hena = self.params['hena']
         self.henb = self.params['henb']
 
-        self.fast_calc = self.params['fast_calc']
         self.window_width = len(self.window_representation)
         self.window_height = len(self.window_representation[0])
         self.xratio = self.window_width/(self.xright-self.xleft) # ratio screenwidth to valuewidth
-        self.yratio = self.window_height/(self.ytop-self.ybottom)        
-        self.drawn_pixels = 0
+        self.yratio = self.window_height/(self.ytop-self.ybottom)
 
-    @QtCore.pyqtSlot()               
-    def run(self):        
-        
-        self.parent.statusBar().showMessage(self.tr("Calculating..."))        
+        self.cpu_number = cpu_count() # determines number of worker threads
 
-        mp_arr = Array('b', self.window_width*self.window_height) # shared array containing booleans for each pixel
+        # distribute work into separate tasks in order to enable GUI responsiveness
+        # for smaller areas we need more tasks and correspondingly lower thresholds
+        area = (self.xright - self.xleft) * (self.ytop - self.ybottom)
+        
+        # heavily optimized formula for calculating required number of iterations
+        # as a function of the number of screen pixels and the x,y space represented
+        # by it
+        self.iter_threshold = int(2 * abs(int(log(area)**2/log(2.4)**2)) *  self.window_width * self.window_height / self.cpu_number) 
+        
+#        print "Iteration threshold: " + str(self.iter_threshold) #DEBUG      
+        
+             
+    def run(self):
 
-        process_list = []
-        for i in range(cpu_count()):
-            process_list.append(Process(target=self.calc, args=([mp_arr]))) # independent process
-            process_list[i].start()
-        
-        for i in range(cpu_count()): # finish all calculations before continuing
-            process_list[i].join()
-        
-        arr = np.frombuffer(mp_arr.get_obj(), dtype=np.bool) # get calculation result
-        arr = arr.reshape((self.window_height,self.window_width))
-        arr = arr.T
-        self.window_representation[arr == True] = 0xFFFFFFFF # add newly calculated pixels
+        # shared array containing booleans for each pixel
+        # content is a flattened array so it needs to be deflattened later on
+        self.mp_arr = Array('b', self.window_width*self.window_height)
 
-        self.parent.statusBar().showMessage(self.tr("Ready"))
+        self.stop_signal = Value('b', False) # Boolean for sending stop signal
+
+        self.worker_list = []
+        for i in range(self.cpu_number):
+            self.worker_list.append(Process(target=self.worker, args=([i, self.mp_arr, self.stop_signal]))) # independent process
+            self.worker_list[i].start()                 
+
+    def read_array(self):                    
+            
+#        print "Copying results and sending screen re-draw signal" #DEBUG
+       
+        #with self.mp_arr.get_lock():
+        arr = np.frombuffer(self.mp_arr.get_obj(), dtype=np.bool) # get calculation result
+        arr = arr.reshape((self.window_height,self.window_width)) # deflatten array
+        arr = arr.T # height/width are switched around by default
+        self.window_representation[arr == True] = 0xFFFFFFFF # add newly calculated pixels            
+
+#        print "Pixels in screen window: " + str(self.window_width*self.window_height) #DEBUG
+#        print "Pixels in copied array: " + str(np.count_nonzero(arr)) #DEBUG 
+#        print "Pixels in window array: " + str(np.count_nonzero(self.window_representation)) #DEBUG
         
-    def calc(self,array):
+    def worker(self, run_number, array, stop_signal):      
+
+#        print "-- Worker " + str(run_number) + " has started --" #DEBUG
         
         henx = uniform(-0.1,0.1) # generate random starting points
         heny = uniform(-0.1,0.1)
@@ -67,23 +79,27 @@ class HenonCalc(QtCore.QObject):
             heny = self.henb * henx
             henx = henxtemp
 
-        max_pixels = int(0.1 * self.window_width * self.window_height / cpu_count())
+        iter_count = 0
 
-        while True:
-                    
-            if self.stop_signal:
-                break
+        while True:             
         
             henxtemp = 1-(self.hena*henx*henx) + heny
             heny = self.henb * henx
             henx = henxtemp
             x_draw = int((henx-self.xleft) * self.xratio)
-            y_draw = int((heny-self.ybottom) * self.yratio)
+            y_draw = int((heny-self.ybottom) * self.yratio)                        
             
             if (0 < x_draw < self.window_width) and (0 < y_draw < self.window_height):
-                array[(y_draw*self.window_width) + x_draw] = True                
-                self.drawn_pixels += 1
-                
-                if self.drawn_pixels >= max_pixels:
-                    break                
-        
+                array[(y_draw*self.window_width) + x_draw] = True
+                                        
+            iter_count += 1
+            
+            if (iter_count >= self.iter_threshold) or (stop_signal.value):
+                 break
+                        
+#        print "-- Worker " + str(run_number) + " has stopped --" #DEBUG
+                    
+    def stop(self):
+              
+        # send signal to stop workers
+        self.stop_signal.value = True

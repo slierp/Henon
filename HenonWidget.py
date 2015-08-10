@@ -34,6 +34,8 @@ class HenonWidget(QtOpenGL.QGLWidget):
         GL.glFlush()       
 
     def resizeGL(self, w, h):
+        
+#        print "Resize event..." #DEBUG        
 
         # clear screen
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
@@ -74,7 +76,7 @@ class HenonWidget(QtOpenGL.QGLWidget):
         
         if event.button() == QtCore.Qt.LeftButton:
             self.do_not_draw = True
-            self.parent.give_stop_signal()           
+            self.parent.stop_calculation()           
             self.select_begin = QtCore.QPoint(event.pos())
             self.rubberBand.setGeometry(QtCore.QRect(self.select_begin, QtCore.QSize()))
             self.rubberBand.show()
@@ -172,17 +174,15 @@ class HenonWidget(QtOpenGL.QGLWidget):
         self.ybottom = temp_ybottom
       
         self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
-        self.updateGL()
 
     def reset_scale(self):
-        
+#        print "Resetting scale and redrawing screen..." #DEBUG        
         self.xleft = -1.5
         self.ytop = 0.4
         self.xright = 1.5
         self.ybottom = -0.4
         self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
-        self.updateGL()
         
     def restart(self):
+#        print "Redrawing screen..." #DEBUG        
         self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
-        self.updateGL()
