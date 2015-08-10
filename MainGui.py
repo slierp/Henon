@@ -50,7 +50,7 @@ class MainGui(QtGui.QMainWindow):
         self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels        
 
     def on_about(self):
-        msg = self.tr("Henon explorer\n\n- Author: Ronald Naber (rnaber@tempress.nl)\n- License: Public domain")
+        msg = self.tr("Henon explorer\n\n- Author: Ronald Naber\n- License: Public domain")
         QtGui.QMessageBox.about(self, self.tr("About the application"), msg)
 
     def keyPressEvent(self, e):
