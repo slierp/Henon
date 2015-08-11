@@ -14,7 +14,7 @@ class HenonCalc(QtCore.QObject):
     def __init__(self, _params):
         QtCore.QObject.__init__(self)
         
-        print "[HenonCalc] Initialization" #DEBUG
+#        print "[HenonCalc] Initialization" #DEBUG
         self.params = _params
         self.signal = Signal()
         self.quit_signal = Signal()
@@ -53,7 +53,7 @@ class HenonCalc(QtCore.QObject):
         if (self.workers_started): # fix strange problem where run command is started twice by QThread
             return
 
-        print "[HenonCalc] Starting workers" #DEBUG
+#        print "[HenonCalc] Starting workers" #DEBUG
 
         for i in range(self.thread_count):
             self.worker_list[i].start()
@@ -62,7 +62,7 @@ class HenonCalc(QtCore.QObject):
         
     def worker(self, run_number, array, interval_flags, stop_signal):      
 
-        print "[HenonCalc] Worker " + str(run_number) + " has started" #DEBUG
+#        print "[HenonCalc] Worker " + str(run_number) + " has started" #DEBUG
         
         henx = uniform(-0.1,0.1) # generate random starting points
         heny = uniform(-0.1,0.1)
@@ -93,25 +93,26 @@ class HenonCalc(QtCore.QObject):
             if iter_count % self.plot_interval == 0:
                 interval_flags[run_number] = True
             
-            if (iter_count >= self.max_iter) or (stop_signal.value):
-                 if (run_number == 0):
-                     # sends message to HenonUpdate to stop when max_iter reached
-                     # and stops thread
-                     self.stop_signal.value = True
-                     self.quit_signal.sig.emit() # stop thread
-                 return
+            if (iter_count >= self.max_iter):
+                if (run_number == 0):
+                    # sends message to HenonUpdate to stop when max_iter reached
+                    self.stop_signal.value = True
+                    self.quit_signal.sig.emit() # stop thread
+                break
+            elif (stop_signal.value):
+                break
                         
-        print "[HenonCalc] Worker " + str(run_number) + " has stopped" #DEBUG
+#        print "[HenonCalc] Worker " + str(run_number) + " has stopped" #DEBUG     
                     
     def stop(self):
               
         # send signal to stop workers
-        print "[HenonCalc] Received stop signal" #DEBUG
+#        print "[HenonCalc] Received stop signal" #DEBUG
         self.stop_signal.value = True
         
         for i in range(self.thread_count):
             self.worker_list[i].join()
             self.worker_list[i].terminate()
-            print "[HenonCalc] Worker " + str(i) + " terminated" #DEBUG            
+#            print "[HenonCalc] Worker " + str(i) + " terminated" #DEBUG            
             
         self.quit_signal.sig.emit() # stop thread

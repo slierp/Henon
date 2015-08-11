@@ -92,7 +92,19 @@ class MainGui(QtGui.QMainWindow):
         #    self.Henon_widget.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
         #    self.animate()            
 
+    def wait_thread_end(self, thread):
+        
+        while True:            
+            if thread.isRunning():
+                thread.quit()
+            else:
+                return
+
     def initialize_calculation(self):
+        
+        # make sure threads have finished
+        self.wait_thread_end(self.qt_thread0)
+        self.wait_thread_end(self.qt_thread1)          
         
         if self.first_run:
             self.first_run = False
@@ -111,12 +123,12 @@ class MainGui(QtGui.QMainWindow):
         if (not self.max_iter): # sanity check
             self.max_iter = 1
 
-        print "[MainGui] Plot area: " + str(area) #DEBUG
-        print "[MainGui] Window width: " + str(self.Henon_widget.window_width) #DEBUG
-        print "[MainGui] Window height: " + str(self.Henon_widget.window_height) #DEBUG
-        print "[MainGui] Thread count: " + str(self.thread_count) #DEBUG            
-        print "[MainGui] Maximum iterations: " + str(self.max_iter) #DEBUG
-        print "[MainGui] Plot interval for iterations: " + str(self.plot_interval) #DEBUG
+#        print "[MainGui] Plot area: " + str(area) #DEBUG
+#        print "[MainGui] Window width: " + str(self.Henon_widget.window_width) #DEBUG
+#        print "[MainGui] Window height: " + str(self.Henon_widget.window_height) #DEBUG
+#        print "[MainGui] Thread count: " + str(self.thread_count) #DEBUG            
+#        print "[MainGui] Maximum iterations: " + str(self.max_iter) #DEBUG
+#        print "[MainGui] Plot interval for iterations: " + str(self.plot_interval) #DEBUG
         
         # set widget plot area
         self.Henon_widget.xleft = self.xleft

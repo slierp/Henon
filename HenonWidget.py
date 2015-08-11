@@ -30,7 +30,7 @@ class HenonWidget(QtOpenGL.QGLWidget):
 
     def resizeGL(self, w, h):
         
-        print "[HenonWidget] Resize event" #DEBUG        
+#        print "[HenonWidget] Resize event" #DEBUG        
 
         # clear screen
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
