@@ -3,16 +3,21 @@ from __future__ import division
 from PyQt4 import QtCore
 from random import uniform
 from multiprocessing import Process, Array, Value
-import numpy as np
 from math import isinf, isnan
+
+
+class Signal(QtCore.QObject):
+    sig = QtCore.pyqtSignal()
 
 class HenonCalc(QtCore.QObject):
 
-    def __init__(self, _window_representation, _params):
+    def __init__(self, _params):
         QtCore.QObject.__init__(self)
         
-        self.window_representation = _window_representation
+        print "[HenonCalc] Initialization" #DEBUG
         self.params = _params
+        self.signal = Signal()
+        self.quit_signal = Signal()
         
         self.xleft = self.params['xleft']
         self.ytop = self.params['ytop']
@@ -23,41 +28,41 @@ class HenonCalc(QtCore.QObject):
         self.window_width = self.params['window_width']
         self.window_height = self.params['window_height']
         self.thread_count = self.params['thread_count']
-        self.max_iter = self.params['max_iter'] 
+        self.max_iter = self.params['max_iter']
+        self.plot_interval = self.params['plot_interval']
 
         self.xratio = self.window_width/(self.xright-self.xleft)
         self.yratio = self.window_height/(self.ytop-self.ybottom)
-                     
-    def run(self):
 
         # shared array containing booleans for each pixel
         # content is a flattened array so it needs to be deflattened later on
         self.mp_arr = Array('b', self.window_width*self.window_height)
 
+        self.interval_flags = Array('b', self.thread_count) # Have worker tell us when a piece work is finished
+
         self.stop_signal = Value('b', False) # Boolean for sending stop signal
 
         self.worker_list = []
         for i in range(self.thread_count):
-            self.worker_list.append(Process(target=self.worker, args=([i, self.mp_arr, self.stop_signal]))) # independent process
-            self.worker_list[i].start()                 
-
-    def read_array(self):                    
+            self.worker_list.append(Process(target=self.worker, args=([i, self.mp_arr, self.interval_flags, self.stop_signal]))) # independent process
             
-#        print "Copying results and sending screen re-draw signal" #DEBUG
-       
-        #with self.mp_arr.get_lock():
-        arr = np.frombuffer(self.mp_arr.get_obj(), dtype=np.bool) # get calculation result
-        arr = arr.reshape((self.window_height,self.window_width)) # deflatten array
-        arr = arr.T # height/width are switched around by default
-        self.window_representation[arr == True] = 0xFFFFFFFF # add newly calculated pixels            
+        self.workers_started = False
+                     
+    def run(self):
 
-#        print "Pixels in screen window: " + str(self.window_width*self.window_height) #DEBUG
-#        print "Pixels in copied array: " + str(np.count_nonzero(arr)) #DEBUG 
-#        print "Pixels in window array: " + str(np.count_nonzero(self.window_representation)) #DEBUG
+        if (self.workers_started): # fix strange problem where run command is started twice by QThread
+            return
+
+        print "[HenonCalc] Starting workers" #DEBUG
+
+        for i in range(self.thread_count):
+            self.worker_list[i].start()
+            
+        self.workers_started = True            
         
-    def worker(self, run_number, array, stop_signal):      
+    def worker(self, run_number, array, interval_flags, stop_signal):      
 
-#        print "-- Worker " + str(run_number) + " has started --" #DEBUG
+        print "[HenonCalc] Worker " + str(run_number) + " has started" #DEBUG
         
         henx = uniform(-0.1,0.1) # generate random starting points
         heny = uniform(-0.1,0.1)
@@ -85,12 +90,28 @@ class HenonCalc(QtCore.QObject):
                                         
             iter_count += 1
             
+            if iter_count % self.plot_interval == 0:
+                interval_flags[run_number] = True
+            
             if (iter_count >= self.max_iter) or (stop_signal.value):
-                 break
+                 if (run_number == 0):
+                     # sends message to HenonUpdate to stop when max_iter reached
+                     # and stops thread
+                     self.stop_signal.value = True
+                     self.quit_signal.sig.emit() # stop thread
+                 return
                         
-#        print "-- Worker " + str(run_number) + " has stopped --" #DEBUG
+        print "[HenonCalc] Worker " + str(run_number) + " has stopped" #DEBUG
                     
     def stop(self):
               
         # send signal to stop workers
+        print "[HenonCalc] Received stop signal" #DEBUG
         self.stop_signal.value = True
+        
+        for i in range(self.thread_count):
+            self.worker_list[i].join()
+            self.worker_list[i].terminate()
+            print "[HenonCalc] Worker " + str(i) + " terminated" #DEBUG            
+            
+        self.quit_signal.sig.emit() # stop thread

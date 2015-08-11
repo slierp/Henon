@@ -9,10 +9,12 @@ from HenonHelp import HenonHelp
 from HenonSettings import HenonSettings
 from multiprocessing import cpu_count
 from math import log
+from copy import deepcopy
 
 """
 TODO
 
+Add setting for plot_interval
 One thread for animations of the whole attractor in a,b space
 
 """
@@ -46,6 +48,7 @@ class MainGui(QtGui.QMainWindow):
         self.xright = 1.5
         self.ybottom = -0.4
         self.thread_count = cpu_count()
+        self.plot_interval = 1
         self.max_iter = 1
         self.max_iter_auto = True
         self.full_screen = False
@@ -62,14 +65,8 @@ class MainGui(QtGui.QMainWindow):
         self.henb_anim = False
         self.animation_running = False
         
-        self.qt_thread0 = QtCore.QThread(self) # Separate Qt thread for generating regular update signals
-        self.update_instance = HenonUpdate() # Will generate screen update signals
-        self.update_instance.moveToThread(self.qt_thread0) # Move updater to separate thread
-        self.update_instance.signal.sig.connect(self.update_screen) # Get signal for screen updates      
-        self.qt_thread0.started.connect(self.update_instance.run) # Start updates when thread is started          
-        self.qt_thread0.start()
-        
-        self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels        
+        self.qt_thread0 = QtCore.QThread(self) # Separate Qt thread for generating regular update signals        
+        self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels              
 
     def on_about(self):
         msg = self.tr("H\xe9non explorer\n\n- Author: Ronald Naber\n- License: Public domain")
@@ -88,14 +85,12 @@ class MainGui(QtGui.QMainWindow):
 
     @QtCore.pyqtSlot()
     def update_screen(self):
-        
-        if self.qt_thread1.isRunning():
-            self.Henon_calc.read_array()
-            self.Henon_widget.updateGL()
+      
+        self.Henon_widget.updateGL()
             
-        if self.animation_running:
-            self.animate()
-            self.Henon_widget.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
+        #if self.animation_running:
+        #    self.Henon_widget.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
+        #    self.animate()            
 
     def initialize_calculation(self):
         
@@ -107,9 +102,21 @@ class MainGui(QtGui.QMainWindow):
             # heavily optimized formula for calculating required number of iterations
             # as a function of the number of screen pixels and the x,y space represented by it
             area = (self.xright - self.xleft) * (self.ytop - self.ybottom)        
-            self.max_iter = int(2 * abs(int(log(area)**2/log(2.4)**2)) *  self.Henon_widget.window_width * self.Henon_widget.window_height / self.thread_count) 
+            self.max_iter = int(2 * abs(log(area)**2/log(2.4)**2) *  self.Henon_widget.window_width * self.Henon_widget.window_height / self.thread_count)
+            self.plot_interval = 50000
+            
+        if self.plot_interval > self.max_iter: # sanity check
+            self.plot_interval = self.max_iter
+        
+        if (not self.max_iter): # sanity check
+            self.max_iter = 1
 
-#            print "Iteration threshold: " + str(self.max_iter) #DEBUG              
+        print "[MainGui] Plot area: " + str(area) #DEBUG
+        print "[MainGui] Window width: " + str(self.Henon_widget.window_width) #DEBUG
+        print "[MainGui] Window height: " + str(self.Henon_widget.window_height) #DEBUG
+        print "[MainGui] Thread count: " + str(self.thread_count) #DEBUG            
+        print "[MainGui] Maximum iterations: " + str(self.max_iter) #DEBUG
+        print "[MainGui] Plot interval for iterations: " + str(self.plot_interval) #DEBUG
         
         # set widget plot area
         self.Henon_widget.xleft = self.xleft
@@ -128,18 +135,32 @@ class MainGui(QtGui.QMainWindow):
         params['window_height'] = self.Henon_widget.window_height
         params['thread_count'] = self.thread_count
         params['max_iter'] = self.max_iter
+        params['plot_interval'] = self.plot_interval
 
-        self.Henon_calc = HenonCalc(self.Henon_widget.window_representation, params) # Will generate screen pixels
-        self.Henon_calc.moveToThread(self.qt_thread1) # Move to separate thread
-
-        self.qt_thread1.start()
-        self.qt_thread1.setPriority(QtCore.QThread.IdlePriority) # try to increase GUI responsiveness
+        # Henon_calc will start workers and wait for stop signal
+        self.Henon_calc = HenonCalc(params)
         
-        # qthread is started twice for unknown reasons, so perform run command separately
-        # do not connect to qthread started signal
-        self.Henon_calc.run()
+        # Henon_updateWill will wait for worker signals and then send screen update signals
+        self.Henon_update = HenonUpdate(self.Henon_calc.interval_flags, self.Henon_calc.stop_signal,\
+            deepcopy(self.thread_count), self.Henon_calc.mp_arr, deepcopy(params), self.Henon_widget.window_representation)        
+        
+        self.Henon_update.moveToThread(self.qt_thread0) # Move updater to separate thread
+        self.Henon_calc.moveToThread(self.qt_thread1)        
+        
+        # connecting like this appears crucial to make the thread run independently
+        # and prevent GUI freeze
+        self.qt_thread0.started.connect(self.Henon_update.run)
+        self.qt_thread1.started.connect(self.Henon_calc.run)
+        
+        self.Henon_update.signal.sig.connect(self.update_screen) # Get signal for screen updates
+        self.Henon_update.quit_signal.sig.connect(self.qt_thread0.quit) # Quit thread when finished
+        self.Henon_calc.quit_signal.sig.connect(self.qt_thread1.quit) # Quit thread when finished
+        
+        self.qt_thread0.start()
+        self.qt_thread1.start()
 
     def initialize_animation(self):
+        return
         
         if self.first_run:
             return
@@ -162,7 +183,8 @@ class MainGui(QtGui.QMainWindow):
 
         self.animation_running = True
         
-    def animate(self):        
+    def animate(self):
+        return        
         
         if (self.hena_anim):                
             if (self.hena < (self.hena_mid + 0.5*self.hena_range)):
@@ -206,8 +228,8 @@ class MainGui(QtGui.QMainWindow):
         self.statusBar().showMessage(self.tr("Restarting..."), 1000)
         self.Henon_widget.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
 
-    def stop_calculation(self):    
-        self.Henon_calc.stop()     
+    def stop_calculation(self):
+        self.Henon_calc.stop()
 
     def stop_user_command(self):
         self.statusBar().showMessage(self.tr("Sending stop signal..."), 1000)
