@@ -16,15 +16,23 @@ help_text = """
 
 <p>This program is for exploring the H&eacute;non map, which is defined by:</p><br>
 
-<code>x[n+1] = a - x[n]^2 + b * y[n]</code><br>
-<code>y[n+1] = x[n]</code><br>
+<code>x[n+1] = 1 - a * x[n]^2 + y[n]</code><br>
+<code>y[n+1] = b * x[n]</code><br>
 
-<p>A map is used for discontinuous time-dynamics. Starting from initial conditions x[0], y[0], and parameters a, b the map tells you what the system (x, y) looks like for n = 1, 2... (n to n+1 stands for an increase of a large body of time, like a second or an hour).</p>
+<p>A map definition such as this one is used in the field of discontinuous time-dynamics.
+Starting from initial conditions (x[0], y[0]) and parameters (a, b) the map tells you what the system (x, y)
+will look like for n = 1, 2... (n to n+1 stands for an increase of a large body of time, like a second or an hour).</p>
 
-<p>After start-up the program calculates a single orbit in the basin of the Hénon attractor and you get to see the resulting strange attractor of the Hénon map (with parameters a = 1.4, b = 0.3). The calculation stops automatically when the maximum iteration has been reached, which depends on screen size and x,y area.</p>
+<p>After start-up the program calculates a single orbit in the basin of the H&eacute;non attractor
+and you get to see the resulting strange attractor of the H&eacute;non map (with parameters a = 1.4, b = 0.3).
+The calculation stops automatically when the maximum iteration has been reached, which depends on screen size and x,y area.</p>
 
 <p>You can then do a few things:</p>
-<p>- Look at a portion of the screen by zooming in on it. Select a section of screen and the calculation starts over again; points that end up in the selected area are plotted. You can zoom in on the Hénon attractor indefinitely and all the while the image remains similar, but unlike Mandelbrot fractals, the calculation time increases sharply with zoom-factor. Press space or F5 to zoom out again.</p>
+<p>- Look at a portion of the screen by zooming in on it. Select a section of screen and
+the calculation starts over again; points that end up in the selected area are plotted.
+You can zoom in on the H&eacute;non attractor indefinitely and all the while the image remains similar,
+but unlike Mandelbrot fractals, the calculation time increases sharply with zoom-factor.
+Press space or F5 to zoom out again.</p>
 
 <p>- Show full-screen. Press 'F' to toggle the full-screen mode.</p>
 
@@ -45,9 +53,17 @@ To be implemented
 <p><h2><a name="animations">Animations</a></h2></p>
 To be implemented
 
-<p>In the set variables screen you can set the increment; the amount you want a or b changed for each 'animation-frame'. And you can set the range: the animation then starts at variable -0.5 * range and ends at variable +0.5 * range. You can switch which variable to animate using the 's' key. The animation starts running on key 'a'. Using the 'c' key you can toggle whether you want to clean the screen after each frame or just draw on top of each other.</p>
+<p>In the set variables screen you can set the increment; the amount you want a or b changed for each
+'animation-frame'. And you can set the range: the animation then starts at variable -0.5 * range and ends at
+variable +0.5 * range. You can switch which variable to animate using the 's' key. The animation starts running on key
+'a'. Using the 'c' key you can toggle whether you want to clean the screen after each frame or just draw on top of each other.</p>
 
-<p>Demo 1 is an animation that will ultimately show the 'start-up'screen. It starts with a stable point that doubles its period, as a function of b, and then becomes the attractor. Demo 2 is basically the same idea, except we're varying a instead of b. It also shows a crisis; the sudden disappearance of the attractor at a =± 1.2. When the attractor has formed more or less, you may notice the attractor 'faltering' a bit; disappearing for a little while. These must be periodic windows; reappearance of periodic behaviour. Note that the program does not return to your previous settings after completing a demo.</p>
+<p>Demo 1 is an animation that will ultimately show the 'start-up'screen. It starts with a stable point that doubles
+its period, as a function of b, and then becomes the attractor. Demo 2 is basically the same idea, except we're
+varying a instead of b. It also shows a crisis; the sudden disappearance of the attractor at a = &plusmn;1.2.
+When the attractor has formed more or less, you may notice the attractor 'faltering' a bit; disappearing for a little while.
+These must be periodic windows where there is a brief reappearance of periodic behaviour. Please note that the program does not return to
+your previous settings after completing a demo.</p>
 
 </body>
 </html>

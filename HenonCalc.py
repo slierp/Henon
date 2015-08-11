@@ -4,7 +4,7 @@ from PyQt4 import QtCore
 from random import uniform
 from multiprocessing import Process, Array, Value, cpu_count
 import numpy as np
-from math import log
+from math import log, isinf, isnan
 
 class HenonCalc(QtCore.QObject):
 
@@ -38,8 +38,7 @@ class HenonCalc(QtCore.QObject):
         self.iter_threshold = int(2 * abs(int(log(area)**2/log(2.4)**2)) *  self.window_width * self.window_height / self.cpu_number) 
         
 #        print "Iteration threshold: " + str(self.iter_threshold) #DEBUG      
-        
-             
+                     
     def run(self):
 
         # shared array containing booleans for each pixel
@@ -75,7 +74,7 @@ class HenonCalc(QtCore.QObject):
         heny = uniform(-0.1,0.1)
 
         for i in range(10): # prevent drawing first iterations
-            henxtemp = 1-(self.hena*henx*henx) + heny
+            henxtemp = 1-self.hena*(henx**2) + heny
             heny = self.henb * henx
             henx = henxtemp
 
@@ -86,11 +85,14 @@ class HenonCalc(QtCore.QObject):
             henxtemp = 1-(self.hena*henx*henx) + heny
             heny = self.henb * henx
             henx = henxtemp
-            x_draw = int((henx-self.xleft) * self.xratio)
-            y_draw = int((heny-self.ybottom) * self.yratio)                        
+            x_draw = (henx-self.xleft) * self.xratio
+            y_draw = (heny-self.ybottom) * self.yratio
             
-            if (0 < x_draw < self.window_width) and (0 < y_draw < self.window_height):
-                array[(y_draw*self.window_width) + x_draw] = True
+            if (not isinf(x_draw)) and (not isinf(y_draw)) and (not isnan(x_draw)) and (not isnan(y_draw)):                
+                # do not convert to int unless the number is finite
+                if (0 < int(x_draw) < self.window_width) and (0 < int(y_draw) < self.window_height):
+                    # draw pixel if it is inside the current display area
+                    array[(int(y_draw)*self.window_width) + int(x_draw)] = True
                                         
             iter_count += 1
             

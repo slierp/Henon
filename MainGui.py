@@ -6,6 +6,7 @@ from HenonUpdate import HenonUpdate
 from HenonWidget import HenonWidget
 from HenonCalc import HenonCalc
 from HenonHelp import HenonHelp
+from HenonSettings import HenonSettings
 
 """
 TODO
@@ -21,7 +22,7 @@ class MainGui(QtGui.QMainWindow):
         
         super(MainGui, self).__init__(parent)
         
-        self.setWindowTitle(self.tr("Henon explorer"))
+        self.setWindowTitle(self.tr("H\xe9non explorer")) #u'\xe9'
 
         ### Set initial geometry and center the window on the screen ###
         self.resize(1024, 576)
@@ -50,7 +51,7 @@ class MainGui(QtGui.QMainWindow):
         self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels        
 
     def on_about(self):
-        msg = self.tr("Henon explorer\n\n- Author: Ronald Naber\n- License: Public domain")
+        msg = self.tr("H\xe9non explorer\n\n- Author: Ronald Naber\n- License: Public domain")
         QtGui.QMessageBox.about(self, self.tr("About the application"), msg)
 
     def keyPressEvent(self, e):
@@ -130,6 +131,11 @@ class MainGui(QtGui.QMainWindow):
         help_dialog.setModal(True)
         help_dialog.show()        
 
+    def open_settings_dialog(self):
+        settings_dialog = HenonSettings(self)
+        settings_dialog.setModal(True)
+        settings_dialog.show() 
+
     def create_main_frame(self):
         
         self.Henon_widget = HenonWidget(self)
@@ -148,9 +154,25 @@ class MainGui(QtGui.QMainWindow):
     def create_menu(self):        
         self.run_menu = self.menuBar().addMenu(self.tr("Run"))      
 
-        tip = self.tr("Re-start")        
-        start_action = QtGui.QAction(self.tr("Re-start"), self)
-        start_action.setIcon(QtGui.QIcon(":play.png"))
+        tip = self.tr("Change settings")        
+        settings_action = QtGui.QAction(self.tr("Settings"), self)
+        settings_action.setIcon(QtGui.QIcon(":gear.png"))
+        settings_action.triggered.connect(self.open_settings_dialog)        
+        settings_action.setToolTip(tip)
+        settings_action.setStatusTip(tip)
+        settings_action.setShortcut('S')
+
+        tip = self.tr("Animate")        
+        animate_action = QtGui.QAction(self.tr("Animate"), self)
+        animate_action.setIcon(QtGui.QIcon(":play.png"))
+        #animate_action.triggered.connect(self.restart_calculation)        
+        animate_action.setToolTip(tip)
+        animate_action.setStatusTip(tip)
+        animate_action.setShortcut('A')
+
+        tip = self.tr("Re-draw screen")        
+        start_action = QtGui.QAction(self.tr("Re-draw"), self)
+        start_action.setIcon(QtGui.QIcon(":redo.png"))
         start_action.triggered.connect(self.restart_calculation)        
         start_action.setToolTip(tip)
         start_action.setStatusTip(tip)
@@ -172,6 +194,8 @@ class MainGui(QtGui.QMainWindow):
         quit_action.setStatusTip(tip)
         quit_action.setShortcut('Q')
         
+        self.run_menu.addAction(settings_action)
+        #self.run_menu.addAction(animate_action)
         self.run_menu.addAction(start_action)
         self.run_menu.addAction(stop_action)
         self.run_menu.addAction(quit_action)
@@ -180,6 +204,7 @@ class MainGui(QtGui.QMainWindow):
 
         tip = self.tr("Reset view")        
         reset_action = QtGui.QAction(self.tr("Reset view"), self)
+        reset_action.setIcon(QtGui.QIcon(":revert.png"))
         reset_action.triggered.connect(self.reset_view)         
         reset_action.setToolTip(tip)
         reset_action.setStatusTip(tip)
@@ -187,6 +212,7 @@ class MainGui(QtGui.QMainWindow):
 
         tip = self.tr("Toggle full-screen")        
         fullscreen_action = QtGui.QAction(self.tr("Full-screen"), self)
+        fullscreen_action.setIcon(QtGui.QIcon(":expand.png"))
         fullscreen_action.triggered.connect(self.toggle_full_screen)         
         fullscreen_action.setToolTip(tip)
         fullscreen_action.setStatusTip(tip)
@@ -199,7 +225,7 @@ class MainGui(QtGui.QMainWindow):
 
         tip = self.tr("Help information")        
         help_action = QtGui.QAction(self.tr("Help..."), self)
-        help_action.setIcon(QtGui.QIcon(":info.png"))
+        help_action.setIcon(QtGui.QIcon(":help.png"))
         help_action.triggered.connect(self.open_help_dialog)         
         help_action.setToolTip(tip)
         help_action.setStatusTip(tip)
