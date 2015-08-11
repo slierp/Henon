@@ -12,11 +12,6 @@ class HenonWidget(QtOpenGL.QGLWidget):
        
         self.parent = _parent
         
-        self.xleft = -1.5
-        self.ytop = 0.4
-        self.xright = 1.5
-        self.ybottom = -0.4
-        
         self.first_run = True
         self.do_not_draw = False # prevent re-draw during area selection
         
@@ -47,8 +42,8 @@ class HenonWidget(QtOpenGL.QGLWidget):
         self.window_representation = np.zeros([self.window_width,self.window_height], dtype=np.uint32)
         
         # calculate new x, y ratios
-        self.xratio = self.window_width/(self.xright-self.xleft) # ratio screenwidth to valuewidth
-        self.yratio = self.window_height/(self.ytop-self.ybottom)
+        self.xratio = self.window_width/(self.parent.xright-self.parent.xleft) # ratio screenwidth to valuewidth
+        self.yratio = self.window_height/(self.parent.ytop-self.parent.ybottom)
 
         # set mode to 2D        
         GL.glViewport(0, 0, w, h)
@@ -133,9 +128,9 @@ class HenonWidget(QtOpenGL.QGLWidget):
             else:                
                 right_edge = self.window_width                
         
-        temp_xleft = self.xleft + (self.xright - self.xleft)*(left_edge/self.window_width)
-        self.xright = self.xleft + (self.xright - self.xleft)*(right_edge/self.window_width)        
-        self.xleft = temp_xleft
+        temp_xleft = self.parent.xleft + (self.parent.xright - self.parent.xleft)*(left_edge/self.window_width)
+        self.parent.xright = self.parent.xleft + (self.parent.xright - self.parent.xleft)*(right_edge/self.window_width)        
+        self.parent.xleft = temp_xleft
 
         top_edge = 0
         bottom_edge = 0
@@ -169,20 +164,8 @@ class HenonWidget(QtOpenGL.QGLWidget):
         bottom_edge = self.window_height - bottom_edge
         top_edge = self.window_height - top_edge
         
-        temp_ybottom = self.ybottom + (self.ytop - self.ybottom)*(bottom_edge/self.window_height)
-        self.ytop = self.ybottom + (self.ytop - self.ybottom)*(top_edge/self.window_height)
-        self.ybottom = temp_ybottom
+        temp_ybottom = self.parent.ybottom + (self.parent.ytop - self.parent.ybottom)*(bottom_edge/self.window_height)
+        self.parent.ytop = self.parent.ybottom + (self.parent.ytop - self.parent.ybottom)*(top_edge/self.window_height)
+        self.parent.ybottom = temp_ybottom
       
-        self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
-
-    def reset_scale(self):
-#        print "Resetting scale and redrawing screen..." #DEBUG        
-        self.xleft = -1.5
-        self.ytop = 0.4
-        self.xright = 1.5
-        self.ybottom = -0.4
-        self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
-        
-    def restart(self):
-#        print "Redrawing screen..." #DEBUG        
         self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))

@@ -16,4 +16,4 @@ class HenonUpdate(QtCore.QObject):
     def run(self):
         while True:
             self.signal.sig.emit()
-            sleep(0.2)
+            sleep(0.5)

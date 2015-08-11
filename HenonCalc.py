@@ -2,9 +2,9 @@
 from __future__ import division
 from PyQt4 import QtCore
 from random import uniform
-from multiprocessing import Process, Array, Value, cpu_count
+from multiprocessing import Process, Array, Value
 import numpy as np
-from math import log, isinf, isnan
+from math import isinf, isnan
 
 class HenonCalc(QtCore.QObject):
 
@@ -20,24 +20,13 @@ class HenonCalc(QtCore.QObject):
         self.ybottom = self.params['ybottom']
         self.hena = self.params['hena']
         self.henb = self.params['henb']
+        self.window_width = self.params['window_width']
+        self.window_height = self.params['window_height']
+        self.thread_count = self.params['thread_count']
+        self.max_iter = self.params['max_iter'] 
 
-        self.window_width = len(self.window_representation)
-        self.window_height = len(self.window_representation[0])
-        self.xratio = self.window_width/(self.xright-self.xleft) # ratio screenwidth to valuewidth
+        self.xratio = self.window_width/(self.xright-self.xleft)
         self.yratio = self.window_height/(self.ytop-self.ybottom)
-
-        self.cpu_number = cpu_count() # determines number of worker threads
-
-        # distribute work into separate tasks in order to enable GUI responsiveness
-        # for smaller areas we need more tasks and correspondingly lower thresholds
-        area = (self.xright - self.xleft) * (self.ytop - self.ybottom)
-        
-        # heavily optimized formula for calculating required number of iterations
-        # as a function of the number of screen pixels and the x,y space represented
-        # by it
-        self.iter_threshold = int(2 * abs(int(log(area)**2/log(2.4)**2)) *  self.window_width * self.window_height / self.cpu_number) 
-        
-#        print "Iteration threshold: " + str(self.iter_threshold) #DEBUG      
                      
     def run(self):
 
@@ -48,7 +37,7 @@ class HenonCalc(QtCore.QObject):
         self.stop_signal = Value('b', False) # Boolean for sending stop signal
 
         self.worker_list = []
-        for i in range(self.cpu_number):
+        for i in range(self.thread_count):
             self.worker_list.append(Process(target=self.worker, args=([i, self.mp_arr, self.stop_signal]))) # independent process
             self.worker_list[i].start()                 
 
@@ -96,7 +85,7 @@ class HenonCalc(QtCore.QObject):
                                         
             iter_count += 1
             
-            if (iter_count >= self.iter_threshold) or (stop_signal.value):
+            if (iter_count >= self.max_iter) or (stop_signal.value):
                  break
                         
 #        print "-- Worker " + str(run_number) + " has stopped --" #DEBUG
