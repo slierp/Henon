@@ -14,8 +14,7 @@ from copy import deepcopy
 """
 TODO
 
-Add setting for plot_interval
-One thread for animations of the whole attractor in a,b space
+Add demo menu items for a,b animations
 
 """
 
@@ -55,8 +54,8 @@ class MainGui(QtGui.QMainWindow):
         self.first_run = True
         
         # animation settings
-        self.hena_mid = 0.75
-        self.hena_range = 1.0
+        self.hena_mid = 0.8
+        self.hena_range = 1.2
         self.hena_increment = 0.05
         self.hena_anim = False
         self.henb_mid = -0.05
@@ -64,12 +63,6 @@ class MainGui(QtGui.QMainWindow):
         self.henb_increment = 0.05
         self.henb_anim = False
         self.animation_running = False
-        
-        # run default animation
-        #self.iter_auto_mode = False
-        #self.max_iter = 50000
-        #self.plot_interval = 50000
-        #self.henb_anim = True
         
         self.qt_thread0 = QtCore.QThread(self) # Separate Qt thread for generating regular update signals        
         self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels              
@@ -95,6 +88,7 @@ class MainGui(QtGui.QMainWindow):
         self.Henon_widget.updateGL()
             
         if self.animation_running:
+#            print "[MainGui] Starting next resize event for animation" #DEBUG
             self.Henon_widget.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
             self.animate()            
 
@@ -123,6 +117,11 @@ class MainGui(QtGui.QMainWindow):
             self.max_iter = int(0.5 * abs(log(area)**2/log(2.4)**2) *  self.Henon_widget.window_width * self.Henon_widget.window_height / self.thread_count)
             self.plot_interval = int(200000/self.thread_count)
 #            print "[MainGui] Plot area: " + str(area) #DEBUG
+            
+        if self.animation_running:
+            # in case of animation, override previous and set to following low values
+            self.max_iter = 50000
+            self.plot_interval = 5000
             
         if self.plot_interval > self.max_iter: # sanity check
             self.plot_interval = self.max_iter
@@ -171,6 +170,7 @@ class MainGui(QtGui.QMainWindow):
             self.qt_thread0.started.connect(self.Henon_update.run)
         else:
             self.qt_thread0.started.connect(self.Henon_update.run_anim)
+            
         self.qt_thread1.started.connect(self.Henon_calc.run)
         
         self.Henon_update.signal.sig.connect(self.update_screen) # Get signal for screen updates
@@ -185,13 +185,13 @@ class MainGui(QtGui.QMainWindow):
         if self.first_run:
             return
         
-#        print "[MainGui] Starting animation" #DEBUG        
-        
-        self.stop_calculation()
-        
         if (not self.hena_anim) and (not self.henb_anim):
             # cannot animate if no variables are selected for animation
             return
+
+#        print "[MainGui] Starting animation" #DEBUG
+
+        self.stop_calculation()
 
         if (self.hena_anim):
             self.hena = self.hena_mid - 0.5*self.hena_range
@@ -201,19 +201,30 @@ class MainGui(QtGui.QMainWindow):
 
         self.animation_running = True
         
-        self.update_screen()
+        self.Henon_widget.resizeEvent(QtGui.QResizeEvent(self.size(), self.size())) # start first animate event
         
     def animate(self):       
         
-        if (self.hena_anim):                
+        if self.hena_anim and self.henb_anim:
+            if (self.hena < (self.hena_mid + 0.5*self.hena_range)) and (self.henb < (self.henb_mid + 0.5*self.henb_range)):
+                self.hena += self.hena_increment
+                self.henb += self.henb_increment
+                self.statusBar().showMessage("a = " + str(self.hena) + "; b = " + str(self.henb))
+            elif (self.hena < (self.hena_mid + 0.5*self.hena_range)):
+                self.hena += self.hena_increment
+            elif (self.henb < (self.henb_mid + 0.5*self.henb_range)):
+                self.henb += self.henb_increment
+            else:
+                self.animation_running = False                
+                return                                    
+        elif (self.hena_anim):                
             if (self.hena < (self.hena_mid + 0.5*self.hena_range)):
                 self.hena += self.hena_increment
                 self.statusBar().showMessage("a = " + str(self.hena))                   
             else:
                 self.animation_running = False                
-                return
-                
-        if (self.henb_anim):
+                return                
+        elif (self.henb_anim):
             if (self.henb < (self.henb_mid + 0.5*self.henb_range)):
                 self.henb += self.henb_increment
                 self.statusBar().showMessage("b = " + str(self.henb))

@@ -36,7 +36,7 @@ class HenonUpdate(QtCore.QObject):
         if (self.updates_started): # fix strange problem where run command is started twice by QThread
             return
 
-#        print "[HenonUpdate] Starting screen updates" #DEBUG
+#        print "[HenonUpdate] Ready for screen updates" #DEBUG
         
         self.updates_started = True
         

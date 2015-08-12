@@ -120,7 +120,7 @@ class HenonSettings(QtGui.QDialog):
         vbox.addLayout(hbox)
 
         hbox = QtGui.QHBoxLayout()           
-        spec = QtGui.QLabel("<b>Animation settings (TO BE IMPLEMENTED)</b>")
+        spec = QtGui.QLabel("<b>Animation settings</b>")
         hbox.addWidget(spec)
         hbox.addStretch(1)
         vbox.addLayout(hbox)  
