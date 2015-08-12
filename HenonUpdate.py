@@ -7,6 +7,9 @@ import numpy as np
 class Signal(QtCore.QObject):
     sig = QtCore.pyqtSignal()
 
+    def __init__(self):
+        QtCore.QObject.__init__(self)    
+
 class HenonUpdate(QtCore.QObject):
 
     def __init__(self, _interval_flags, _stop_signal, _thread_count, _mp_arr, _params, _window_representation):
@@ -38,26 +41,27 @@ class HenonUpdate(QtCore.QObject):
         self.updates_started = True
         
         while True:          
-            
-            self.wait_for_interval()
 
             if self.stop_signal.value:
 #                print "[HenonUpdate] Received stop signal" #DEBUG
                 self.quit_signal.sig.emit()
-                return            
+                return
+            
+            self.wait_for_interval()            
             
             self.interval_flags[:] = [False]*self.thread_count
             
             delta = datetime.now() - self.time_prev
             
-            if (delta.microseconds < 1e5): # do not try to redraw screen faster than necessary; can freeze up GUI
+            if (delta.microseconds < 1e4): # do not try to redraw screen faster than necessary; can freeze up GUI
 #                print "[HenonUpdate] Skipping a screen update as it is too soon" #DEBUG
                 continue
 
 #            print "[HenonUpdate] Copying results and sending screen re-draw signal" #DEBUG
            
             #with self.mp_arr.get_lock():
-            arr = np.frombuffer(self.mp_arr.get_obj(), dtype=np.bool) # get calculation result
+            arr = np.frombuffer(self.mp_arr, dtype=np.bool) # get calculation result
+            #arr = np.frombuffer(self.mp_arr.get_obj(), dtype=np.bool) # get calculation result
             arr = arr.reshape((self.window_height,self.window_width)) # deflatten array
             arr = arr.T # height/width are switched around by default
             self.window_representation[arr == True] = 0xFFFFFFFF # add newly calculated pixels            
