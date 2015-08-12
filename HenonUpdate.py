@@ -59,7 +59,6 @@ class HenonUpdate(QtCore.QObject):
 
 #            print "[HenonUpdate] Copying results and sending screen re-draw signal" #DEBUG
            
-            #with self.mp_arr.get_lock():
             arr = np.frombuffer(self.mp_arr, dtype=np.bool) # get calculation result
             #arr = np.frombuffer(self.mp_arr.get_obj(), dtype=np.bool) # get calculation result
             arr = arr.reshape((self.window_height,self.window_width)) # deflatten array
@@ -73,6 +72,32 @@ class HenonUpdate(QtCore.QObject):
 #            print "[HenonUpdate] Sending signal after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG
             self.signal.sig.emit()
             self.time_prev = datetime.now() 
+
+    def run_anim(self):
+        
+#        print "[HenonUpdate] Ready for animation screen update" #DEBUG
+
+        if (self.updates_started): # fix strange problem where run command is started twice by QThread
+            return
+        
+        self.updates_started = True
+            
+        while True:
+            if all(i for i in self.interval_flags):
+                break
+            elif self.stop_signal.value:
+                return
+
+#        print "[HenonUpdate] Animation screen update" #DEBUG
+        
+        arr = np.frombuffer(self.mp_arr, dtype=np.bool) # get calculation result
+        #arr = np.frombuffer(self.mp_arr.get_obj(), dtype=np.bool) # get calculation result
+        arr = arr.reshape((self.window_height,self.window_width)) # deflatten array
+        arr = arr.T # height/width are switched around by default
+        self.window_representation[arr == True] = 0xFFFFFFFF # add newly calculated pixels            
+    
+        self.signal.sig.emit()
+        self.quit_signal.sig.emit()        
 
     def wait_for_interval(self):
 

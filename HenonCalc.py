@@ -41,6 +41,8 @@ class HenonCalc(QtCore.QObject):
 
         # shared array containing booleans for each pixel
         # content is a flattened array so it needs to be deflattened later on
+        # RawArray implementation allows for copying local numpy array, which gives
+        # speed-up, but may give stability issues as well
         self.mp_arr = RawArray(ctypes.c_byte, self.window_width*self.window_height)
         #self.mp_arr = Array('b', self.window_width*self.window_height)
 
@@ -101,11 +103,15 @@ class HenonCalc(QtCore.QObject):
 
         while True:             
 
-            henxtemp = 1-(hena*henx**2) + heny
-            heny = henb * henx
-            henx = henxtemp
-            x_draw = (henx-xleft) * xratio
-            y_draw = (heny-ybottom) * yratio
+            try:
+                henxtemp = float(1-(hena*henx**2) + heny)
+                heny = float(henb * henx)
+                henx = henxtemp
+                x_draw = (henx-xleft) * xratio
+                y_draw = (heny-ybottom) * yratio
+            except OverflowError:
+#                print "[HenonCalc] Worker " + str(run_number) + " overflow" #DEBUG                
+                break
             
             if (not isinf(x_draw)) and (not isinf(y_draw)) and (not isnan(x_draw)) and (not isnan(y_draw)):                
                 # do not convert to int unless the number is finite
@@ -118,7 +124,9 @@ class HenonCalc(QtCore.QObject):
             
             if iter_count % plot_interval == 0:
                 # copy local array to multiprocessing array when plot_interval is reached
-                ctypes.memmove(array, local_array.data[:], len(local_array.data))                 
+                arr = np.frombuffer(array, dtype=ctypes.c_byte) # get current array in numpy format
+                new_arr = np.bitwise_or(arr, local_array) # add newly calculated pixels
+                ctypes.memmove(array, new_arr.data[:], len(new_arr.data)) # copy result into shared array   
                 # indicate to HenonUpdate that we have some new pixels to draw
                 interval_flags[run_number] = True               
             
@@ -133,11 +141,12 @@ class HenonCalc(QtCore.QObject):
                 # quickly limits iteration time
                 if (stop_signal.value):
                     break
+
+        interval_flags[run_number] = True # send message to HenonUpdate to show end result
                         
 #        delta = datetime.now() - start_time #DEBUG             
                         
 #        print "[HenonCalc] Worker " + str(run_number) + " has stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG
-#        print "[HenonCalc] Pixels in local array: " + str(np.count_nonzero(local_array)) #DEBUG
                     
     def stop(self):
                       
