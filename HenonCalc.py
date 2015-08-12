@@ -4,7 +4,7 @@ from PyQt4 import QtCore
 from random import uniform
 from multiprocessing import Process, Array, Value
 from math import isinf, isnan
-
+#from datetime import datetime #DEBUG
 
 class Signal(QtCore.QObject):
     sig = QtCore.pyqtSignal()
@@ -62,6 +62,8 @@ class HenonCalc(QtCore.QObject):
         
     def worker(self, run_number, array, interval_flags, stop_signal):      
 
+#        start_time = datetime.now() #DEBUG
+
 #        print "[HenonCalc] Worker " + str(run_number) + " has started" #DEBUG
         
         henx = uniform(-0.1,0.1) # generate random starting points
@@ -97,12 +99,13 @@ class HenonCalc(QtCore.QObject):
                 if (run_number == 0):
                     # sends message to HenonUpdate to stop when max_iter reached
                     self.stop_signal.value = True
-                    self.quit_signal.sig.emit() # stop thread
                 break
             elif (stop_signal.value):
                 break
                         
-#        print "[HenonCalc] Worker " + str(run_number) + " has stopped" #DEBUG     
+#        delta = datetime.now() - start_time #DEBUG             
+                        
+#        print "[HenonCalc] Worker " + str(run_number) + " has stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG       
                     
     def stop(self):
               
@@ -110,9 +113,11 @@ class HenonCalc(QtCore.QObject):
 #        print "[HenonCalc] Received stop signal" #DEBUG
         self.stop_signal.value = True
         
-        for i in range(self.thread_count):
-            self.worker_list[i].join()
-            self.worker_list[i].terminate()
-#            print "[HenonCalc] Worker " + str(i) + " terminated" #DEBUG            
+        #for i in range(self.thread_count):
+            # terminate worker threads if alive
+        #    if self.worker_list[i].is_alive():
+        #        self.worker_list[i].join()
+        #        self.worker_list[i].terminate()
+#        #        print "[HenonCalc] Worker " + str(i) + " terminated" #DEBUG            
             
         self.quit_signal.sig.emit() # stop thread

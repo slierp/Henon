@@ -50,7 +50,7 @@ class HenonUpdate(QtCore.QObject):
             
             delta = datetime.now() - self.time_prev
             
-            if (delta.microseconds < 2e5): # do not try redraw screen too fast
+            if (delta.microseconds < 1e5): # do not try to redraw screen faster than necessary; can freeze up GUI
 #                print "[HenonUpdate] Skipping a screen update as it is too soon" #DEBUG
                 continue
 
@@ -66,7 +66,7 @@ class HenonUpdate(QtCore.QObject):
 #            print "[HenonUpdate] Pixels in copied array: " + str(np.count_nonzero(arr)) #DEBUG 
 #            print "[HenonUpdate] Pixels in window array: " + str(np.count_nonzero(self.window_representation)) #DEBUG
 
-#            print "[HenonUpdate] Sending signal after " + str(delta.microseconds) + " microseconds" #DEBUG
+#            print "[HenonUpdate] Sending signal after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG
             self.signal.sig.emit()
             self.time_prev = datetime.now() 
 

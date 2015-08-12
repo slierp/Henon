@@ -86,19 +86,35 @@ class HenonSettings(QtGui.QDialog):
         self.max_iter.setValue(self.parent.max_iter)
         self.max_iter.setSingleStep(1000)
         self.max_iter.setToolTip("Max iterations")
-        self.max_iter.valueChanged.connect(self.max_iter_auto_off)
+        self.max_iter.setDisabled(True)
         hbox.addWidget(self.max_iter) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
-        vbox.addLayout(hbox) 
+        vbox.addLayout(hbox)
+        
+        hbox = QtGui.QHBoxLayout()
+        description = QtGui.QLabel("Plot interval")
+        self.plot_interval = QtGui.QSpinBox()
+        self.plot_interval.setAccelerated(True)
+        self.plot_interval.setMaximum(999999999)
+        self.plot_interval.setMinimum(1)
+        self.plot_interval.setValue(self.parent.plot_interval)
+        self.plot_interval.setSingleStep(1000)
+        self.plot_interval.setToolTip("Plot interval")
+        self.plot_interval.setDisabled(True)
+        hbox.addWidget(self.plot_interval) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox.addLayout(hbox)         
 
         hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Max iterations auto-mode")
-        self.max_iter_auto = QtGui.QCheckBox()
-        self.max_iter_auto.setChecked(self.parent.max_iter_auto)
-        self.max_iter_auto.setToolTip("Max iterations auto-mode")
-        description.mouseReleaseEvent = self.switch_max_iter_auto
-        hbox.addWidget(self.max_iter_auto)
+        description = QtGui.QLabel("Auto-mode")
+        self.iter_auto_mode = QtGui.QCheckBox()
+        self.iter_auto_mode.setChecked(self.parent.iter_auto_mode)
+        self.iter_auto_mode.mouseReleaseEvent = self.switch_iter_auto_mode
+        self.iter_auto_mode.setToolTip("Auto-mode")
+        description.mouseReleaseEvent = self.switch_iter_auto_mode
+        hbox.addWidget(self.iter_auto_mode)
         hbox.addWidget(description)
         hbox.addStretch(1)                
         vbox.addLayout(hbox)
@@ -253,13 +269,11 @@ class HenonSettings(QtGui.QDialog):
         layout.addWidget(buttonbox)
         self.setMinimumWidth(512)
 
-    def max_iter_auto_off(self, event):
-        # turn off auto mode if user changes max iter setting
-        self.max_iter_auto.setChecked(False)
-
-    def switch_max_iter_auto(self, event):
+    def switch_iter_auto_mode(self, event):
         # function for making QLabel near checkbox clickable
-        self.max_iter_auto.setChecked(not self.max_iter_auto.isChecked())
+        self.iter_auto_mode.setChecked(not self.iter_auto_mode.isChecked())
+        self.max_iter.setDisabled(self.iter_auto_mode.isChecked())
+        self.plot_interval.setDisabled(self.iter_auto_mode.isChecked())
         
     def switch_hena_anim(self, event):
         # function for making QLabel near checkbox clickable
@@ -273,8 +287,13 @@ class HenonSettings(QtGui.QDialog):
 
         self.parent.hena = self.hena.value()
         self.parent.henb = self.henb.value()
-        self.parent.max_iter = self.max_iter.value()
-        self.parent.max_iter_auto = self.max_iter_auto.isChecked()
+        
+        if not self.iter_auto_mode.isChecked():
+            # only read it if auto mode is turned off
+            self.parent.max_iter = self.max_iter.value()
+            self.parent.plot_interval = self.plot_interval.value()
+        
+        self.parent.iter_auto_mode = self.iter_auto_mode.isChecked()
         self.parent.thread_count = self.thread_count.value()
         
         self.parent.hena_mid = self.hena_mid.value()

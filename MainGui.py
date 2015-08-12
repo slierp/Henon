@@ -48,9 +48,9 @@ class MainGui(QtGui.QMainWindow):
         self.xright = 1.5
         self.ybottom = -0.4
         self.thread_count = cpu_count()
-        self.plot_interval = 1
+        self.plot_interval = int(200000/self.thread_count)
         self.max_iter = 1
-        self.max_iter_auto = True
+        self.iter_auto_mode = True
         self.full_screen = False
         self.first_run = True
         
@@ -109,13 +109,13 @@ class MainGui(QtGui.QMainWindow):
         if self.first_run:
             self.first_run = False
 
-        if self.max_iter_auto: 
+        if self.iter_auto_mode: 
             # set default maximum number of iterations
             # heavily optimized formula for calculating required number of iterations
             # as a function of the number of screen pixels and the x,y space represented by it
             area = (self.xright - self.xleft) * (self.ytop - self.ybottom)        
-            self.max_iter = int(2 * abs(log(area)**2/log(2.4)**2) *  self.Henon_widget.window_width * self.Henon_widget.window_height / self.thread_count)
-            self.plot_interval = 50000
+            self.max_iter = int(abs(log(area)**2/log(2.4)**2) *  self.Henon_widget.window_width * self.Henon_widget.window_height / self.thread_count)
+            self.plot_interval = int(200000/self.thread_count)
             
         if self.plot_interval > self.max_iter: # sanity check
             self.plot_interval = self.max_iter
@@ -169,7 +169,7 @@ class MainGui(QtGui.QMainWindow):
         self.Henon_calc.quit_signal.sig.connect(self.qt_thread1.quit) # Quit thread when finished
         
         self.qt_thread0.start()
-        self.qt_thread1.start()
+        self.qt_thread1.start()     
 
     def initialize_animation(self):
         return
