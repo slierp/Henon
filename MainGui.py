@@ -89,6 +89,7 @@ class MainGui(QtGui.QMainWindow):
             
         if self.animation_running:
 #            print "[MainGui] Starting next resize event for animation" #DEBUG
+            self.statusBar().showMessage("a = " + str('%.2f' % self.hena) + "; b = " + str('%.2f' % self.henb))          
             self.Henon_widget.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
             self.animate()            
 
@@ -201,6 +202,8 @@ class MainGui(QtGui.QMainWindow):
 
         self.animation_running = True
         
+        self.statusBar().showMessage("a = " + str(self.hena) + "; b = " + str(self.henb))        
+        
         self.Henon_widget.resizeEvent(QtGui.QResizeEvent(self.size(), self.size())) # start first animate event
         
     def animate(self):       
@@ -209,7 +212,6 @@ class MainGui(QtGui.QMainWindow):
             if (self.hena < (self.hena_mid + 0.5*self.hena_range)) and (self.henb < (self.henb_mid + 0.5*self.henb_range)):
                 self.hena += self.hena_increment
                 self.henb += self.henb_increment
-                self.statusBar().showMessage("a = " + str(self.hena) + "; b = " + str(self.henb))
             elif (self.hena < (self.hena_mid + 0.5*self.hena_range)):
                 self.hena += self.hena_increment
             elif (self.henb < (self.henb_mid + 0.5*self.henb_range)):
@@ -219,15 +221,13 @@ class MainGui(QtGui.QMainWindow):
                 return                                    
         elif (self.hena_anim):                
             if (self.hena < (self.hena_mid + 0.5*self.hena_range)):
-                self.hena += self.hena_increment
-                self.statusBar().showMessage("a = " + str(self.hena))                   
+                self.hena += self.hena_increment                 
             else:
                 self.animation_running = False                
                 return                
         elif (self.henb_anim):
             if (self.henb < (self.henb_mid + 0.5*self.henb_range)):
                 self.henb += self.henb_increment
-                self.statusBar().showMessage("b = " + str(self.henb))
             else:
                 self.animation_running = False                
                 return 
