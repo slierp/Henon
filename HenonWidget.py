@@ -76,6 +76,8 @@ class HenonWidget(QtOpenGL.QGLWidget):
             self.select_begin = QtCore.QPoint(event.pos())
             self.rubberBand.setGeometry(QtCore.QRect(self.select_begin, QtCore.QSize()))
             self.rubberBand.show()
+        elif event.button() == QtCore.Qt.RightButton:
+            self.parent.reset_view()                   
      
     def mouseMoveEvent(self, event):
 

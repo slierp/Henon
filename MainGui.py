@@ -72,11 +72,8 @@ class MainGui(QtGui.QMainWindow):
         msg = self.tr("H\xe9non explorer\n\n- Author: Ronald Naber\n- License: Public domain")
         QtGui.QMessageBox.about(self, self.tr("About the application"), msg)
 
-    def keyPressEvent(self, e):
-        if (e.key() == QtCore.Qt.Key_Space):
-            # reset view with F5 or space
-            self.reset_view()              
-        elif (e.key() == QtCore.Qt.Key_Escape):
+    def keyPressEvent(self, e):             
+        if (e.key() == QtCore.Qt.Key_Escape):
             # exit full-screen mode with escape button or stop calculation
             if (self.full_screen):                
                 self.toggle_full_screen()

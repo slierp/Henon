@@ -31,7 +31,7 @@ The calculation stops automatically when the maximum iteration has been reached,
 <p><b>Zoom in</b></p>
 Look at a portion of the screen by selecting an area. The selection will trigger a new calculation and points that end up in the selected area are shown.
 You can zoom in on the H&eacute;non attractor indefinitely and all the while the image remains similar, but unlike Mandelbrot fractals,
-the calculation time increases sharply with zoom-factor. Press space or F5 to zoom out again.
+the calculation time increases sharply with zoom-factor. Press F5 or use right mouse click to zoom out again.
 
 <p><b>Show full-screen</b></p>
 Press 'F' to toggle the full-screen mode.
@@ -43,8 +43,8 @@ Press 'S' to open a settings dialog.
 You can see the H&eacute;non map as its are parameters are changing. See the Animation section.
 
 <p><b>Generic actions</b></p>
-- Stop current calculation. To bail out of just about anything, press ESC.
-- Re-start the calculation. If you wish to re-start the calculation using the current settings, press R.
+- Stop current calculation. To bail out of just about anything, press ESC.<br>
+- Re-start the calculation. If you wish to re-start the calculation using the current settings, press R.<br>
 - Quit program. Press Q.
 
 <p><h2><a name="settings">Settings dialog</a></h2></p>
