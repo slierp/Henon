@@ -24,8 +24,8 @@ class HenonWidget(QtOpenGL.QGLWidget):
             return
         
         # set color and draw pixels
-        GL.glColor3f(1.0, 1.0, 1.0)        
-        GL.glDrawPixels(self.window_width, self.window_height, GL.GL_RGBA, GL.GL_UNSIGNED_INT_8_8_8_8, np.ascontiguousarray(self.window_representation.transpose()))
+        GL.glColor3f(1.0, 1.0, 1.0)
+        GL.glDrawPixels(self.window_width, self.window_height, GL.GL_LUMINANCE, GL.GL_UNSIGNED_BYTE, np.ascontiguousarray(self.window_representation))
         GL.glFlush()       
 
     def resizeGL(self, w, h):
@@ -36,10 +36,11 @@ class HenonWidget(QtOpenGL.QGLWidget):
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
         self.window_width = w
+        self.window_width += 2 # correction for bug/feature that causes incorrect width given to resizeGL
         self.window_height = h
 
         # make new window representation
-        self.window_representation = np.zeros([self.window_width,self.window_height], dtype=np.uint32)
+        self.window_representation = np.zeros((self.window_height,self.window_width), dtype=np.byte)
         
         # calculate new x, y ratios
         self.xratio = self.window_width/(self.parent.xright-self.parent.xleft) # ratio screenwidth to valuewidth

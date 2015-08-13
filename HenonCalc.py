@@ -39,8 +39,7 @@ class HenonCalc(QtCore.QObject):
         # content is a flattened array so it needs to be deflattened later on
         # RawArray implementation allows for copying local numpy array, which gives
         # speed-up, but may give stability issues as well
-        self.mp_arr = mp.RawArray(ctypes.c_byte, self.window_width*self.window_height)        
-        #self.mp_arr = Array('b', self.window_width*self.window_height)
+        self.mp_arr = mp.RawArray(ctypes.c_byte, self.window_width*self.window_height)
 
         self.interval_flags = mp.Array('b', self.thread_count) # Have worker tell us when a piece work is finished
 
@@ -148,7 +147,6 @@ class WorkerProcess(mp.Process):
                 # do not convert to int unless the number is finite
                 if (0 < int(x_draw) < window_width) and (0 < int(y_draw) < window_height):
                     # draw pixel if it is inside the current display area
-                    #array[(int(y_draw)*self.window_width) + int(x_draw)] = True
                     local_array[(int(y_draw)*window_width) + int(x_draw)] = True
                                         
             iter_count += 1
@@ -159,7 +157,7 @@ class WorkerProcess(mp.Process):
                 new_arr = np.bitwise_or(arr, local_array) # add newly calculated pixels
                 ctypes.memmove(self.array, new_arr.data[:], len(new_arr.data)) # copy result into shared array   
                 # indicate to HenonUpdate that we have some new pixels to draw
-                self.interval_flags[run_number] = True               
+                self.interval_flags[run_number] = True             
             
             if (iter_count >= max_iter):
                 if (run_number == 0):

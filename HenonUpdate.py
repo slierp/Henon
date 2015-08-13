@@ -60,10 +60,8 @@ class HenonUpdate(QtCore.QObject):
 #            print "[HenonUpdate] Copying results and sending screen re-draw signal" #DEBUG
            
             arr = np.frombuffer(self.mp_arr, dtype=np.bool) # get calculation result
-            #arr = np.frombuffer(self.mp_arr.get_obj(), dtype=np.bool) # get calculation result
             arr = arr.reshape((self.window_height,self.window_width)) # deflatten array
-            arr = arr.T # height/width are switched around by default
-            self.window_representation[arr == True] = 0xFFFFFFFF # add newly calculated pixels            
+            self.window_representation[arr == True] = 255 # add newly calculated pixels            
     
 #            print "[HenonUpdate] Pixels in screen window: " + str(self.window_width*self.window_height) #DEBUG
 #            print "[HenonUpdate] Pixels in copied array: " + str(np.count_nonzero(arr)) #DEBUG 
@@ -91,10 +89,8 @@ class HenonUpdate(QtCore.QObject):
 #        print "[HenonUpdate] Animation screen update" #DEBUG
         
         arr = np.frombuffer(self.mp_arr, dtype=np.bool) # get calculation result
-        #arr = np.frombuffer(self.mp_arr.get_obj(), dtype=np.bool) # get calculation result
         arr = arr.reshape((self.window_height,self.window_width)) # deflatten array
-        arr = arr.T # height/width are switched around by default
-        self.window_representation[arr == True] = 0xFFFFFFFF # add newly calculated pixels            
+        self.window_representation[arr == True] = 255 # add newly calculated pixels            
     
         self.signal.sig.emit()
         self.quit_signal.sig.emit()        

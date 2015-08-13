@@ -9,7 +9,7 @@ help_text = """
 <h1>H&eacute;non explorer</h1>
 
 * <a href="#general">Introduction</a><br>
-* <a href="#settings">Change settings</a><br> 
+* <a href="#settings">Settings dialog</a><br> 
 * <a href="#animations">Animations</a><br>
 
 <p><h2><a name="general">Introduction</a></h2></p>
@@ -27,43 +27,54 @@ will look like for n = 1, 2... (n to n+1 stands for an increase of a large body 
 and you get to see the resulting strange attractor of the H&eacute;non map (with parameters a = 1.4, b = 0.3).
 The calculation stops automatically when the maximum iteration has been reached, which depends on screen size and x,y area.</p>
 
-<p>You can then do a few things:</p>
-<p>- Look at a portion of the screen by zooming in on it. Select a section of screen and
-the calculation starts over again; points that end up in the selected area are plotted.
-You can zoom in on the H&eacute;non attractor indefinitely and all the while the image remains similar,
-but unlike Mandelbrot fractals, the calculation time increases sharply with zoom-factor.
-Press space or F5 to zoom out again.</p>
+<p><h3>Possible actions</h3></p>
+<p><b>Zoom in</b></p>
+Look at a portion of the screen by selecting an area. The selection will trigger a new calculation and points that end up in the selected area are shown.
+You can zoom in on the H&eacute;non attractor indefinitely and all the while the image remains similar, but unlike Mandelbrot fractals,
+the calculation time increases sharply with zoom-factor. Press space or F5 to zoom out again.
 
-<p>- Show full-screen. Press 'F' to toggle the full-screen mode.</p>
+<p><b>Show full-screen</b></p>
+Press 'F' to toggle the full-screen mode.
 
-<p>- Change H&eacute;non map parameters. To be implemented.</p>
+<p><b>Change H&eacute;non map parameters</b></p>
+Press 'S' to open a settings dialog.
 
-<p>- Animate by varying H&eacute;non map parameters. To be implemented. See the Animation section.</p>
+<p><b>Run animations of the attractor</b></p>
+You can see the H&eacute;non map as its are parameters are changing. See the Animation section.
 
-<p>Other short-cuts:</p>
-<p>- Stop current calculation. To bail out of just about anything, press ESC.</p>
+<p><b>Generic actions</b></p>
+- Stop current calculation. To bail out of just about anything, press ESC.
+- Re-start the calculation. If you wish to re-start the calculation using the current settings, press R.
+- Quit program. Press Q.
 
-<p>- Re-start the calculation. If you wish to re-start the calculation using the current settings, press R.</p>
+<p><h2><a name="settings">Settings dialog</a></h2></p>
+The settings dialog can be opened by pressing 'S' or using the menu. In it you can define the H&eacute;non parameters a and b that you would like to try,
+set some calculation parameters and define animation settings. Please see the next section about animations.
 
-<p>- Quit program. Press Q.</p>
+<p><b>H&eacute;non map parameter definition</b></p>
+The definition of a and b is straightforward, but keep in mind that some settings may not yield a stable attractor or periodic behaviour, so the screen may remain empty.
 
-<p><h2><a name="settings">Change settings</a></h2></p>
-To be implemented
+<p><b>Thread count</b></p>
+The program runs several threads at the same time by default in order to speed up the calculations. The thread count is equal to the number of CPU's in the computer by default, but
+it can be set to a lower value.
+
+<p><b>Iteration settings</b></p>
+For control over the calculations it is possible to define the maximum iterations for each thread and define the iteration interval after which the result is drawn to screen.
+By default these settings are determined automatically by the program, which determines optimal settings based on the window size, zoom-level and the number of availabe threads.
+The user can disable the auto-mode and set their own values. Please keep in mind that some sanity checks are done before the calculation is started, so the program may change the
+entered settings. For the plot interval it should also be understood that there is also a minimum time defined between screen updates, so for very low plot interval values the program
+will drop some draw requests if they present themselves too soon after the previous one.
 
 <p><h2><a name="animations">Animations</a></h2></p>
-To be implemented
 
-<p>In the set variables screen you can set the increment; the amount you want a or b changed for each
-'animation-frame'. And you can set the range: the animation then starts at variable -0.5 * range and ends at
-variable +0.5 * range. You can switch which variable to animate using the 's' key. The animation starts running on key
-'a'. Using the 'c' key you can toggle whether you want to clean the screen after each frame or just draw on top of each other.</p>
+<p>In the settings dialog you can set the mid-point, range and increment for H&eacute;non parameters a and b in order to define the animation settings. You can also
+enable/disable animation of either parameter. The animation will start at (midpoint - 0.5 * range) and end when the range has been reached.
+The animations can be started by pressing 'A'. Please note that the program does not return to your previous settings after completing an animation.</p>
 
-<p>Demo 1 is an animation that will ultimately show the 'start-up'screen. It starts with a stable point that doubles
-its period, as a function of b, and then becomes the attractor. Demo 2 is basically the same idea, except we're
-varying a instead of b. It also shows a crisis; the sudden disappearance of the attractor at a = &plusmn;1.2.
-When the attractor has formed more or less, you may notice the attractor 'faltering' a bit; disappearing for a little while.
-These must be periodic windows where there is a brief reappearance of periodic behaviour. Please note that the program does not return to
-your previous settings after completing a demo.</p>
+<p>The default animation settings for a and b demonstrate the basic idea. For parameter 'B' it starts with a stable point that doubles
+its period a few times and then becomes the H&eacute;non attractor. For parameter 'A' the result is similar, but it also shows a crisis, i.e.
+the sudden disappearance of the attractor at a = &plusmn;1.2. When the attractor has formed more or less, you may notice that the attractor disappears a few times.
+These must be periodic windows where there is a brief reappearance of periodic behaviour.</p>
 
 </body>
 </html>

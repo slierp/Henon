@@ -24,7 +24,8 @@ class MainGui(QtGui.QMainWindow):
         
         super(MainGui, self).__init__(parent)
         
-        self.setWindowTitle(self.tr("H\xe9non explorer")) #u'\xe9'
+        self.setWindowTitle(self.tr("H\xe9non explorer"))
+        self.setWindowIcon(QtGui.QIcon(":HenonExplorer.png"))
 
         ### Set initial geometry and center the window on the screen ###
         self.resize(1024, 576)
