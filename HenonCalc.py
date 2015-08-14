@@ -147,7 +147,7 @@ class WorkerProcess(mp.Process):
                 # do not convert to int unless the number is finite
                 if (0 < int(x_draw) < window_width) and (0 < int(y_draw) < window_height):
                     # draw pixel if it is inside the current display area
-                    local_array[(int(y_draw)*window_width) + int(x_draw)] = True
+                    local_array[(int(y_draw)*window_width) + int(x_draw)] = True                 
                                         
             iter_count += 1
             

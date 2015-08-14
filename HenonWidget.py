@@ -36,11 +36,10 @@ class HenonWidget(QtOpenGL.QGLWidget):
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
         self.window_width = w
-        self.window_width += 2 # correction for bug/feature that causes incorrect width given to resizeGL
         self.window_height = h
 
         # make new window representation
-        self.window_representation = np.zeros((self.window_height,self.window_width), dtype=np.byte)
+        self.window_representation = np.zeros((self.window_height,self.window_width), float)#dtype=np.byte)
         
         # calculate new x, y ratios
         self.xratio = self.window_width/(self.parent.xright-self.parent.xleft) # ratio screenwidth to valuewidth
@@ -65,6 +64,12 @@ class HenonWidget(QtOpenGL.QGLWidget):
         
         # clear screen
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        
+        # avoid excess bytes at the end of rows
+        # gives drawing artefacts otherwise
+        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
+        GL.glPixelStorei(GL.GL_PACK_ALIGNMENT, 1)      
+        
               
     def mousePressEvent(self, event):
         
