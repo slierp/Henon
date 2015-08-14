@@ -17,6 +17,11 @@ class HenonWidget(QtOpenGL.QGLWidget):
         
         # For selecting areas        
         self.rubberBand = QtGui.QRubberBand(QtGui.QRubberBand.Rectangle, self)
+        
+        # For limiting resize events that follow each other too quickly,
+        # which is an issue on Windows
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.trigger_calculation)        
 
     def paintGL(self):
 
@@ -26,20 +31,20 @@ class HenonWidget(QtOpenGL.QGLWidget):
         # set color and draw pixels
         GL.glColor3f(1.0, 1.0, 1.0)
         GL.glDrawPixels(self.window_width, self.window_height, GL.GL_LUMINANCE, GL.GL_UNSIGNED_BYTE, np.ascontiguousarray(self.window_representation))
-        GL.glFlush()       
-
-    def resizeGL(self, w, h):
+        GL.glFlush()               
         
+    def resizeGL(self, w, h):
+    
 #        print "[HenonWidget] Resize event" #DEBUG        
 
         # clear screen
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
         self.window_width = w
-        self.window_height = h
-
+        self.window_height = h       
+        
         # make new window representation
-        self.window_representation = np.zeros((self.window_height,self.window_width), float)#dtype=np.byte)
+        self.window_representation = np.zeros((self.window_height,self.window_width), dtype=np.byte)
         
         # calculate new x, y ratios
         self.xratio = self.window_width/(self.parent.xright-self.parent.xleft) # ratio screenwidth to valuewidth
@@ -54,12 +59,18 @@ class HenonWidget(QtOpenGL.QGLWidget):
         GL.glLoadIdentity()
 
         if (not self.first_run):
-            # resize is called twice during start-up for some reason
-            # only initialize calculation threads when screen dimensions are fixed
-            self.parent.initialize_calculation()
+            # (re-)start timer for starting new calculation
+            # prevents too frequent calculation thread start-ups
+            self.timer.start(100)                    
         else:
+            # resize is called twice during start-up for some reason
             self.first_run = False
 
+    def trigger_calculation(self):
+        self.timer.stop()    
+        self.parent.stop_calculation()
+        self.parent.initialize_calculation()            
+            
     def initializeGL(self):
         
         # clear screen
@@ -68,8 +79,7 @@ class HenonWidget(QtOpenGL.QGLWidget):
         # avoid excess bytes at the end of rows
         # gives drawing artefacts otherwise
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-        GL.glPixelStorei(GL.GL_PACK_ALIGNMENT, 1)      
-        
+        GL.glPixelStorei(GL.GL_PACK_ALIGNMENT, 1)        
               
     def mousePressEvent(self, event):
         

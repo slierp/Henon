@@ -257,7 +257,8 @@ class MainGui(QtGui.QMainWindow):
         self.Henon_widget.trigger_resize_event()
 
     def stop_calculation(self):
-        self.Henon_calc.stop()
+        if (not self.first_run):
+            self.Henon_calc.stop()
 
     def stop_user_command(self):
         self.statusBar().showMessage(self.tr("Sending stop signal..."), 1000)
