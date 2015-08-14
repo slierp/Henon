@@ -18,10 +18,10 @@ class HenonWidget(QtOpenGL.QGLWidget):
         # For selecting areas        
         self.rubberBand = QtGui.QRubberBand(QtGui.QRubberBand.Rectangle, self)
         
-        # For limiting resize events that follow each other too quickly,
-        # which is an issue on Windows
+        # Delay new calculation some time after resize events to prevent
+        # slowing down GUI with heavy than necessary load
         self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.trigger_calculation)        
+        self.timer.timeout.connect(self.timer_trigger_calculation)        
 
     def paintGL(self):
 
@@ -35,7 +35,7 @@ class HenonWidget(QtOpenGL.QGLWidget):
         
     def resizeGL(self, w, h):
     
-#        print "[HenonWidget] Resize event" #DEBUG        
+        print "[HenonWidget] Resize event" #DEBUG        
 
         # clear screen
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
@@ -61,12 +61,12 @@ class HenonWidget(QtOpenGL.QGLWidget):
         if (not self.first_run):
             # (re-)start timer for starting new calculation
             # prevents too frequent calculation thread start-ups
-            self.timer.start(100)                    
+            self.timer.start(500)                    
         else:
             # resize is called twice during start-up for some reason
             self.first_run = False
 
-    def trigger_calculation(self):
+    def timer_trigger_calculation(self):
         self.timer.stop()    
         self.parent.stop_calculation()
         self.parent.initialize_calculation()            
@@ -186,8 +186,11 @@ class HenonWidget(QtOpenGL.QGLWidget):
         self.parent.ytop = self.parent.ybottom + (self.parent.ytop - self.parent.ybottom)*(top_edge/self.window_height)
         self.parent.ybottom = temp_ybottom
       
-        #self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
-        self.trigger_resize_event()
+        self.clear_screen()
+        self.parent.stop_calculation()
+        self.parent.initialize_calculation()
         
-    def trigger_resize_event(self):
-        self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
+    def clear_screen(self):
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+
+        self.window_representation = np.zeros((self.window_height,self.window_width), dtype=np.byte)     
