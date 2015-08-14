@@ -176,4 +176,8 @@ class HenonWidget(QtOpenGL.QGLWidget):
         self.parent.ytop = self.parent.ybottom + (self.parent.ytop - self.parent.ybottom)*(top_edge/self.window_height)
         self.parent.ybottom = temp_ybottom
       
+        #self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
+        self.trigger_resize_event()
+        
+    def trigger_resize_event(self):
         self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))

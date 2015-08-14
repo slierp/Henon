@@ -88,7 +88,7 @@ class MainGui(QtGui.QMainWindow):
         if self.animation_running:
 #            print "[MainGui] Starting next resize event for animation" #DEBUG
             self.statusBar().showMessage("a = " + str('%.2f' % self.hena) + "; b = " + str('%.2f' % self.henb))          
-            self.Henon_widget.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
+            self.Henon_widget.trigger_resize_event()
             self.animate()            
 
     def wait_thread_end(self, thread):
@@ -202,7 +202,7 @@ class MainGui(QtGui.QMainWindow):
         
         self.statusBar().showMessage("a = " + str(self.hena) + "; b = " + str(self.henb))        
         
-        self.Henon_widget.resizeEvent(QtGui.QResizeEvent(self.size(), self.size())) # start first animate event
+        self.Henon_widget.trigger_resize_event()
         
     def animate(self):       
         
@@ -237,7 +237,7 @@ class MainGui(QtGui.QMainWindow):
         self.ytop = 0.4
         self.xright = 1.5
         self.ybottom = -0.4
-        self.Henon_widget.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
+        self.Henon_widget.trigger_resize_event()
 
     def toggle_full_screen(self):
         self.stop_calculation()
@@ -254,7 +254,7 @@ class MainGui(QtGui.QMainWindow):
     def restart_calculation(self):
         self.stop_calculation()        
         self.statusBar().showMessage(self.tr("Restarting..."), 1000)
-        self.Henon_widget.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))
+        self.Henon_widget.trigger_resize_event()
 
     def stop_calculation(self):
         self.Henon_calc.stop()
