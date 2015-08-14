@@ -4,7 +4,7 @@ from PyQt4 import QtCore
 from random import uniform
 import multiprocessing as mp
 from math import isinf, isnan
-from datetime import datetime #DEBUG
+#from datetime import datetime #DEBUG
 import numpy as np
 import ctypes
 
@@ -19,7 +19,7 @@ class HenonCalc(QtCore.QObject):
     def __init__(self, _params):
         QtCore.QObject.__init__(self)
         
-        print "[HenonCalc] Initialization" #DEBUG
+#        print "[HenonCalc] Initialization" #DEBUG
         self.params = _params
         self.signal = Signal()
         self.quit_signal = Signal()
@@ -60,7 +60,7 @@ class HenonCalc(QtCore.QObject):
         if (self.workers_started): # fix strange problem where run command is started twice by QThread
             return
 
-        print "[HenonCalc] Starting workers" #DEBUG
+#        print "[HenonCalc] Starting workers" #DEBUG
 
         for i in range(self.thread_count):            
             self.worker_list[i].start()
@@ -69,7 +69,7 @@ class HenonCalc(QtCore.QObject):
                     
     def stop(self):
                       
-        print "[HenonCalc] Received stop signal" #DEBUG
+#        print "[HenonCalc] Received stop signal" #DEBUG
         self.stop_signal.value = True # send signal to HenonUpdate
 
         for i in range(self.thread_count):
@@ -94,14 +94,14 @@ class WorkerProcess(mp.Process):
         self.array, self.interval_flags, self.stop_signal = args[2]
 
     def shutdown(self):
-        print "[WorkerProcess] Worker " + str(self.run_number) + " shutdown initiated" #DEBUG
+#        print "[WorkerProcess] Worker " + str(self.run_number) + " shutdown initiated" #DEBUG
         self.exit.set()
 
     def run(self):
         
-        start_time = datetime.now() #DEBUG
+#        start_time = datetime.now() #DEBUG
 
-        print "[WorkerProcess] Worker " + str(self.run_number) + " has started" #DEBUG
+#        print "[WorkerProcess] Worker " + str(self.run_number) + " has started" #DEBUG
         
         henx = uniform(-0.1,0.1) # generate random starting points
         heny = uniform(-0.1,0.1)
@@ -140,7 +140,7 @@ class WorkerProcess(mp.Process):
                 x_draw = (henx-xleft) * xratio
                 y_draw = (heny-ybottom) * yratio
             except OverflowError:
-                print "[WorkerProcess] Worker " + str(run_number) + " overflow" #DEBUG                
+#                print "[WorkerProcess] Worker " + str(run_number) + " overflow" #DEBUG                
                 break
             
             if (not isinf(x_draw)) and (not isinf(y_draw)) and (not isnan(x_draw)) and (not isnan(y_draw)):                
@@ -167,6 +167,6 @@ class WorkerProcess(mp.Process):
 
         self.interval_flags[run_number] = True # send message to HenonUpdate to show end result
                         
-        delta = datetime.now() - start_time #DEBUG             
+#        delta = datetime.now() - start_time #DEBUG             
                         
-        print "[WorkerProcess] Worker " + str(run_number) + " has stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG        
+#        print "[WorkerProcess] Worker " + str(run_number) + " has stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG        

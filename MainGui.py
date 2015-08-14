@@ -86,7 +86,7 @@ class MainGui(QtGui.QMainWindow):
         self.Henon_widget.updateGL()
             
         if self.animation_running:
-            print "[MainGui] Starting next resize event for animation" #DEBUG
+#            print "[MainGui] Starting next resize event for animation" #DEBUG
             self.statusBar().showMessage("a = " + str('%.2f' % self.hena) + "; b = " + str('%.2f' % self.henb))          
             self.Henon_widget.clear_screen()
             self.stop_calculation()
@@ -117,7 +117,7 @@ class MainGui(QtGui.QMainWindow):
             area = (self.xright - self.xleft) * (self.ytop - self.ybottom)        
             self.max_iter = int(0.5 * abs(log(area)**2/log(2.4)**2) *  self.Henon_widget.window_width * self.Henon_widget.window_height / self.thread_count)
             self.plot_interval = int(200000/self.thread_count)
-            print "[MainGui] Plot area: " + str(area) #DEBUG
+#            print "[MainGui] Plot area: " + str(area) #DEBUG
             
         if self.animation_running:
             # in case of animation, override previous and set to following low values
@@ -130,11 +130,11 @@ class MainGui(QtGui.QMainWindow):
         if (not self.max_iter): # sanity check
             self.max_iter = 1
         
-        print "[MainGui] Window width: " + str(self.Henon_widget.window_width) #DEBUG
-        print "[MainGui] Window height: " + str(self.Henon_widget.window_height) #DEBUG
-        print "[MainGui] Thread count: " + str(self.thread_count) #DEBUG            
-        print "[MainGui] Maximum iterations: " + str(self.max_iter) #DEBUG
-        print "[MainGui] Plot interval for iterations: " + str(self.plot_interval) #DEBUG
+#        print "[MainGui] Window width: " + str(self.Henon_widget.window_width) #DEBUG
+#        print "[MainGui] Window height: " + str(self.Henon_widget.window_height) #DEBUG
+#        print "[MainGui] Thread count: " + str(self.thread_count) #DEBUG            
+#        print "[MainGui] Maximum iterations: " + str(self.max_iter) #DEBUG
+#        print "[MainGui] Plot interval for iterations: " + str(self.plot_interval) #DEBUG
         
         # set widget plot area
         self.Henon_widget.xleft = self.xleft
@@ -190,7 +190,7 @@ class MainGui(QtGui.QMainWindow):
             # cannot animate if no variables are selected for animation
             return
 
-        print "[MainGui] Starting animation" #DEBUG
+#        print "[MainGui] Starting animation" #DEBUG
 
         self.stop_calculation()
 

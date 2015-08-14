@@ -15,7 +15,7 @@ class HenonUpdate(QtCore.QObject):
     def __init__(self, _interval_flags, _stop_signal, _thread_count, _mp_arr, _params, _window_representation):
         QtCore.QObject.__init__(self)
         
-        print "[HenonUpdate] Initialization" #DEBUG
+#        print "[HenonUpdate] Initialization" #DEBUG
 
         self.signal = Signal()
         self.quit_signal = Signal()
@@ -36,14 +36,14 @@ class HenonUpdate(QtCore.QObject):
         if (self.updates_started): # fix strange problem where run command is started twice by QThread
             return
 
-        print "[HenonUpdate] Ready for screen updates" #DEBUG
+#        print "[HenonUpdate] Ready for screen updates" #DEBUG
         
         self.updates_started = True
         
         while True:          
 
             if self.stop_signal.value:
-                print "[HenonUpdate] Received stop signal" #DEBUG
+#                print "[HenonUpdate] Received stop signal" #DEBUG
                 self.quit_signal.sig.emit()
                 return
             
@@ -54,26 +54,26 @@ class HenonUpdate(QtCore.QObject):
             delta = datetime.now() - self.time_prev
             
             if (delta.microseconds < 1e4): # do not try to redraw screen faster than necessary; can freeze up GUI
-                print "[HenonUpdate] Skipping a screen update as it is too soon" #DEBUG
+#                print "[HenonUpdate] Skipping a screen update as it is too soon" #DEBUG
                 continue
 
-            print "[HenonUpdate] Copying results and sending screen re-draw signal" #DEBUG
+#            print "[HenonUpdate] Copying results and sending screen re-draw signal" #DEBUG
            
             arr = np.frombuffer(self.mp_arr, dtype=np.bool) # get calculation result
             arr = arr.reshape((self.window_height,self.window_width)) # deflatten array
             self.window_representation[arr == True] = 255 # add newly calculated pixels            
     
-            print "[HenonUpdate] Pixels in screen window: " + str(self.window_width*self.window_height) #DEBUG
-            print "[HenonUpdate] Pixels in copied array: " + str(np.count_nonzero(arr)) #DEBUG 
-            print "[HenonUpdate] Pixels in window array: " + str(np.count_nonzero(self.window_representation)) #DEBUG
+#            print "[HenonUpdate] Pixels in screen window: " + str(self.window_width*self.window_height) #DEBUG
+#            print "[HenonUpdate] Pixels in copied array: " + str(np.count_nonzero(arr)) #DEBUG 
+#            print "[HenonUpdate] Pixels in window array: " + str(np.count_nonzero(self.window_representation)) #DEBUG
 
-            print "[HenonUpdate] Sending signal after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG
+#            print "[HenonUpdate] Sending signal after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG
             self.signal.sig.emit()
             self.time_prev = datetime.now() 
 
     def run_anim(self):
         
-        print "[HenonUpdate] Ready for animation screen update" #DEBUG
+#        print "[HenonUpdate] Ready for animation screen update" #DEBUG
 
         if (self.updates_started): # fix strange problem where run command is started twice by QThread
             return
@@ -86,7 +86,7 @@ class HenonUpdate(QtCore.QObject):
             elif self.stop_signal.value:
                 return
 
-        print "[HenonUpdate] Animation screen update" #DEBUG
+#        print "[HenonUpdate] Animation screen update" #DEBUG
         
         arr = np.frombuffer(self.mp_arr, dtype=np.bool) # get calculation result
         arr = arr.reshape((self.window_height,self.window_width)) # deflatten array

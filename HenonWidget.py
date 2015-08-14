@@ -35,7 +35,7 @@ class HenonWidget(QtOpenGL.QGLWidget):
         
     def resizeGL(self, w, h):
     
-        print "[HenonWidget] Resize event" #DEBUG        
+#        print "[HenonWidget] Resize event" #DEBUG        
 
         # clear screen
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
@@ -192,5 +192,5 @@ class HenonWidget(QtOpenGL.QGLWidget):
         
     def clear_screen(self):
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-
-        self.window_representation = np.zeros((self.window_height,self.window_width), dtype=np.byte)     
+     
+        self.window_representation[:] = 0
