@@ -69,7 +69,7 @@ class MainGui(QtGui.QMainWindow):
         self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels              
 
     def on_about(self):
-        msg = self.tr("H\xe9non explorer\n\n- Author: Ronald Naber\n- License: Public domain")
+        msg = self.tr("H\xe9non explorer\n\nAuthor: Ronald Naber\nLicense: Public domain")
         QtGui.QMessageBox.about(self, self.tr("About the application"), msg)
 
     def keyPressEvent(self, e):             
@@ -86,10 +86,8 @@ class MainGui(QtGui.QMainWindow):
         self.Henon_widget.updateGL()
             
         if self.animation_running:
-#            print "[MainGui] Starting next resize event for animation" #DEBUG
-            self.statusBar().showMessage("a = " + str('%.2f' % self.hena) + "; b = " + str('%.2f' % self.henb))          
-            self.Henon_widget.clear_screen()
-            self.stop_calculation()
+#            print "[MainGui] Starting next animation cycle" #DEBUG
+            self.statusBar().showMessage("a = " + str('%.2f' % self.hena) + "; b = " + str('%.2f' % self.henb))
             self.initialize_calculation()
             self.animate()            
 
@@ -103,9 +101,13 @@ class MainGui(QtGui.QMainWindow):
 
     def initialize_calculation(self):
         
-        # make sure threads have finished
+        # stop any current calculation and make sure
+        # threads have finished before proceeding
+        self.stop_calculation()
         self.wait_thread_end(self.qt_thread0)
         self.wait_thread_end(self.qt_thread1)          
+
+        self.Henon_widget.clear_screen()
         
         if self.first_run:
             self.first_run = False
@@ -203,9 +205,7 @@ class MainGui(QtGui.QMainWindow):
         self.animation_running = True
         
         self.statusBar().showMessage("a = " + str(self.hena) + "; b = " + str(self.henb))        
-        
-        self.Henon_widget.clear_screen()
-        self.stop_calculation()
+
         self.initialize_calculation()
         
     def animate(self):       
@@ -234,15 +234,12 @@ class MainGui(QtGui.QMainWindow):
                 self.animation_running = False                
                 return 
 
-    def reset_view(self):
-        self.stop_calculation()        
+    def reset_view(self):       
         self.statusBar().showMessage(self.tr("Resetting view..."), 1000)
         self.xleft = -1.5
         self.ytop = 0.4
         self.xright = 1.5
         self.ybottom = -0.4
-        self.Henon_widget.clear_screen()
-        self.stop_calculation()
         self.initialize_calculation()
 
     def toggle_full_screen(self):
@@ -257,11 +254,8 @@ class MainGui(QtGui.QMainWindow):
             self.full_screen = False
         return            
 
-    def restart_calculation(self):
-        self.stop_calculation()        
+    def restart_calculation(self):       
         self.statusBar().showMessage(self.tr("Restarting..."), 1000)
-        self.Henon_widget.clear_screen()
-        self.stop_calculation()
         self.initialize_calculation()
 
     def stop_calculation(self):

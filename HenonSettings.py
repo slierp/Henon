@@ -247,17 +247,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)
         vbox.addLayout(hbox)
         vbox.addStretch(1)
-
-        ### Widget for scrollable area ###        
-        groupbox = QtGui.QGroupBox()
-        groupbox.setLayout(vbox)
-        
-        scroll = QtGui.QScrollArea()       
-        scroll.setWidget(groupbox)
-        scroll.setWidgetResizable(True)
         
         layout = QtGui.QVBoxLayout(self)
-        layout.addWidget(scroll)
+        layout.addLayout(vbox)
 
         ### Buttonbox for ok or cancel ###
         buttonbox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)

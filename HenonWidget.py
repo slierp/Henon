@@ -13,6 +13,7 @@ class HenonWidget(QtOpenGL.QGLWidget):
         self.parent = _parent
         
         self.first_run = True
+        self.second_run = False
         self.do_not_draw = False # prevent re-draw during area selection
         
         # For selecting areas        
@@ -28,10 +29,28 @@ class HenonWidget(QtOpenGL.QGLWidget):
         if self.do_not_draw:
             return
         
-        # set color and draw pixels
-        GL.glColor3f(1.0, 1.0, 1.0)
-        GL.glDrawPixels(self.window_width, self.window_height, GL.GL_LUMINANCE, GL.GL_UNSIGNED_BYTE, np.ascontiguousarray(self.window_representation))
-        GL.glFlush()               
+        # define texture and set image
+        tex = GL.glGenTextures(1)
+        GL.glBindTexture(GL.GL_TEXTURE_2D,tex)
+        GL.glTexParameteri(GL.GL_TEXTURE_2D,GL.GL_TEXTURE_MAG_FILTER,GL.GL_LINEAR)
+        GL.glTexParameteri(GL.GL_TEXTURE_2D,GL.GL_TEXTURE_MIN_FILTER,GL.GL_LINEAR )
+        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_LUMINANCE, self.window_width, self.window_height, 0, GL.GL_LUMINANCE, GL.GL_UNSIGNED_BYTE, None)
+        GL.glTexSubImage2D(GL.GL_TEXTURE_2D,0,0,0,self.window_width, self.window_height,GL.GL_LUMINANCE,GL.GL_UNSIGNED_BYTE,self.window_representation)
+
+        # define quad        
+        GL.glColor3ub( 255, 255, 255 )
+        GL.glEnable( GL.GL_TEXTURE_2D )
+        GL.glBindTexture( GL.GL_TEXTURE_2D, tex )
+        GL.glBegin(GL.GL_QUADS)
+        GL.glTexCoord2i( 0, 0 )
+        GL.glVertex2i( 0, 0 )
+        GL.glTexCoord2i( 1, 0 )
+        GL.glVertex2i( 1, 0 )
+        GL.glTexCoord2i( 1, 1 )
+        GL.glVertex2i( 1, 1 )
+        GL.glTexCoord2i( 0, 1 )
+        GL.glVertex2i( 0, 1 )
+        GL.glEnd()        
         
     def resizeGL(self, w, h):
     
@@ -50,21 +69,26 @@ class HenonWidget(QtOpenGL.QGLWidget):
         self.xratio = self.window_width/(self.parent.xright-self.parent.xleft) # ratio screenwidth to valuewidth
         self.yratio = self.window_height/(self.parent.ytop-self.parent.ybottom)
 
-        # set mode to 2D        
-        GL.glViewport(0, 0, w, h)
+        # set mode to 2D
         GL.glMatrixMode(GL.GL_PROJECTION)
         GL.glLoadIdentity()
-        GL.glOrtho(0.0, w, 0.0, h, 0.0, 1.0)
-        GL.glMatrixMode (GL.GL_MODELVIEW)
+        GL.glOrtho(0, 1, 0, 1, -1, 1)    
+        GL.glMatrixMode(GL.GL_MODELVIEW)
         GL.glLoadIdentity()
 
-        if (not self.first_run):
-            # (re-)start timer for starting new calculation
-            # prevents too frequent calculation thread start-ups
-            self.timer.start(500)                    
-        else:
+        if self.first_run:
             # resize is called twice during start-up for some reason
+            # so skip the first run
             self.first_run = False
+            self.second_run = True
+        elif self.second_run:
+            # second run can start calculation immediately
+            self.parent.initialize_calculation()
+            self.second_run = False
+        else:
+            # (re-)start timer for starting new calculation after resize event
+            # prevents too frequent calculation thread start-ups
+            self.timer.start(500)
 
     def timer_trigger_calculation(self):
         self.timer.stop()    
@@ -77,9 +101,30 @@ class HenonWidget(QtOpenGL.QGLWidget):
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         
         # avoid excess bytes at the end of rows
-        # gives drawing artefacts otherwise
+        # will give drawing artefacts otherwise
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-        GL.glPixelStorei(GL.GL_PACK_ALIGNMENT, 1)        
+        GL.glPixelStorei(GL.GL_PACK_ALIGNMENT, 1)
+        
+        # disable some OpenGL features to try to speed up drawing pixels
+        GL.glDisable(GL.GL_ALPHA_TEST)
+        GL.glDisable(GL.GL_BLEND)
+        GL.glDisable(GL.GL_DEPTH_TEST)
+        GL.glDisable(GL.GL_DITHER)
+        GL.glDisable(GL.GL_FOG)
+        GL.glDisable(GL.GL_LIGHTING)
+        GL.glDisable(GL.GL_LOGIC_OP)
+        GL.glDisable(GL.GL_STENCIL_TEST)
+        GL.glDisable(GL.GL_TEXTURE_1D)
+        GL.glDisable(GL.GL_TEXTURE_2D)        
+        GL.glPixelTransferi(GL.GL_MAP_COLOR, GL.GL_FALSE)
+        GL.glPixelTransferi(GL.GL_RED_SCALE, 1)
+        GL.glPixelTransferi(GL.GL_RED_BIAS, 0)
+        GL.glPixelTransferi(GL.GL_GREEN_SCALE, 1)
+        GL.glPixelTransferi(GL.GL_GREEN_BIAS, 0)
+        GL.glPixelTransferi(GL.GL_BLUE_SCALE, 1)
+        GL.glPixelTransferi(GL.GL_BLUE_BIAS, 0)
+        GL.glPixelTransferi(GL.GL_ALPHA_SCALE, 1)
+        GL.glPixelTransferi(GL.GL_ALPHA_BIAS, 0)       
               
     def mousePressEvent(self, event):
         
