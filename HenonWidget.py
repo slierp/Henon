@@ -29,28 +29,38 @@ class HenonWidget(QtOpenGL.QGLWidget):
         if self.do_not_draw:
             return
         
-        # define texture and set image
-        tex = GL.glGenTextures(1)
-        GL.glBindTexture(GL.GL_TEXTURE_2D,tex)
-        GL.glTexParameteri(GL.GL_TEXTURE_2D,GL.GL_TEXTURE_MAG_FILTER,GL.GL_LINEAR)
-        GL.glTexParameteri(GL.GL_TEXTURE_2D,GL.GL_TEXTURE_MIN_FILTER,GL.GL_LINEAR )
-        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_LUMINANCE, self.window_width, self.window_height, 0, GL.GL_LUMINANCE, GL.GL_UNSIGNED_BYTE, None)
-        GL.glTexSubImage2D(GL.GL_TEXTURE_2D,0,0,0,self.window_width, self.window_height,GL.GL_LUMINANCE,GL.GL_UNSIGNED_BYTE,self.window_representation)
+        GL.glColor3f(1.0,1.0,1.0)
+        GL.glDrawPixels(self.window_width, self.window_height, GL.GL_LUMINANCE, GL.GL_UNSIGNED_BYTE, np.ascontiguousarray(self.window_representation))
+        GL.glFlush()
 
-        # define quad        
-        GL.glColor3ub( 255, 255, 255 )
-        GL.glEnable( GL.GL_TEXTURE_2D )
-        GL.glBindTexture( GL.GL_TEXTURE_2D, tex )
-        GL.glBegin(GL.GL_QUADS)
-        GL.glTexCoord2i( 0, 0 )
-        GL.glVertex2i( 0, 0 )
-        GL.glTexCoord2i( 1, 0 )
-        GL.glVertex2i( 1, 0 )
-        GL.glTexCoord2i( 1, 1 )
-        GL.glVertex2i( 1, 1 )
-        GL.glTexCoord2i( 0, 1 )
-        GL.glVertex2i( 0, 1 )
-        GL.glEnd()        
+#    def paintGL(self):
+#
+#        if self.do_not_draw:
+#            return
+#
+#        # set scaling because texture is larger than Henon map image        
+#        GL.glPushMatrix()
+#        GL.glScaled(self.tex_width/self.window_width,self.tex_height/self.window_height,1)    
+#
+#        # redefine part of texture
+#        GL.glTexSubImage2D(GL.GL_TEXTURE_2D,0,0,0,self.tex_width,self.tex_height,GL.GL_LUMINANCE,GL.GL_UNSIGNED_BYTE,self.window_representation)
+#        
+#        # define quad to draw texture onto       
+#        GL.glColor3ub(255,255,255)      
+#        GL.glEnable(GL.GL_TEXTURE_2D)
+#        GL.glBindTexture(GL.GL_TEXTURE_2D,self.texture_id)
+#        GL.glBegin(GL.GL_QUADS)
+#        GL.glTexCoord2i(0,0)
+#        GL.glVertex2i(0,0)
+#        GL.glTexCoord2i(1,0)
+#        GL.glVertex2i(1,0)
+#        GL.glTexCoord2i(1,1)
+#        GL.glVertex2i(1,1)
+#        GL.glTexCoord2i(0,1)
+#        GL.glVertex2i(0,1)
+#        GL.glEnd()
+#
+#        GL.glPopMatrix()
         
     def resizeGL(self, w, h):
     
@@ -60,10 +70,15 @@ class HenonWidget(QtOpenGL.QGLWidget):
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
         self.window_width = w
-        self.window_height = h       
+        self.window_height = h
+        
+        # make larger texture size due to 2**n size requirement
+        #self.tex_width = self.calc_texture_size(w)
+        #self.tex_height = self.calc_texture_size(h)
         
         # make new window representation
         self.window_representation = np.zeros((self.window_height,self.window_width), dtype=np.byte)
+        #self.window_representation = np.zeros((self.tex_height,self.tex_width), dtype=np.byte)
         
         # calculate new x, y ratios
         self.xratio = self.window_width/(self.parent.xright-self.parent.xleft) # ratio screenwidth to valuewidth
@@ -72,9 +87,36 @@ class HenonWidget(QtOpenGL.QGLWidget):
         # set mode to 2D
         GL.glMatrixMode(GL.GL_PROJECTION)
         GL.glLoadIdentity()
-        GL.glOrtho(0, 1, 0, 1, -1, 1)    
+        
+        # set window coordinates (left/right/bottom/top)
+        GL.glOrtho(0, 1, 0, 1, -1, 1)
         GL.glMatrixMode(GL.GL_MODELVIEW)
         GL.glLoadIdentity()
+
+        # define texture
+        #self.do_not_draw = True # prevent drawing texture while changing it
+        #self.texture_id = GL.glGenTextures(1)
+        #GL.glBindTexture(GL.GL_TEXTURE_2D,self.texture_id)
+        #GL.glTexParameteri(GL.GL_TEXTURE_2D,GL.GL_TEXTURE_MAG_FILTER,GL.GL_LINEAR)
+        #GL.glTexParameteri(GL.GL_TEXTURE_2D,GL.GL_TEXTURE_MIN_FILTER,GL.GL_LINEAR)
+        #GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
+        #GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
+        #GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_LUMINANCE, self.tex_width, self.tex_height, 0, GL.GL_LUMINANCE, GL.GL_UNSIGNED_BYTE, None)
+        
+        # define quad to draw texture onto
+        #GL.glBindTexture(GL.GL_TEXTURE_2D,self.texture_id)
+        #GL.glBegin(GL.GL_QUADS)
+        #GL.glTexCoord2i(0,0)
+        #GL.glVertex2i(0,0)
+        #GL.glTexCoord2i(1,0)
+        #GL.glVertex2i(1,0)
+        #GL.glTexCoord2i(1,1)
+        #GL.glVertex2i(1,1)
+        #GL.glTexCoord2i(0,1)
+        #GL.glVertex2i(0,1)
+        #GL.glEnd()
+        
+        self.do_not_draw = False # resume drawing texture
 
         if self.first_run:
             # resize is called twice during start-up for some reason
@@ -90,12 +132,27 @@ class HenonWidget(QtOpenGL.QGLWidget):
             # prevents too frequent calculation thread start-ups
             self.timer.start(500)
 
+#    def calc_texture_size(self, number):
+#        # find n for 2**n that is just larger than the input number;
+#        # needed for fitting an arbitraty resolution image into a texture
+#        # that can only have 2**n width or length
+#        n = 0
+#        while True:
+#            size = 2**n
+#            
+#            if size > number:
+#                return size
+#                
+#            n += 1
+    
     def timer_trigger_calculation(self):
         self.timer.stop()    
         self.parent.stop_calculation()
         self.parent.initialize_calculation()            
             
     def initializeGL(self):
+
+#        print "OpenGL version information: " + GL.glGetString(GL.GL_VERSION) #DEBUG
         
         # clear screen
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)

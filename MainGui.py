@@ -14,7 +14,8 @@ from copy import deepcopy
 """
 TODO
 
-Add demo menu items for a,b animations
+Add setting for animation cycle delay
+Add warning: if delay is shorter than calculation time, nothing will be shown
 
 """
 
@@ -66,7 +67,11 @@ class MainGui(QtGui.QMainWindow):
         self.animation_running = False
         
         self.qt_thread0 = QtCore.QThread(self) # Separate Qt thread for generating regular update signals        
-        self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels              
+        self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels
+        
+        # timer for enabling a delay between animation cycles
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.run_animation_cycle)        
 
     def on_about(self):
         msg = self.tr("H\xe9non explorer\n\nAuthor: Ronald Naber\nLicense: Public domain")
@@ -88,8 +93,12 @@ class MainGui(QtGui.QMainWindow):
         if self.animation_running:
 #            print "[MainGui] Starting next animation cycle" #DEBUG
             self.statusBar().showMessage("a = " + str('%.2f' % self.hena) + "; b = " + str('%.2f' % self.henb))
-            self.initialize_calculation()
-            self.animate()            
+            self.timer.start(500)
+          
+    @QtCore.pyqtSlot()
+    def run_animation_cycle(self):
+        self.initialize_calculation()
+        self.animate()  
 
     def wait_thread_end(self, thread):
         
