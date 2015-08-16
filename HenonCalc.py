@@ -46,7 +46,7 @@ class HenonCalc(QtCore.QObject):
         self.stop_signal = mp.Value('b', False) # Boolean for sending stop signal
 
         vars_tuple = self.params['hena'],self.params['henb'],self.xleft,xratio,self.ybottom,yratio,self.params['plot_interval'],self.params['max_iter'],\
-            self.window_width,self.window_height
+            self.window_width,self.window_height, self.params['drop_iter']
         shared_tuple = self.mp_arr, self.interval_flags, self.stop_signal
 
         self.worker_list = []
@@ -90,7 +90,7 @@ class WorkerProcess(mp.Process):
         
         self.run_number = args[0]
         self.hena,self.henb,self.xleft,self.xratio,self.ybottom,self.yratio,self.plot_interval,self.max_iter,\
-            self.window_width,self.window_height = args[1]            
+            self.window_width,self.window_height, self.drop_iter = args[1]            
         self.array, self.interval_flags, self.stop_signal = args[2]
 
     def shutdown(self):
@@ -106,7 +106,7 @@ class WorkerProcess(mp.Process):
         henx = uniform(-0.1,0.1) # generate random starting points
         heny = uniform(-0.1,0.1)
 
-        for i in range(10): # prevent drawing first iterations
+        for i in range(self.drop_iter): # prevent drawing first iterations
             henxtemp = 1-self.hena*(henx**2) + heny
             heny = self.henb * henx
             henx = henxtemp

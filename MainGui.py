@@ -14,8 +14,8 @@ from copy import deepcopy
 """
 TODO
 
-Add setting for animation cycle delay
-Add warning: if delay is shorter than calculation time, nothing will be shown
+Add load/save settings feature
+Look into possibility of 3D imaging and animation (x,y,a/b plots)
 
 """
 
@@ -51,6 +51,7 @@ class MainGui(QtGui.QMainWindow):
         self.thread_count = cpu_count()
         self.plot_interval = int(200000/self.thread_count)
         self.max_iter = 1
+        self.drop_iter = 1000
         self.iter_auto_mode = True
         self.full_screen = False
         self.first_run = True
@@ -65,13 +66,16 @@ class MainGui(QtGui.QMainWindow):
         self.henb_increment = 0.05
         self.henb_anim = False
         self.animation_running = False
+        self.max_iter_anim = 50000
+        self.plot_interval_anim = 5000
+        self.animation_delay = 500
         
-        self.qt_thread0 = QtCore.QThread(self) # Separate Qt thread for generating regular update signals        
+        self.qt_thread0 = QtCore.QThread(self) # Separate Qt thread for generating screen update signals        
         self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels
         
         # timer for enabling a delay between animation cycles
         self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.run_animation_cycle)        
+        self.timer.timeout.connect(self.run_animation_cycle)
 
     def on_about(self):
         msg = self.tr("H\xe9non explorer\n\nAuthor: Ronald Naber\nLicense: Public domain")
@@ -92,8 +96,8 @@ class MainGui(QtGui.QMainWindow):
             
         if self.animation_running:
 #            print "[MainGui] Starting next animation cycle" #DEBUG
-            self.statusBar().showMessage("a = " + str('%.2f' % self.hena) + "; b = " + str('%.2f' % self.henb))
-            self.timer.start(500)
+            self.statusBar().showMessage("a = " + str('%.3f' % self.hena) + "; b = " + str('%.3f' % self.henb))
+            self.timer.start(self.animation_delay)
           
     @QtCore.pyqtSlot()
     def run_animation_cycle(self):
@@ -132,8 +136,8 @@ class MainGui(QtGui.QMainWindow):
             
         if self.animation_running:
             # in case of animation, override previous and set to following low values
-            self.max_iter = 50000
-            self.plot_interval = 5000
+            self.max_iter = self.max_iter_anim
+            self.plot_interval = self.plot_interval_anim
             
         if self.plot_interval > self.max_iter: # sanity check
             self.plot_interval = self.max_iter
@@ -165,6 +169,7 @@ class MainGui(QtGui.QMainWindow):
         params['thread_count'] = self.thread_count
         params['max_iter'] = self.max_iter
         params['plot_interval'] = self.plot_interval
+        params['drop_iter'] = self.drop_iter
 
         # Henon_calc will start workers and wait for stop signal
         self.Henon_calc = HenonCalc(params)
@@ -228,27 +233,36 @@ class MainGui(QtGui.QMainWindow):
             elif (self.henb < (self.henb_mid + 0.5*self.henb_range)):
                 self.henb += self.henb_increment
             else:
+                self.timer.stop()
                 self.animation_running = False                
                 return                                    
         elif (self.hena_anim):                
             if (self.hena < (self.hena_mid + 0.5*self.hena_range)):
                 self.hena += self.hena_increment                 
             else:
+                self.timer.stop()
                 self.animation_running = False                
                 return                
         elif (self.henb_anim):
             if (self.henb < (self.henb_mid + 0.5*self.henb_range)):
                 self.henb += self.henb_increment
             else:
+                self.timer.stop()
                 self.animation_running = False                
                 return 
 
     def reset_view(self):       
         self.statusBar().showMessage(self.tr("Resetting view..."), 1000)
+
         self.xleft = -1.5
         self.ytop = 0.4
         self.xright = 1.5
         self.ybottom = -0.4
+
+        if self.animation_running:
+            self.timer.stop()
+            self.animation_running = False
+            
         self.initialize_calculation()
 
     def toggle_full_screen(self):
@@ -263,7 +277,7 @@ class MainGui(QtGui.QMainWindow):
             self.full_screen = False
         return            
 
-    def restart_calculation(self):       
+    def restart_calculation(self):      
         self.statusBar().showMessage(self.tr("Restarting..."), 1000)
         self.initialize_calculation()
 
@@ -273,6 +287,11 @@ class MainGui(QtGui.QMainWindow):
 
     def stop_user_command(self):
         self.statusBar().showMessage(self.tr("Sending stop signal..."), 1000)
+        
+        if self.animation_running:
+            self.timer.stop()
+            self.animation_running = False
+            
         self.stop_calculation()       
 
     def closeEvent(self, event):

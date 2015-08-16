@@ -9,6 +9,7 @@ help_text = """
 <h1>H&eacute;non explorer</h1>
 
 * <a href="#general">Introduction</a><br>
+* <a href="#quick">Quick-start</a><br>
 * <a href="#settings">Settings dialog</a><br> 
 * <a href="#animations">Animations</a><br>
 
@@ -21,60 +22,78 @@ help_text = """
 
 <p>A map definition such as this one is used in the field of discontinuous time-dynamics.
 Starting from initial conditions (x[0], y[0]) and parameters (a, b) the map tells you what the system (x, y)
-will look like for n = 1, 2... (n to n+1 stands for an increase of a large body of time, like a second or an hour).</p>
+will look like for n = 1, 2... (n to n+1 stands for an increase of time, such as a second or an hour).</p>
 
-<p>After start-up the program calculates a single orbit in the basin of the H&eacute;non attractor
+<p>After start-up the program calculates one or more orbits in the basin of the H&eacute;non attractor
 and you get to see the resulting strange attractor of the H&eacute;non map (with parameters a = 1.4, b = 0.3).
-The calculation stops automatically when the maximum iteration has been reached, which depends on screen size and x,y area.</p>
+The calculation stops automatically when the maximum iteration limit has been reached, which depends on window size, area size
+and the number of CPU's available.</p>
 
-<p><h3>Possible actions</h3></p>
-<p><b>Zoom in</b></p>
+<p><h2><a name="quick">Quick-start</a></h2></p>
+<p>A quick overview of the program features:</p>
+<p><b>Zoom in</b><br>
 Look at a portion of the screen by selecting an area. The selection will trigger a new calculation and points that end up in the selected area are shown.
 You can zoom in on the H&eacute;non attractor indefinitely and all the while the image remains similar, but unlike Mandelbrot fractals,
-the calculation time increases sharply with zoom-factor. Press F5 or use right mouse click to zoom out again.
+the calculation time increases sharply with zoom-factor. Press F5 or use right mouse click to zoom out again.</p>
 
-<p><b>Show full-screen</b></p>
-Press 'F' to toggle the full-screen mode.
+<p><b>Show full-screen</b><br>
+Press 'F' to toggle the full-screen mode.</p>
 
-<p><b>Change H&eacute;non map parameters</b></p>
-Press 'S' to open a settings dialog.
+<p><b>Change H&eacute;non map parameters</b><br>
+Press 'S' to open a settings dialog.</p>
 
-<p><b>Run animations of the attractor</b></p>
-You can see the H&eacute;non map as its are parameters are changing. See the Animation section.
+<p><b>Run animations of the attractor</b><br>
+You can view the H&eacute;non map as its parameters are changing. See the Animation section for details.</p>
 
-<p><b>Generic actions</b></p>
-- Stop current calculation. To bail out of just about anything, press ESC.<br>
-- Re-start the calculation. If you wish to re-start the calculation using the current settings, press R.<br>
-- Quit program. Press Q.
+<p><b>Generic actions</b><br>
+- Stop current calculation with 'ESC'. To bail out of just about anything, press Escape.<br>
+- Re-start the calculation with 'R'. If you wish to re-start the calculation using the current settings, press 'R'.</p>
 
 <p><h2><a name="settings">Settings dialog</a></h2></p>
-The settings dialog can be opened by pressing 'S' or using the menu. In it you can define the H&eacute;non parameters a and b that you would like to try,
-set some calculation parameters and define animation settings. Please see the next section about animations.
+The settings dialog can be opened by pressing 'S'. In it you can define the H&eacute;non parameter values that you would like to try,
+define animations (in which the H&eacute;non parameter values are varied) and set some calculation parameters. Please see the next section about animations.
 
-<p><b>H&eacute;non map parameter definition</b></p>
-The definition of a and b is straightforward, but keep in mind that some settings may not yield a stable attractor or periodic behaviour, so the screen may remain empty.
+<p><b>General settings</b></p>
+<p>The definition of a and b is straightforward, but keep in mind that some settings may not yield a stable attractor or not even any periodic behaviour, so the screen may remain empty.</p>
 
-<p><b>Thread count</b></p>
-The program runs several threads at the same time by default in order to speed up the calculations. The thread count is equal to the number of CPU's in the computer by default, but
-it can be set to a lower value.
+<p>The viewing area can be set manually by selecting values for the left edge, bottom edge, width and height of the area. There are some restrictions to these values
+in order to prevent algorithm execution problems. These restrictions are enforced immediately after changing to a new value.</p>
 
-<p><b>Iteration settings</b></p>
-For control over the calculations it is possible to define the maximum iterations for each thread and define the iteration interval after which the result is drawn to screen.
-By default these settings are determined automatically by the program, which determines optimal settings based on the window size, zoom-level and the number of availabe threads.
+<p>For control over the calculations it is possible to define the maximum number of iterations for each thread and define the iteration interval after which the result is plotted to screen.
+By default these settings are determined automatically by the program, which calculates optimized settings based on the window size, zoom-level and the number of availabe threads.
 The user can disable the auto-mode and set their own values. Please keep in mind that some sanity checks are done before the calculation is started, so the program may change the
-entered settings. For the plot interval it should also be understood that there is also a minimum time defined between screen updates, so for very low plot interval values the program
-will drop some draw requests if they present themselves too soon after the previous one.
+entered settings. For the plot interval it should also be understood that there is also a minimum time defined between screen updates of 100 ms, so for very low plot interval values
+the program may drop some screen plot requests if they present themselves too soon after the previous one. These restrictions are in place to maintain the responsiveness of the user
+interface.</p>
+
+<p><b>Animation settings</b></p>
+<p>In the animation tab one can set the mid-point, range and increment for H&eacute;non parameters a and b in order to define the animation settings. ou can also
+select whether you want to animate either a or b or both at the same time. The animation will start at (midpoint - 0.5 * range) and end when the range limit has been reached.</p>
+
+<p>For animations it is necessary to lower the maximum number of iterations and plot interval compared to those used for viewing still images, so these values can be defined separately and have
+lower default values. The parameter itself is the same as for still images however.</p>
+
+<p>Please note that the program does not return to your previous settings after completing an animation. The a/b and iteration parameters remain as they are, although the iteration
+parameters are by default set automatically to optimized settings.</p>
+
+<p><b>Calculation settings</b></p>
+
+<p><b>Thread count</b><br>
+The program runs several threads at the same time by default in order to speed up the calculations. By default the thread count is equal to the number of CPU's detected, but
+it can be set to a lower value.</p>
+
+<p><b>Drop iterations</b><br>
+The number of dropped iterations that are performed for each thread can be set here. Each calculation thread starts from x,y values that are chosen randomly
+in the range of (-0.1,0.1), so that each thread can follow an independent path along the attractor, but the first few hundred iterations may not have reached the
+attractor yet, so this is why the program performs a few hundred iterations before it starts passing the information to the screen.</p>
 
 <p><h2><a name="animations">Animations</a></h2></p>
 
-<p>In the settings dialog you can set the mid-point, range and increment for H&eacute;non parameters a and b in order to define the animation settings. You can also
-enable/disable animation of either parameter. The animation will start at (midpoint - 0.5 * range) and end when the range has been reached.
-The animations can be started by pressing 'A'. Please note that the program does not return to your previous settings after completing an animation.</p>
-
-<p>The default animation settings for a and b demonstrate the basic idea. For parameter 'B' it starts with a stable point that doubles
-its period a few times and then becomes the H&eacute;non attractor. For parameter 'A' the result is similar, but it also shows a crisis, i.e.
-the sudden disappearance of the attractor at a = &plusmn;1.2. When the attractor has formed more or less, you may notice that the attractor disappears a few times.
-These must be periodic windows where there is a brief reappearance of periodic behaviour.</p>
+<p>The program has default animation settings that can be activated in the settings dialog by clicking on the 'Animate' checkboxes for parameter a or b. The animation can then be
+started in the main screen by pressing 'A'. These default animations demonstrate some general aspects of the H&eacute;non map. For parameter 'B' the animation starts with
+a stable point that doubles its period a few times before it grows into the H&eacute;non attractor. For parameter 'A' the animation features look similar but it also shows a crisis,
+i.e. the sudden disappearance of the attractor at a = &plusmn;1.2. When the attractor has formed almost fully you may notice that the attractor disappears again a few times.
+These must be periodic windows where there is a brief reappearance of periodic behaviour</p>
 
 </body>
 </html>
