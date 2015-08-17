@@ -54,7 +54,7 @@ class HenonSettings(QtGui.QDialog):
         vbox_tab_general.addLayout(hbox) 
 
         hbox = QtGui.QHBoxLayout()       
-        spec = QtGui.QLabel("<b>Viewing area<b>")
+        spec = QtGui.QLabel("<b>View settings<b>")
         hbox.addWidget(spec)
         hbox.addStretch(1)
         vbox_tab_general.addLayout(hbox)
@@ -114,6 +114,16 @@ class HenonSettings(QtGui.QDialog):
         hbox.addWidget(description)
         hbox.addStretch(1)                
         vbox_tab_general.addLayout(hbox)
+        
+        hbox = QtGui.QHBoxLayout()
+        description = QtGui.QLabel("Enlarge rare pixels")
+        self.enlarge_rare_pixels = QtGui.QCheckBox()
+        self.enlarge_rare_pixels.setChecked(self.parent.enlarge_rare_pixels)
+        description.mouseReleaseEvent = self.switch_enlarge_rare_pixels
+        hbox.addWidget(self.enlarge_rare_pixels)
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox_tab_general.addLayout(hbox)        
 
         hbox = QtGui.QHBoxLayout()           
         spec = QtGui.QLabel("<b>Calculation settings</b>")
@@ -395,6 +405,10 @@ class HenonSettings(QtGui.QDialog):
         layout.addWidget(buttonbox)
         self.setMinimumWidth(512)
 
+    def switch_enlarge_rare_pixels(self, event):
+        # function for making QLabel near checkbox clickable
+        self.enlarge_rare_pixels.setChecked(not self.enlarge_rare_pixels.isChecked())
+
     def switch_iter_auto_mode(self, event):
         # function for making QLabel near checkbox clickable
         self.iter_auto_mode.setChecked(not self.iter_auto_mode.isChecked())
@@ -418,6 +432,7 @@ class HenonSettings(QtGui.QDialog):
         self.parent.xright = self.xleft.value() + self.area_width.value()
         self.parent.ybottom = self.ybottom.value()
         self.parent.ytop = self.ybottom.value() + self.area_height.value()
+        self.parent.enlarge_rare_pixels = self.enlarge_rare_pixels.isChecked()
 
         if not self.iter_auto_mode.isChecked():
             # only read it if auto mode is turned off

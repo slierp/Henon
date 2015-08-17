@@ -9,7 +9,6 @@ from HenonHelp import HenonHelp
 from HenonSettings import HenonSettings
 from multiprocessing import cpu_count
 from math import log
-from copy import deepcopy
 
 """
 TODO
@@ -57,6 +56,7 @@ class MainGui(QtGui.QMainWindow):
         self.iter_auto_mode = True
         self.full_screen = False
         self.first_run = True
+        self.enlarge_rare_pixels = True
         
         # animation settings
         self.hena_mid = 0.8
@@ -178,7 +178,8 @@ class MainGui(QtGui.QMainWindow):
         
         # Henon_updateWill will wait for worker signals and then send screen update signals
         self.Henon_update = HenonUpdate(self.Henon_calc.interval_flags, self.Henon_calc.stop_signal,\
-            deepcopy(self.thread_count), self.Henon_calc.mp_arr, deepcopy(params), self.Henon_widget.window_representation)        
+            self.thread_count, self.Henon_calc.mp_arr, self.Henon_widget.window_representation,\
+            self.Henon_widget.window_width, self.Henon_widget.window_height, self.enlarge_rare_pixels)        
         
         self.Henon_update.moveToThread(self.qt_thread0) # Move updater to separate thread
         self.Henon_calc.moveToThread(self.qt_thread1)        
