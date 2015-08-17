@@ -60,8 +60,8 @@ define animations (in which the H&eacute;non parameter values are varied) and se
 in order to prevent algorithm execution problems. These restrictions are enforced immediately after changing to a new value.</p>
 
 <p>For certain a,b values there will be periodic behaviour, which means that only a few pixels will show up on the screen. Single pixels can be hard to see so this is why the program
-enlarges such rare pixels by default. If there are between 1 and 16 pixels in total then they will be enlarged to nine pixels for better visibility. This functionality can be
-turned on or off using the 'Enlarge rare pixels' checkbox</p>
+can enlarge such rare pixels. This functionality can be turned on using the 'Enlarge rare pixels' checkbox. If there are between 1 and 16 pixels in total during any screen update then they will
+be enlarged to nine pixels for better visibility.</p>
 
 <p>For control over the calculations it is possible to define the maximum number of iterations for each thread and define the iteration interval after which the result is plotted to screen.
 By default these settings are determined automatically by the program, which calculates optimized settings based on the window size, zoom-level and the number of availabe threads.

@@ -45,7 +45,7 @@ class HenonUpdate(QtCore.QObject):
 
         # make copies for speed improvement        
         window_width = self.window_width
-        window_height = self.window_height
+        window_height = self.window_height            
         enlarge_rare_pixels = self.enlarge_rare_pixels
         
         while True:          

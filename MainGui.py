@@ -56,7 +56,7 @@ class MainGui(QtGui.QMainWindow):
         self.iter_auto_mode = True
         self.full_screen = False
         self.first_run = True
-        self.enlarge_rare_pixels = True
+        self.enlarge_rare_pixels = False
         
         # animation settings
         self.hena_mid = 0.8
