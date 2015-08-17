@@ -451,7 +451,9 @@ class HenonSettings(QtGui.QDialog):
         self.parent.henb_range = self.henb_range.value()
         self.parent.henb_increment = self.henb_increment.value()
         self.parent.henb_anim = self.henb_anim.isChecked()
-        
+
+        self.parent.max_iter_anim = self.max_iter_anim.value()
+        self.parent.plot_interval_anim = self.plot_interval_anim.value()        
         self.parent.animation_delay = self.animation_delay.value()
 
         ### Calculation settings ###

@@ -165,14 +165,17 @@ class WorkerProcess(mp.Process):
                 # indicate to HenonUpdate that we have some new pixels to draw
                 self.interval_flags[run_number] = True             
             
-            if (iter_count >= max_iter):
-                if (run_number == 0):
-                    # sends message to HenonUpdate to stop when max_iter reached
-                    self.stop_signal.value = True                
+            if (iter_count > max_iter):
                 break
-
-        self.interval_flags[run_number] = True # send message to HenonUpdate to show end result
-                        
+            
+        # send message to HenonUpdate to show end result
+        # in animation mode HenonUpdate will stop based only on interval_flags since there will be
+        # only frame to draw
+        self.interval_flags[run_number] = True 
+        
+        if (run_number == 0):
+            self.stop_signal.value = True # sends message to HenonUpdate to stop because max_iter reached
+        
 #        delta = datetime.now() - start_time #DEBUG             
                         
 #        print "[WorkerProcess] Worker " + str(run_number) + " has stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG        

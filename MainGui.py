@@ -68,7 +68,7 @@ class MainGui(QtGui.QMainWindow):
         self.henb_increment = 0.05
         self.henb_anim = False
         self.animation_running = False
-        self.max_iter_anim = 50000
+        self.max_iter_anim = 5000
         self.plot_interval_anim = 5000
         self.animation_delay = 500
         
@@ -127,7 +127,7 @@ class MainGui(QtGui.QMainWindow):
         if self.first_run:
             self.first_run = False
 
-        if self.iter_auto_mode: 
+        if self.iter_auto_mode and (not self.animation_running): 
             # set default maximum number of iterations
             # heavily optimized formula for calculating required number of iterations
             # as a function of the number of screen pixels and the x,y space represented by it
@@ -135,8 +135,7 @@ class MainGui(QtGui.QMainWindow):
             self.max_iter = int(0.5 * abs(log(area)**2/log(2.4)**2) *  self.Henon_widget.window_width * self.Henon_widget.window_height / self.thread_count)
             self.plot_interval = int(200000/self.thread_count)
 #            print "[MainGui] Plot area: " + str(area) #DEBUG
-            
-        if self.animation_running:
+        elif self.animation_running:
             # in case of animation, override previous and set to following low values
             self.max_iter = self.max_iter_anim
             self.plot_interval = self.plot_interval_anim

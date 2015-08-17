@@ -101,8 +101,6 @@ class HenonUpdate(QtCore.QObject):
         while True:
             if all(i for i in self.interval_flags):
                 break
-            elif self.stop_signal.value:
-                return
 
 #        print "[HenonUpdate] Animation screen update" #DEBUG
         
