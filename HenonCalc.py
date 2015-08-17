@@ -15,6 +15,7 @@ class Signal(QtCore.QObject):
         QtCore.QObject.__init__(self)
 
 class HenonCalc(QtCore.QObject):
+    # Starts up worker threads for Henon calculations and then waits for stop signal
 
     def __init__(self, _params):
         QtCore.QObject.__init__(self)
@@ -82,7 +83,7 @@ class HenonCalc(QtCore.QObject):
 class WorkerProcess(mp.Process):
     # Subclass Process instead of calling function allows for nice exiting
     # using mp.Event and exit.set(); having a separate worker and thread is also
-    # more non-transparent
+    # less transparent
 
     def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
         mp.Process.__init__(self)
@@ -106,11 +107,6 @@ class WorkerProcess(mp.Process):
         henx = uniform(-0.1,0.1) # generate random starting points
         heny = uniform(-0.1,0.1)
 
-        for i in range(self.drop_iter): # prevent drawing first iterations
-            henxtemp = 1-self.hena*(henx**2) + heny
-            heny = self.henb * henx
-            henx = henxtemp
-
         iter_count = 0
 
         # make local array for storing pixel during each iteration        
@@ -131,12 +127,22 @@ class WorkerProcess(mp.Process):
         window_height = self.window_height
         run_number = self.run_number
 
+        try:
+            for i in range(self.drop_iter): # prevent drawing first iterations
+                xn = henx
+                henx = 1 + heny - (hena*(xn**2))
+                heny = henb * xn
+        except OverflowError: # if x,y results move towards infinity
+            self.interval_flags[run_number] = True # send message to HenonUpdate to show end result
+#            print "[WorkerProcess] Worker " + str(run_number) + " overflow" #DEBUG                
+            return
+
         while not self.exit.is_set():             
 
             try:
-                henxtemp = float(1-(hena*henx**2) + heny)
-                heny = float(henb * henx)
-                henx = henxtemp
+                xn = henx
+                henx = 1 + heny - (hena*(xn**2))
+                heny = henb * xn
                 x_draw = (henx-xleft) * xratio
                 y_draw = (heny-ybottom) * yratio
             except OverflowError:

@@ -11,6 +11,8 @@ class Signal(QtCore.QObject):
         QtCore.QObject.__init__(self)    
 
 class HenonUpdate(QtCore.QObject):
+    # waits for signals from worker threads; once all are received it copies the results into
+    # window_representation and sends a signal to trigger a screen re-draw
 
     def __init__(self, _interval_flags, _stop_signal, _thread_count, _mp_arr, _params, _window_representation):
         QtCore.QObject.__init__(self)

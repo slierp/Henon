@@ -20,6 +20,8 @@ Look into possibility of 3D imaging and animation (x,y,a/b plots)
 """
 
 class MainGui(QtGui.QMainWindow):
+    # Main user interface; starts up main window and initiates a first Henon calculation
+    # and then waits for user input
     
     def __init__(self, parent=None):
         

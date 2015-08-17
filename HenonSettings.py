@@ -5,6 +5,8 @@ from sys import platform as _platform
 from multiprocessing import cpu_count
 
 class HenonSettings(QtGui.QDialog):
+    # Generates a settings dialog    
+    
     def __init__(self, _parent):
         super(QtGui.QDialog, self).__init__(_parent)
         

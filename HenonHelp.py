@@ -17,11 +17,11 @@ help_text = """
 
 <p>This program is for exploring the H&eacute;non map, which is defined by:</p><br>
 
-<code>x[n+1] = 1 - a * x[n]^2 + y[n]</code><br>
-<code>y[n+1] = b * x[n]</code><br>
+<code>x<sub>n+1</sub> = 1 + y<sub>n</sub> - a * x<sub>n</sub><sup>2</sup></code><br>
+<code>y<sub>n+1</sub> = b * x<sub>n</sub></code><br>
 
 <p>A map definition such as this one is used in the field of discontinuous time-dynamics.
-Starting from initial conditions (x[0], y[0]) and parameters (a, b) the map tells you what the system (x, y)
+Starting from initial conditions (x<sub>0</sub>, y<sub>0</sub>) and parameters (a, b) the map tells you what the system (x, y)
 will look like for n = 1, 2... (n to n+1 stands for an increase of time, such as a second or an hour).</p>
 
 <p>After start-up the program calculates one or more orbits in the basin of the H&eacute;non attractor
@@ -92,7 +92,7 @@ attractor yet, so this is why the program performs a few hundred iterations befo
 <p>The program has default animation settings that can be activated in the settings dialog by clicking on the 'Animate' checkboxes for parameter a or b. The animation can then be
 started in the main screen by pressing 'A'. These default animations demonstrate some general aspects of the H&eacute;non map. For parameter 'B' the animation starts with
 a stable point that doubles its period a few times before it grows into the H&eacute;non attractor. For parameter 'A' the animation features look similar but it also shows a crisis,
-i.e. the sudden disappearance of the attractor at a = &plusmn;1.2. When the attractor has formed almost fully you may notice that the attractor disappears again a few times.
+i.e. the sudden disappearance of the attractor near a = 1.2. When the attractor has formed almost fully you may notice that the attractor disappears again a few times.
 These must be periodic windows where there is a brief reappearance of periodic behaviour</p>
 
 </body>
@@ -100,6 +100,8 @@ These must be periodic windows where there is a brief reappearance of periodic b
 """
 
 class HenonHelp(QtGui.QDialog):
+    # Generates help document browser    
+    
     def __init__(self, parent):
         super(QtGui.QDialog, self).__init__(parent)
         
