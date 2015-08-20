@@ -127,11 +127,9 @@ class WorkerProcess(mp.Process):
         window_height = self.window_height
         run_number = self.run_number
 
-        try:
+        try:            
             for i in range(self.drop_iter): # prevent drawing first iterations
-                xn = henx
-                henx = 1 + heny - (hena*(xn**2))
-                heny = henb * xn
+                henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
         except OverflowError: # if x,y results move towards infinity
             self.interval_flags[run_number] = True # send message to HenonUpdate to show end result
 #            print "[WorkerProcess] Worker " + str(run_number) + " overflow" #DEBUG                
@@ -140,9 +138,7 @@ class WorkerProcess(mp.Process):
         while not self.exit.is_set():             
 
             try:
-                xn = henx
-                henx = 1 + heny - (hena*(xn**2))
-                heny = henb * xn
+                henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
                 x_draw = (henx-xleft) * xratio
                 y_draw = (heny-ybottom) * yratio
             except OverflowError:
