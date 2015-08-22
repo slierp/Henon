@@ -3,7 +3,8 @@ from __future__ import division
 from PyQt4 import QtCore, QtGui
 import HenonResources
 from HenonUpdate import HenonUpdate
-from HenonWidget import HenonWidget
+#from HenonWidget import HenonWidget # for OpenGL Henon widget
+from HenonWidget2 import HenonWidget # for PyQt-only Henon widget
 from HenonCalc import HenonCalc
 from HenonHelp import HenonHelp
 from HenonSettings import HenonSettings
@@ -13,8 +14,8 @@ from math import log
 """
 TODO
 
+Implement OpenCL
 Add load/save settings feature
-Look into possibility of 3D imaging and animation (x,y,a/b plots)
 
 """
 
@@ -94,7 +95,8 @@ class MainGui(QtGui.QMainWindow):
     @QtCore.pyqtSlot()
     def update_screen(self):
       
-        self.Henon_widget.updateGL()
+        #self.Henon_widget.updateGL() # for OpenGL Henon widget
+        self.Henon_widget.showEvent(QtGui.QShowEvent()) # for PyQt-only Henon widget
             
         if self.animation_running:
 #            print "[MainGui] Starting next animation cycle" #DEBUG
@@ -178,7 +180,7 @@ class MainGui(QtGui.QMainWindow):
         # Henon_updateWill will wait for worker signals and then send screen update signals
         self.Henon_update = HenonUpdate(self.Henon_calc.interval_flags, self.Henon_calc.stop_signal,\
             self.thread_count, self.Henon_calc.mp_arr, self.Henon_widget.window_representation,\
-            self.Henon_widget.window_width, self.Henon_widget.window_height, self.enlarge_rare_pixels)        
+            self.Henon_widget.window_width, self.Henon_widget.window_height, self.enlarge_rare_pixels)                              
         
         self.Henon_update.moveToThread(self.qt_thread0) # Move updater to separate thread
         self.Henon_calc.moveToThread(self.qt_thread1)        
@@ -197,7 +199,7 @@ class MainGui(QtGui.QMainWindow):
         self.Henon_calc.quit_signal.sig.connect(self.qt_thread1.quit) # Quit thread when finished
         
         self.qt_thread0.start()
-        self.qt_thread1.start()     
+        self.qt_thread1.start()
 
     def initialize_animation(self):
         
@@ -318,10 +320,12 @@ class MainGui(QtGui.QMainWindow):
     def create_main_frame(self):
         
         self.Henon_widget = HenonWidget(self)
-        vbox = QtGui.QVBoxLayout()        
+        vbox = QtGui.QVBoxLayout()
+        vbox.setSpacing(0)
+        vbox.setMargin(0)
         vbox.addWidget(self.Henon_widget)
 
-        main_frame = QtGui.QWidget()                                                         
+        main_frame = QtGui.QWidget()
         main_frame.setLayout(vbox)
 
         self.setCentralWidget(main_frame)

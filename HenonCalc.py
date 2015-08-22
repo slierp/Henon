@@ -149,7 +149,12 @@ class WorkerProcess(mp.Process):
                 # do not convert to int unless the number is finite
                 if (0 < int(x_draw) < window_width) and (0 < int(y_draw) < window_height):
                     # draw pixel if it is inside the current display area
-                    local_array[(int(y_draw)*window_width) + int(x_draw)] = True                 
+                    #local_array[(int(y_draw)*window_width) + int(x_draw)] = True # for bottom-left origin
+                    
+                    # for top-left origin
+                    # +0 is there in case of common bug in drawing method that returns invalid window width
+                    # in combination with array flattening such bugs give very distorted images
+                    local_array[int(window_height-y_draw)*(window_width+0) + int(x_draw)] = True 
                                         
             iter_count += 1
             
