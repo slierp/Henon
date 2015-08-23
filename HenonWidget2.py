@@ -30,7 +30,7 @@ class HenonWidget(QtGui.QLabel):
         
         # scale pixmap along with label
         self.setScaledContents(True)
-        self.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
+        #self.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
         
         # set low minimum size to force a resize event after exiting full-screen mode;
         # without resize the window attains the size of the full-screen pixmap
@@ -41,23 +41,16 @@ class HenonWidget(QtGui.QLabel):
         if self.do_not_draw:
             return
         
-        image=QtGui.QImage(self.window_representation, self.window_width, self.window_height, QtGui.QImage.Format_Indexed8)
-        self.setPixmap(QtGui.QPixmap.fromImage(image))        
+        # second window_width is bytes per line; needed to avoid image distortion when resizing the window
+        image=QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)
+        self.setPixmap(QtGui.QPixmap.fromImage(image))
 
     def resizeEvent(self,event):
     
 #        print "[HenonWidget] Resize event" #DEBUG
 
-        if self.first_run:
-            # size of label is often not exactly the same as that of the pixmap
-            # and it needs to be exact in order to avoid picture distortion
-            # therefore in the first run get the size from the label, as there is 
-            # no pixmap yet and ever after derive the size from the pixmap
-            self.window_width = self.geometry().width()
-            self.window_height = self.geometry().height()
-        else:
-            self.window_width = self.pixmap().width()
-            self.window_height = self.pixmap().height()
+        self.window_width = self.geometry().width()
+        self.window_height = self.geometry().height()
         
         # make new window representation
         self.window_representation = np.zeros((self.window_height,self.window_width), dtype=np.byte)

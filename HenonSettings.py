@@ -352,7 +352,7 @@ class HenonSettings(QtGui.QDialog):
         generic_widget_animation.setLayout(vbox_tab_animation)
         tabwidget.addTab(generic_widget_animation, QtCore.QString("Animation"))
 
-       ### Tab calculation ###
+        ### Tab calculation ###
         vbox_tab_calculation = QtGui.QVBoxLayout()
 
         hbox = QtGui.QHBoxLayout()       
@@ -365,7 +365,10 @@ class HenonSettings(QtGui.QDialog):
         description = QtGui.QLabel("Thread count")
         self.thread_count = QtGui.QSpinBox()
         self.thread_count.setAccelerated(True)
-        self.thread_count.setMaximum(cpu_count())
+        if (not self.parent.opencl_enabled):
+            self.thread_count.setMaximum(cpu_count())
+        else:
+            self.thread_count.setMaximum(9999)
         self.thread_count.setMinimum(1)
         self.thread_count.setValue(self.parent.thread_count)
         self.thread_count.setSingleStep(1)            
@@ -383,6 +386,19 @@ class HenonSettings(QtGui.QDialog):
         self.drop_iter.setValue(self.parent.drop_iter)
         self.drop_iter.setSingleStep(1)            
         hbox.addWidget(self.drop_iter) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox_tab_calculation.addLayout(hbox)
+
+        hbox = QtGui.QHBoxLayout()
+        description = QtGui.QLabel("Enable OpenCL")
+        self.opencl_enabled = QtGui.QCheckBox()
+        self.opencl_enabled.setDisabled(not self.parent.module_opencl_present)
+        description.setDisabled(not self.parent.module_opencl_present)
+        self.opencl_enabled.setChecked(self.parent.opencl_enabled)
+        self.opencl_enabled.mouseReleaseEvent = self.switch_opencl_enabled
+        description.mouseReleaseEvent = self.switch_opencl_enabled
+        hbox.addWidget(self.opencl_enabled)
         hbox.addWidget(description)
         hbox.addStretch(1)                
         vbox_tab_calculation.addLayout(hbox)
@@ -408,6 +424,17 @@ class HenonSettings(QtGui.QDialog):
     def switch_enlarge_rare_pixels(self, event):
         # function for making QLabel near checkbox clickable
         self.enlarge_rare_pixels.setChecked(not self.enlarge_rare_pixels.isChecked())
+
+    def switch_opencl_enabled(self, event):
+        # function for making QLabel near checkbox clickable
+        self.opencl_enabled.setChecked(not self.opencl_enabled.isChecked())
+        
+        if self.opencl_enabled.isChecked():
+            # allow high thread count when opencl is enabled
+            self.thread_count.setMaximum(9999)
+        else:
+            # return to defaul cpu_count without opencl
+            self.thread_count.setMaximum(cpu_count())
 
     def switch_iter_auto_mode(self, event):
         # function for making QLabel near checkbox clickable
@@ -459,6 +486,10 @@ class HenonSettings(QtGui.QDialog):
         ### Calculation settings ###
         self.parent.thread_count = self.thread_count.value()        
         self.parent.drop_iter = self.drop_iter.value()
+        self.parent.opencl_enabled = self.opencl_enabled.isChecked()
+        
+        if self.opencl_enabled.isChecked() and (not self.parent.opencl_initialized):
+            self.parent.initialize_opencl()
         
         self.parent.statusBar().showMessage(self.tr("Parameter settings updated; press R to re-draw"), 3000)
         self.accept()

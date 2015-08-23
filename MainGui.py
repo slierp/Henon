@@ -5,19 +5,24 @@ import HenonResources
 #from HenonWidget import HenonWidget # for OpenGL Henon widget
 from HenonWidget2 import HenonWidget # for PyQt-only Henon widget
 from HenonUpdate import HenonUpdate
-from HenonUpdate2 import HenonUpdate2
 from HenonCalc import HenonCalc
-from HenonCalc2 import HenonCalc2
 from HenonHelp import HenonHelp
 from HenonSettings import HenonSettings
 from multiprocessing import cpu_count
 from math import log
-import pyopencl as cl
+try:
+    import pyopencl as cl
+    from HenonCalc2 import HenonCalc2    
+    from HenonUpdate2 import HenonUpdate2
+    module_opencl_present = True
+except ImportError:
+    module_opencl_present = False
 
 """
 TODO
 
 Fully test OpenCL implementation
+Fix zoom-in bug with PyQt-only implementation
 Add load/save settings feature
 
 """
@@ -55,11 +60,12 @@ class MainGui(QtGui.QMainWindow):
         self.ybottom = -0.4
         
         # calculation settings
-        #self.opencl_enabled = True
+        self.module_opencl_present = module_opencl_present
         self.opencl_enabled = False
+        self.opencl_initialized = False
         
         self.thread_count = cpu_count()            
-        self.plot_interval = int(200000/self.thread_count)
+        self.plot_interval = 1
         self.max_iter = 1
         self.drop_iter = 1000
         self.iter_auto_mode = True
@@ -86,11 +92,7 @@ class MainGui(QtGui.QMainWindow):
         
         # timer for enabling a delay between animation cycles
         self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.run_animation_cycle)            
-
-        if self.opencl_enabled:
-            self.opencl_initialized = False
-            self.initialize_opencl()
+        self.timer.timeout.connect(self.run_animation_cycle)
 
     def on_about(self):
         msg = self.tr("H\xe9non explorer\n\nAuthor: Ronald Naber\nLicense: Public domain")
@@ -148,6 +150,10 @@ class MainGui(QtGui.QMainWindow):
             area = (self.xright - self.xleft) * (self.ytop - self.ybottom)        
             self.max_iter = int(0.5 * abs(log(area/10)**2/log(0.24)**2) *  self.Henon_widget.window_width * self.Henon_widget.window_height / self.thread_count)
             self.plot_interval = int(200000/self.thread_count)
+            
+            if self.plot_interval < 10000:
+                # avoid low numbers for high thread-count simulations
+                self.plot_interval = 10000
 #            print "[MainGui] Plot area: " + str(area) #DEBUG
         elif self.animation_running:
             # in case of animation, override previous and set to following low values
