@@ -17,7 +17,7 @@ import pyopencl as cl
 """
 TODO
 
-Finish OpenCL implementation
+Fully test OpenCL implementation
 Add load/save settings feature
 
 """
@@ -53,7 +53,12 @@ class MainGui(QtGui.QMainWindow):
         self.ytop = 0.4
         self.xright = 1.5
         self.ybottom = -0.4
-        self.thread_count = cpu_count()
+        
+        # calculation settings
+        #self.opencl_enabled = True
+        self.opencl_enabled = False
+        
+        self.thread_count = cpu_count()            
         self.plot_interval = int(200000/self.thread_count)
         self.max_iter = 1
         self.drop_iter = 1000
@@ -61,13 +66,6 @@ class MainGui(QtGui.QMainWindow):
         self.full_screen = False
         self.first_run = True
         self.enlarge_rare_pixels = False
-        
-        # OpenCL settings
-        #self.opencl_enabled = True
-        self.opencl_enabled = False
-        self.cl_thread_count = 100
-        self.cl_plot_interval = 100        
-        self.cl_max_iter = 100
         
         # animation settings
         self.hena_mid = 0.8
@@ -148,7 +146,7 @@ class MainGui(QtGui.QMainWindow):
             # heavily optimized formula for calculating required number of iterations
             # as a function of the number of screen pixels and the x,y space represented by it
             area = (self.xright - self.xleft) * (self.ytop - self.ybottom)        
-            self.max_iter = int(0.5 * abs(log(area)**2/log(2.4)**2) *  self.Henon_widget.window_width * self.Henon_widget.window_height / self.thread_count)
+            self.max_iter = int(0.5 * abs(log(area/10)**2/log(0.24)**2) *  self.Henon_widget.window_width * self.Henon_widget.window_height / self.thread_count)
             self.plot_interval = int(200000/self.thread_count)
 #            print "[MainGui] Plot area: " + str(area) #DEBUG
         elif self.animation_running:
@@ -233,43 +231,41 @@ class MainGui(QtGui.QMainWindow):
         self.command_queue = cl.CommandQueue(self.context)    
         self.mem_flags = cl.mem_flags
     
-        ### BUG: How to deal with overflow? ###
         self.program = cl.Program(self.context, """
         #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable    
-        __kernel void henon(__global float2 *q, ushort const maxiter,
-                            __global ushort *window_representation, ushort const drop_iter,
-                            ushort const h, ushort const w)
+        __kernel void henon(__global float2 *q, __global ushort *window_representation,
+                            __global uint const *int_params, __global float const *float_params)
         {
             int gid = get_global_id(0);
-            float x,y,xtemp = 0;
+            float x,y,xtemp,x_draw,y_draw;
             x = q[gid].x;
             y = q[gid].y;
-            float xleft = -1.5;
-            float ytop = 0.4;
-            float xright = 1.5;
-            float ybottom = -0.4;
-            float xratio = w/(xright-xleft);
-            float yratio = h/(ytop-ybottom);
-            float x_draw, y_draw = 0;
 
             // drop first set of iterations
-            for(int curiter = 0; curiter < drop_iter; curiter++) {
+            for(int curiter = 0; curiter < int_params[1]; curiter++) {
                 xtemp = x;
-                x = 1 + y - (1.4*x*x);
-                y = 0.3 * xtemp;            
+                x = 1 + y - (float_params[0] * x * x);
+                y = float_params[1] * xtemp;            
             }
     
             // perform main Henon calculation and assign pixels into window
-            for(int curiter = 0; curiter < maxiter; curiter++) {
+            for(int curiter = 0; curiter < int_params[0]; curiter++) {
                 xtemp = x;
-                x = 1 + y - (1.4*x*x);
-                y = 0.3 * xtemp;
-                x_draw = convert_int(round((x-xleft) * xratio));
-                y_draw = convert_int(round((y-ybottom) * yratio));
+                x = 1 + y - (float_params[0] * x * x);
+                y = float_params[1] * xtemp;
                 
-                if (0 < x_draw < w && 0 < y_draw < h) {
-                    int location = convert_int((h-y_draw)*w + x_draw); // for top-left origin
-                    //int location = convert_int((y_draw)*w + x_draw); // for bottom-left origin
+                if (x < float_params[2] || y < float_params[3]) { // convert_int cannot deal with negative numbers
+                    x_draw = 0;
+                    y_draw = 0;
+                }
+                else {
+                    x_draw = convert_int_sat((x-float_params[2]) * float_params[4]); // sat modifier avoids NaN problems
+                    y_draw = convert_int_sat((y-float_params[3]) * float_params[5]);
+                }
+                
+                if ((0 < x_draw) && (x_draw < int_params[3]) && (0 < y_draw) && (y_draw < int_params[2])) {
+                    int location = convert_int(((int_params[2]-y_draw)*int_params[3]) + x_draw); // for top-left origin
+                    //int location = convert_int((y_draw*int_params[3]) + x_draw); // for bottom-left origin
                     window_representation[location] = 255;
                 }
             }

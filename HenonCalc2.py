@@ -2,6 +2,7 @@
 from __future__ import division
 from PyQt4 import QtCore
 import pyopencl as cl
+#from datetime import datetime #DEBUG
 import numpy as np
 
 class Signal(QtCore.QObject):
@@ -29,6 +30,8 @@ class HenonCalc2(QtCore.QObject):
         self.stop_signal = Signal() # for HenonUpdate2
         self.quit_signal = Signal()
         
+        self.hena = _params['hena']
+        self.henb = _params['henb']
         self.xleft = _params['xleft']
         self.ytop = _params['ytop']
         self.xright = _params['xright']
@@ -36,6 +39,8 @@ class HenonCalc2(QtCore.QObject):
         self.window_width = _params['window_width']
         self.window_height = _params['window_height']
         self.thread_count = _params['thread_count']
+        self.max_iter = _params['max_iter']
+        self.plot_interval = _params['plot_interval']
         self.drop_iter = _params['drop_iter']
 
         self.xratio = self.window_width/(self.xright-self.xleft)
@@ -62,35 +67,50 @@ class HenonCalc2(QtCore.QObject):
         # ensures dtype and c-type contiguous, but does not seem to be necessary
         #self.cl_arr = np.require(self.cl_arr, np.uint16, 'C') 
 
-        maxiter=100       
-        thread_count = 100
-        # random x,y values in (-0.1,0.1) range for each GPU thread
-        # opencl-float2 does not exist in current pyopencl version, but complex does
-        # so we'll use that for now to pass along x,y values
-        xx = ((np.random.random_sample(thread_count)-0.5)/5)
-        yy = ((np.random.random_sample(thread_count)-0.5)/5) * 1j
-        queue = np.ravel(xx+yy[:, np.newaxis]).astype(np.complex64)
+#        start_time = datetime.now() #DEBUG
 
-        # allocate memory for buffers and copy queue into buffer
-        queue_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=queue)
-        cl_arr_buffer = cl.Buffer(self.context, self.mem_flags.WRITE_ONLY, self.cl_arr.nbytes)
-        
-        # fill window memory buffer with zeroes
-        cl.enqueue_copy(self.command_queue, cl_arr_buffer, self.cl_arr).wait()
+        iter_count = 0
 
-        # run GPU calculations
-        self.program.henon(self.command_queue, queue.shape, None, queue_buffer, np.uint16(maxiter),\
-                           cl_arr_buffer, np.uint16(self.drop_iter), np.uint16(self.window_height),\
-                           np.uint16(self.window_width))
+        xratio = self.window_width/(self.xright-self.xleft)
+        yratio = self.window_height/(self.ytop-self.ybottom)
+
+        while True:
+
+            # random x,y values in (-0.1,0.1) range for each GPU thread
+            # opencl-float2 does not exist in current pyopencl version, but complex does
+            # so we'll use that for now to pass along x,y values
+            xx = ((np.random.random_sample(self.thread_count)-0.5)/5)
+            yy = ((np.random.random_sample(self.thread_count)-0.5)/5) * 1j
+            queue = np.ravel(xx+yy[:, np.newaxis]).astype(np.complex64)
+            
+            int_params = np.array([self.plot_interval,self.drop_iter,self.window_height,self.window_width],dtype=np.uint32)
+            float_params = np.array([self.hena,self.henb,self.xleft,self.ybottom,xratio,yratio],dtype=np.float32)
     
-        # copy calculation results from buffer memory
-        cl.enqueue_copy(self.command_queue, self.cl_arr, cl_arr_buffer).wait()
+            # allocate memory for buffers and copy contents
+            queue_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=queue)
+            cl_arr_buffer = cl.Buffer(self.context, self.mem_flags.WRITE_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=self.cl_arr)
+            int_params_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=int_params)
+            float_params_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=float_params)
+    
+            # run GPU calculations
+            self.program.henon(self.command_queue, queue.shape, None, queue_buffer, cl_arr_buffer,\
+                                int_params_buffer, float_params_buffer)
+                                
+            # copy calculation results from buffer memory
+            cl.enqueue_copy(self.command_queue, self.cl_arr, cl_arr_buffer).wait()
+            
+            self.interval_signal.sig.emit() # sends message to HenonUpdate to do update
+            
+            iter_count += self.plot_interval
+            
+            if (iter_count >= self.max_iter) or self.received_stop_signal:
+                break
 
-        #self.interval_signal.sig.emit() # sends message to HenonUpdate to do update
-        self.stop_signal.sig.emit() # sends message to HenonUpdate to do stop
+        self.stop_signal.sig.emit() # sends message to HenonUpdate to stop
         self.quit_signal.sig.emit() # stop thread
         
-#        print "[HenonCalc2] Workers finished" #DEBUG
+#        delta = datetime.now() - start_time #DEBUG                        
+#        print "[HenonCalc2] Workers have stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG 
                     
     def stop(self):
                       
