@@ -2,19 +2,22 @@
 from __future__ import division
 from PyQt4 import QtCore, QtGui
 import HenonResources
-from HenonUpdate import HenonUpdate
 #from HenonWidget import HenonWidget # for OpenGL Henon widget
 from HenonWidget2 import HenonWidget # for PyQt-only Henon widget
+from HenonUpdate import HenonUpdate
+from HenonUpdate2 import HenonUpdate2
 from HenonCalc import HenonCalc
+from HenonCalc2 import HenonCalc2
 from HenonHelp import HenonHelp
 from HenonSettings import HenonSettings
 from multiprocessing import cpu_count
 from math import log
+import pyopencl as cl
 
 """
 TODO
 
-Implement OpenCL
+Finish OpenCL implementation
 Add load/save settings feature
 
 """
@@ -58,6 +61,8 @@ class MainGui(QtGui.QMainWindow):
         self.full_screen = False
         self.first_run = True
         self.enlarge_rare_pixels = False
+        #self.opencl_enabled = True
+        self.opencl_enabled = False
         
         # animation settings
         self.hena_mid = 0.8
@@ -69,8 +74,8 @@ class MainGui(QtGui.QMainWindow):
         self.henb_increment = 0.05
         self.henb_anim = False
         self.animation_running = False
-        self.max_iter_anim = 5000
-        self.plot_interval_anim = 5000
+        self.max_iter_anim = 10000
+        self.plot_interval_anim = 10000
         self.animation_delay = 500
         
         self.qt_thread0 = QtCore.QThread(self) # Separate Qt thread for generating screen update signals        
@@ -78,7 +83,11 @@ class MainGui(QtGui.QMainWindow):
         
         # timer for enabling a delay between animation cycles
         self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.run_animation_cycle)
+        self.timer.timeout.connect(self.run_animation_cycle)            
+
+        if self.opencl_enabled:
+            self.opencl_initialized = False
+            self.initialize_opencl()
 
     def on_about(self):
         msg = self.tr("H\xe9non explorer\n\nAuthor: Ronald Naber\nLicense: Public domain")
@@ -120,7 +129,7 @@ class MainGui(QtGui.QMainWindow):
         
         # stop any current calculation and make sure
         # threads have finished before proceeding
-        self.stop_calculation()
+        self.stop_calculation() ######################### DISABLED FOR OPENCL TEST ######################
         self.wait_thread_end(self.qt_thread0)
         self.wait_thread_end(self.qt_thread1)          
 
@@ -174,34 +183,94 @@ class MainGui(QtGui.QMainWindow):
         params['plot_interval'] = self.plot_interval
         params['drop_iter'] = self.drop_iter
 
-        # Henon_calc will start workers and wait for stop signal
-        self.Henon_calc = HenonCalc(params)
-        
-        # Henon_updateWill will wait for worker signals and then send screen update signals
-        self.Henon_update = HenonUpdate(self.Henon_calc.interval_flags, self.Henon_calc.stop_signal,\
-            self.thread_count, self.Henon_calc.mp_arr, self.Henon_widget.window_representation,\
-            self.Henon_widget.window_width, self.Henon_widget.window_height, self.enlarge_rare_pixels)                              
+        if not self.opencl_enabled: # for multiprocessing
+            # Henon_calc will start workers and wait for stop signal
+            self.Henon_calc = HenonCalc(params) 
+            # Henon_updateWill will wait for worker signals and then send screen update signals
+            self.Henon_update = HenonUpdate(self.Henon_calc.interval_flags, self.Henon_calc.stop_signal,\
+                self.thread_count, self.Henon_calc.mp_arr, self.Henon_widget.window_representation,\
+                self.Henon_widget.window_width, self.Henon_widget.window_height, self.enlarge_rare_pixels)
+        else: # for OpenCL
+            self.Henon_calc = HenonCalc2(self.Henon_widget.window_representation, params, self.context,\
+                self.command_queue, self.mem_flags, self.program)
+            self.Henon_update = HenonUpdate2(self.Henon_calc.interval_flags, self.Henon_calc.stop_signal,\
+                self.thread_count, self.Henon_calc.cl_arr, self.Henon_widget.window_representation,\
+                self.Henon_widget.window_width, self.Henon_widget.window_height, self.enlarge_rare_pixels)
         
         self.Henon_update.moveToThread(self.qt_thread0) # Move updater to separate thread
         self.Henon_calc.moveToThread(self.qt_thread1)        
         
         # connecting like this appears crucial to make the thread run independently
         # and prevent GUI freeze
-        if not self.animation_running:
-            self.qt_thread0.started.connect(self.Henon_update.run)
-        else:
-            self.qt_thread0.started.connect(self.Henon_update.run_anim)
-            
+        self.qt_thread0.started.connect(self.Henon_update.run)            
         self.qt_thread1.started.connect(self.Henon_calc.run)
         
         self.Henon_update.signal.sig.connect(self.update_screen) # Get signal for screen updates
         self.Henon_update.quit_signal.sig.connect(self.qt_thread0.quit) # Quit thread when finished
         self.Henon_calc.quit_signal.sig.connect(self.qt_thread1.quit) # Quit thread when finished
         
-        self.qt_thread0.start()
+        self.qt_thread0.start()        
         self.qt_thread1.start()
 
+    def initialize_opencl(self):
+        
+        if self.opencl_initialized: # never call it twice
+            return
+            
+        self.opencl_initialized = True
+
+        # Initialization has to be done once only in an early stage;
+        # Build command will freeze without error messages otherwise
+        self.context = cl.create_some_context()    
+        self.command_queue = cl.CommandQueue(self.context)    
+        self.mem_flags = cl.mem_flags
+    
+        ### BUG: How to deal with overflow? ###
+        self.program = cl.Program(self.context, """
+        #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable    
+        __kernel void henon(__global float2 *q, ushort const maxiter,
+                            __global ushort *window_representation, ushort const drop_iter,
+                            ushort const h, ushort const w)
+        {
+            int gid = get_global_id(0);
+            float x,y,xtemp = 0;
+            x = q[gid].x;
+            y = q[gid].y;
+            float xleft = -1.5;
+            float ytop = 0.4;
+            float xright = 1.5;
+            float ybottom = -0.4;
+            float xratio = w/(xright-xleft);
+            float yratio = h/(ytop-ybottom);
+            float x_draw, y_draw = 0;
+
+            // drop first set of iterations
+            for(int curiter = 0; curiter < drop_iter; curiter++) {
+                xtemp = x;
+                x = 1 + y - (1.4*x*x);
+                y = 0.3 * xtemp;            
+            }
+    
+            // perform main Henon calculation and assign pixels into window
+            for(int curiter = 0; curiter < maxiter; curiter++) {
+                xtemp = x;
+                x = 1 + y - (1.4*x*x);
+                y = 0.3 * xtemp;
+                x_draw = convert_int(round((x-xleft) * xratio));
+                y_draw = convert_int(round((y-ybottom) * yratio));
+                
+                if (0 < x_draw < w && 0 < y_draw < h) {
+                    int location = convert_int((h-y_draw)*w + x_draw);
+                    window_representation[location] = 255;
+                }
+            }
+        }
+        """).build()
+
     def initialize_animation(self):
+        
+        if self.opencl_enabled:
+            return
         
         if self.first_run:
             return

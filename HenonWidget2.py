@@ -14,6 +14,7 @@ class HenonWidget(QtGui.QLabel):
         self.parent = _parent
         
         self.first_run = True
+        self.second_run = False
         self.do_not_draw = False # prevent re-draw during area selection
         
         # For selecting areas        
@@ -52,9 +53,14 @@ class HenonWidget(QtGui.QLabel):
         self.do_not_draw = False # resume drawing texture
 
         if self.first_run:
-            # first run can start calculation immediately
-            self.parent.initialize_calculation()
+            # resize is called twice during start-up for some reason
+            # so skip the first run
             self.first_run = False
+            self.second_run = True
+        elif self.second_run:
+            # second run can start calculation immediately
+            self.parent.initialize_calculation()
+            self.second_run = False
         else:
             # (re-)start timer for starting new calculation after resize event
             # prevents too frequent calculation thread start-ups
