@@ -61,8 +61,13 @@ class MainGui(QtGui.QMainWindow):
         self.full_screen = False
         self.first_run = True
         self.enlarge_rare_pixels = False
+        
+        # OpenCL settings
         #self.opencl_enabled = True
         self.opencl_enabled = False
+        self.cl_thread_count = 100
+        self.cl_plot_interval = 100        
+        self.cl_max_iter = 100
         
         # animation settings
         self.hena_mid = 0.8
@@ -129,7 +134,7 @@ class MainGui(QtGui.QMainWindow):
         
         # stop any current calculation and make sure
         # threads have finished before proceeding
-        self.stop_calculation() ######################### DISABLED FOR OPENCL TEST ######################
+        self.stop_calculation()
         self.wait_thread_end(self.qt_thread0)
         self.wait_thread_end(self.qt_thread1)          
 
@@ -193,9 +198,12 @@ class MainGui(QtGui.QMainWindow):
         else: # for OpenCL
             self.Henon_calc = HenonCalc2(self.Henon_widget.window_representation, params, self.context,\
                 self.command_queue, self.mem_flags, self.program)
-            self.Henon_update = HenonUpdate2(self.Henon_calc.interval_flags, self.Henon_calc.stop_signal,\
-                self.thread_count, self.Henon_calc.cl_arr, self.Henon_widget.window_representation,\
-                self.Henon_widget.window_width, self.Henon_widget.window_height, self.enlarge_rare_pixels)
+            self.Henon_update = HenonUpdate2(self.thread_count, self.Henon_calc.cl_arr,\
+                self.Henon_widget.window_representation, self.Henon_widget.window_width,\
+                self.Henon_widget.window_height, self.enlarge_rare_pixels)
+            
+            self.Henon_calc.interval_signal.sig.connect(self.Henon_update.receive_interval_signal)
+            self.Henon_calc.stop_signal.sig.connect(self.Henon_update.receive_stop_signal)
         
         self.Henon_update.moveToThread(self.qt_thread0) # Move updater to separate thread
         self.Henon_calc.moveToThread(self.qt_thread1)        
@@ -260,7 +268,8 @@ class MainGui(QtGui.QMainWindow):
                 y_draw = convert_int(round((y-ybottom) * yratio));
                 
                 if (0 < x_draw < w && 0 < y_draw < h) {
-                    int location = convert_int((h-y_draw)*w + x_draw);
+                    int location = convert_int((h-y_draw)*w + x_draw); // for top-left origin
+                    //int location = convert_int((y_draw)*w + x_draw); // for bottom-left origin
                     window_representation[location] = 255;
                 }
             }

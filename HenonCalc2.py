@@ -25,6 +25,8 @@ class HenonCalc2(QtCore.QObject):
         self.program = _program
         
         self.signal = Signal()
+        self.interval_signal = Signal() # for HenonUpdate2
+        self.stop_signal = Signal() # for HenonUpdate2
         self.quit_signal = Signal()
         
         self.xleft = _params['xleft']
@@ -39,17 +41,16 @@ class HenonCalc2(QtCore.QObject):
         self.xratio = self.window_width/(self.xright-self.xleft)
         self.yratio = self.window_height/(self.ytop-self.ybottom)
 
-        self.interval_flags = [False]*self.thread_count # Have worker tell us when a piece work is finished
+        self.interval_flag = False # Have worker tell us when a piece work is finished
 
         # empty array that will be copied to OpenCL kernel for processing
         self.cl_arr = np.zeros((self.window_height*self.window_width), dtype=np.uint16)
-
-        self.stop_signal = False; # Boolean for sending stop signal 
+        
+        self.received_stop_signal = False
             
         self.workers_started = False     
                      
     def run(self):
-        return
 
         if (self.workers_started): # fix strange problem where run command is started twice by QThread
             return
@@ -85,14 +86,13 @@ class HenonCalc2(QtCore.QObject):
         # copy calculation results from buffer memory
         cl.enqueue_copy(self.command_queue, self.cl_arr, cl_arr_buffer).wait()
 
-        self.interval_flags[:] = [True]*self.thread_count # sends message to HenonUpdate to do update
-        self.stop_signal = True
+        #self.interval_signal.sig.emit() # sends message to HenonUpdate to do update
+        self.stop_signal.sig.emit() # sends message to HenonUpdate to do stop
+        self.quit_signal.sig.emit() # stop thread
         
 #        print "[HenonCalc2] Workers finished" #DEBUG
                     
     def stop(self):
                       
 #        print "[HenonCalc2] Received stop signal" #DEBUG
-        self.stop_signal = True
-            
-        self.quit_signal.sig.emit() # stop thread
+        self.received_stop_signal = True

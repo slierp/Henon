@@ -28,6 +28,10 @@ class HenonWidget(QtGui.QLabel):
         # turn off internal margins
         self.setMargin(0)
         
+        # scale pixmap along with label
+        self.setScaledContents(True)
+        self.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
+        
         # set low minimum size to force a resize event after exiting full-screen mode;
         # without resize the window attains the size of the full-screen pixmap
         self.setMinimumSize(1,1)
@@ -44,8 +48,16 @@ class HenonWidget(QtGui.QLabel):
     
 #        print "[HenonWidget] Resize event" #DEBUG
 
-        self.window_width = self.geometry().width()
-        self.window_height = self.geometry().height()
+        if self.first_run:
+            # size of label is often not exactly the same as that of the pixmap
+            # and it needs to be exact in order to avoid picture distortion
+            # therefore in the first run get the size from the label, as there is 
+            # no pixmap yet and ever after derive the size from the pixmap
+            self.window_width = self.geometry().width()
+            self.window_height = self.geometry().height()
+        else:
+            self.window_width = self.pixmap().width()
+            self.window_height = self.pixmap().height()
         
         # make new window representation
         self.window_representation = np.zeros((self.window_height,self.window_width), dtype=np.byte)
