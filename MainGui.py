@@ -10,7 +10,10 @@ from HenonHelp import HenonHelp
 from HenonSettings import HenonSettings
 from multiprocessing import cpu_count
 from math import log
+import os
+
 try:
+    # check if PyOpenCL is present as it is optional
     import pyopencl as cl
     from HenonCalc2 import HenonCalc2    
     from HenonUpdate2 import HenonUpdate2
@@ -18,11 +21,14 @@ try:
 except ImportError:
     module_opencl_present = False
 
+if not os.getenv('PYOPENCL_CTX'):
+    # disable OpenCL if user has not set platform/device with environment variable
+    module_opencl_present = False
+
 """
 TODO
 
-Fully test OpenCL implementation
-Fix zoom-in bug with PyQt-only implementation
+Add dialog for selecting OpenCL platform and device
 Add load/save settings feature
 
 """

@@ -91,6 +91,11 @@ The number of dropped iterations that are performed for each thread can be set h
 in the range of (-0.1,0.1), so that each thread can follow an independent path along the attractor, but the first few hundred iterations may not have reached the
 attractor yet, so this is why the program performs a few hundred iterations before it starts passing the information to the screen.</p>
 
+<p><b>Enable OpenCL</b><br>
+There is support for OpenCL for CPU/GPU multithreading. The OpenCL functionality can be enabled if the PyOpenCL Python module is installed and the environment
+variable 'PYOPEN_CTX' is set in order to select the OpenCL platform (Intel/AMD/NVIDIA) and device (CPU/GPU). This manual configuration
+is intended as a temporary solution. A dialog for selecting a platform and one or more devices still needs to be implemented.</p>
+
 <p><h2><a name="animations">Animations</a></h2></p>
 
 <p>The program has default animation settings that can be activated in the settings dialog by clicking on the 'Animate' checkboxes for parameter a or b. The animation can then be
