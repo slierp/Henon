@@ -3,6 +3,10 @@ from __future__ import division
 from PyQt4 import QtGui, QtCore
 from sys import platform as _platform
 from multiprocessing import cpu_count
+try: # check if PyOpenCL is present as it is optional
+    import pyopencl as cl
+except ImportError:
+    pass
 
 class HenonSettings(QtGui.QDialog):
     # Generates a settings dialog    
@@ -403,6 +407,30 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_tab_calculation.addLayout(hbox)
 
+        if self.parent.module_opencl_present:
+
+            scroll_area = QtGui.QScrollArea()
+            checkbox_widget = QtGui.QWidget()
+            checkbox_vbox = QtGui.QVBoxLayout()            
+            
+            self.devices_cb = []
+
+            num = 0
+            for platform in cl.get_platforms():
+                platform_name = QtGui.QLabel("Platform: " + platform.name)
+                checkbox_vbox.addWidget(platform_name)
+                for device in platform.get_devices():
+                    self.devices_cb.append(QtGui.QRadioButton(device.name))
+                    self.devices_cb[num].setMinimumWidth(400) # prevent obscured text
+                    checkbox_vbox.addWidget(self.devices_cb[num])
+                    if num == self.parent.device_selection:
+                        self.devices_cb[num].setChecked(True)                     
+                    num += 1
+
+            checkbox_widget.setLayout(checkbox_vbox)
+            scroll_area.setWidget(checkbox_widget)
+            vbox_tab_calculation.addWidget(scroll_area)
+
         vbox_tab_calculation.addStretch(1)
         generic_widget_calculation = QtGui.QWidget()
         generic_widget_calculation.setLayout(vbox_tab_calculation)
@@ -487,6 +515,10 @@ class HenonSettings(QtGui.QDialog):
         self.parent.thread_count = self.thread_count.value()        
         self.parent.drop_iter = self.drop_iter.value()
         self.parent.opencl_enabled = self.opencl_enabled.isChecked()
+
+        for i in range(len(self.devices_cb)):
+            if self.devices_cb[i].isChecked():
+                self.parent.device_selection = i
         
         if self.opencl_enabled.isChecked() and (not self.parent.opencl_initialized):
             self.parent.initialize_opencl()

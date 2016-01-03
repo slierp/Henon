@@ -21,14 +21,9 @@ try:
 except ImportError:
     module_opencl_present = False
 
-if not os.getenv('PYOPENCL_CTX'):
-    # disable OpenCL if user has not set platform/device with environment variable
-    module_opencl_present = False
-
 """
 TODO
 
-Add dialog for selecting OpenCL platform and device
 Add load/save settings feature
 
 """
@@ -69,6 +64,7 @@ class MainGui(QtGui.QMainWindow):
         self.module_opencl_present = module_opencl_present
         self.opencl_enabled = False
         self.opencl_initialized = False
+        self.device_selection = 0 # selected OpenCL device
         
         self.thread_count = cpu_count()            
         self.plot_interval = 1
@@ -239,7 +235,14 @@ class MainGui(QtGui.QMainWindow):
 
         # Initialization has to be done once only in an early stage;
         # Build command will freeze without error messages otherwise
-        self.context = cl.create_some_context()    
+        num = 0
+        for platform in cl.get_platforms():
+            for device in platform.get_devices():
+                if num == self.device_selection:
+                    self.thread_count = device.max_compute_units
+                    self.context = cl.Context([device])
+                num += 1
+
         self.command_queue = cl.CommandQueue(self.context)    
         self.mem_flags = cl.mem_flags
     
