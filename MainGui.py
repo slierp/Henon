@@ -21,13 +21,6 @@ try:
 except ImportError:
     module_opencl_present = False
 
-"""
-TODO
-
-Add load/save settings feature
-
-"""
-
 class MainGui(QtGui.QMainWindow):
     # Main user interface; starts up main window and initiates a first Henon calculation
     # and then waits for user input

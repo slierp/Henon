@@ -3,6 +3,7 @@ from __future__ import division
 from PyQt4 import QtGui, QtCore
 from sys import platform as _platform
 from multiprocessing import cpu_count
+
 try: # check if PyOpenCL is present as it is optional
     import pyopencl as cl
 except ImportError:
@@ -510,17 +511,19 @@ class HenonSettings(QtGui.QDialog):
 
         ### Calculation settings ###
         self.parent.drop_iter = self.drop_iter.value()
-        self.parent.opencl_enabled = self.opencl_enabled.isChecked()
         
-        if not self.opencl_enabled.isChecked():
+        if self.parent.module_opencl_present and not self.opencl_enabled.isChecked():
             self.parent.thread_count = self.thread_count.value()            
 
-        for i in range(len(self.devices_cb)):
-            if self.devices_cb[i].isChecked():
-                self.parent.device_selection = i
+        if self.parent.module_opencl_present:
+            self.parent.opencl_enabled = self.opencl_enabled.isChecked()            
+            
+            for i in range(len(self.devices_cb)):
+                if self.devices_cb[i].isChecked():
+                    self.parent.device_selection = i
         
-        if self.opencl_enabled.isChecked():
-            self.parent.initialize_opencl()
+            if self.opencl_enabled.isChecked():
+                self.parent.initialize_opencl()
         
         self.parent.statusBar().showMessage(self.tr("Parameter settings updated; press R to re-draw"), 3000)
         self.accept()
