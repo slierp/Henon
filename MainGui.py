@@ -227,14 +227,7 @@ class MainGui(QtGui.QMainWindow):
         self.qt_thread1.start()
 
     def initialize_opencl(self):
-        
-        if self.opencl_initialized: # never call it twice
-            return
-            
-        self.opencl_initialized = True
 
-        # Initialization has to be done once only in an early stage;
-        # Build command will freeze without error messages otherwise
         num = 0
         for platform in cl.get_platforms():
             for device in platform.get_devices():
@@ -246,46 +239,51 @@ class MainGui(QtGui.QMainWindow):
         self.command_queue = cl.CommandQueue(self.context)    
         self.mem_flags = cl.mem_flags
     
-        self.program = cl.Program(self.context, """
-        #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable    
-        __kernel void henon(__global float2 *q, __global ushort *window_representation,
-                            __global uint const *int_params, __global float const *float_params)
-        {
-            int gid = get_global_id(0);
-            float x,y,xtemp,x_draw,y_draw;
-            x = q[gid].x;
-            y = q[gid].y;
-
-            // drop first set of iterations
-            for(int curiter = 0; curiter < int_params[1]; curiter++) {
-                xtemp = x;
-                x = 1 + y - (float_params[0] * x * x);
-                y = float_params[1] * xtemp;            
-            }
+        try:
+            self.program = cl.Program(self.context, """
+            #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable    
+            __kernel void henon(__global float2 *q, __global ushort *window_representation,
+                                __global uint const *int_params, __global float const *float_params)
+            {
+                int gid = get_global_id(0);
+                float x,y,xtemp,x_draw,y_draw;
+                x = q[gid].x;
+                y = q[gid].y;
     
-            // perform main Henon calculation and assign pixels into window
-            for(int curiter = 0; curiter < int_params[0]; curiter++) {
-                xtemp = x;
-                x = 1 + y - (float_params[0] * x * x);
-                y = float_params[1] * xtemp;
-                
-                if (x < float_params[2] || y < float_params[3]) { // convert_int cannot deal with negative numbers
-                    x_draw = 0;
-                    y_draw = 0;
+                // drop first set of iterations
+                for(int curiter = 0; curiter < int_params[1]; curiter++) {
+                    xtemp = x;
+                    x = 1 + y - (float_params[0] * x * x);
+                    y = float_params[1] * xtemp;            
                 }
-                else {
-                    x_draw = convert_int_sat((x-float_params[2]) * float_params[4]); // sat modifier avoids NaN problems
-                    y_draw = convert_int_sat((y-float_params[3]) * float_params[5]);
-                }
-                
-                if ((0 < x_draw) && (x_draw < int_params[3]) && (0 < y_draw) && (y_draw < int_params[2])) {
-                    int location = convert_int(((int_params[2]-y_draw)*int_params[3]) + x_draw); // for top-left origin
-                    //int location = convert_int((y_draw*int_params[3]) + x_draw); // for bottom-left origin
-                    window_representation[location] = 255;
+        
+                // perform main Henon calculation and assign pixels into window
+                for(int curiter = 0; curiter < int_params[0]; curiter++) {
+                    xtemp = x;
+                    x = 1 + y - (float_params[0] * x * x);
+                    y = float_params[1] * xtemp;
+                    
+                    if (x < float_params[2] || y < float_params[3]) { // convert_int cannot deal with negative numbers
+                        x_draw = 0;
+                        y_draw = 0;
+                    }
+                    else {
+                        x_draw = convert_int_sat((x-float_params[2]) * float_params[4]); // sat modifier avoids NaN problems
+                        y_draw = convert_int_sat((y-float_params[3]) * float_params[5]);
+                    }
+                    
+                    if ((0 < x_draw) && (x_draw < int_params[3]) && (0 < y_draw) && (y_draw < int_params[2])) {
+                        int location = convert_int(((int_params[2]-y_draw)*int_params[3]) + x_draw); // for top-left origin
+                        //int location = convert_int((y_draw*int_params[3]) + x_draw); // for bottom-left origin
+                        window_representation[location] = 255;
+                    }
                 }
             }
-        }
-        """).build()
+            """).build()
+        except:
+            self.opencl_enabled = False
+            msg = self.tr("Error during OpenCL kernel build. OpenCL function has been turned off automatically.")
+            QtGui.QMessageBox.about(self, self.tr("Warning"), msg)
 
     def initialize_animation(self):
         

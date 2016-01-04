@@ -1,7 +1,4 @@
 # avoid library load issue
-export LIBGL_ALWAYS_INDIRECT=yes
-
-# select AMD GPU only for OPENCL
-export PYOPENCL_CTX=0
+# export LIBGL_ALWAYS_INDIRECT=yes
 
 python Main.py

@@ -366,6 +366,19 @@ class HenonSettings(QtGui.QDialog):
         vbox_tab_calculation.addLayout(hbox)
 
         hbox = QtGui.QHBoxLayout()
+        description = QtGui.QLabel("Drop iterations")
+        self.drop_iter = QtGui.QSpinBox()
+        self.drop_iter.setAccelerated(True)
+        self.drop_iter.setMaximum(9999)
+        self.drop_iter.setMinimum(0)
+        self.drop_iter.setValue(self.parent.drop_iter)
+        self.drop_iter.setSingleStep(1)            
+        hbox.addWidget(self.drop_iter) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox_tab_calculation.addLayout(hbox)
+
+        hbox = QtGui.QHBoxLayout()
         description = QtGui.QLabel("Thread count")
         self.thread_count = QtGui.QSpinBox()
         self.thread_count.setAccelerated(True)
@@ -375,21 +388,9 @@ class HenonSettings(QtGui.QDialog):
             self.thread_count.setMaximum(9999)
         self.thread_count.setMinimum(1)
         self.thread_count.setValue(self.parent.thread_count)
-        self.thread_count.setSingleStep(1)            
+        self.thread_count.setSingleStep(1)
+        self.thread_count.setDisabled(self.parent.opencl_enabled)            
         hbox.addWidget(self.thread_count) 
-        hbox.addWidget(description)
-        hbox.addStretch(1)                
-        vbox_tab_calculation.addLayout(hbox)
-
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Drop iterations")
-        self.drop_iter = QtGui.QSpinBox()
-        self.drop_iter.setAccelerated(True)
-        self.drop_iter.setMaximum(9999)
-        self.drop_iter.setMinimum(0)
-        self.drop_iter.setValue(self.parent.drop_iter)
-        self.drop_iter.setSingleStep(1)            
-        hbox.addWidget(self.drop_iter) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
         vbox_tab_calculation.addLayout(hbox)
@@ -409,7 +410,8 @@ class HenonSettings(QtGui.QDialog):
 
         if self.parent.module_opencl_present:
 
-            scroll_area = QtGui.QScrollArea()
+            self.scroll_area = QtGui.QScrollArea()
+            self.scroll_area.setDisabled(not self.opencl_enabled.isChecked())
             checkbox_widget = QtGui.QWidget()
             checkbox_vbox = QtGui.QVBoxLayout()            
             
@@ -428,8 +430,8 @@ class HenonSettings(QtGui.QDialog):
                     num += 1
 
             checkbox_widget.setLayout(checkbox_vbox)
-            scroll_area.setWidget(checkbox_widget)
-            vbox_tab_calculation.addWidget(scroll_area)
+            self.scroll_area.setWidget(checkbox_widget)
+            vbox_tab_calculation.addWidget(self.scroll_area)
 
         vbox_tab_calculation.addStretch(1)
         generic_widget_calculation = QtGui.QWidget()
@@ -456,13 +458,8 @@ class HenonSettings(QtGui.QDialog):
     def switch_opencl_enabled(self, event):
         # function for making QLabel near checkbox clickable
         self.opencl_enabled.setChecked(not self.opencl_enabled.isChecked())
-        
-        if self.opencl_enabled.isChecked():
-            # allow high thread count when opencl is enabled
-            self.thread_count.setMaximum(9999)
-        else:
-            # return to defaul cpu_count without opencl
-            self.thread_count.setMaximum(cpu_count())
+        self.scroll_area.setDisabled(not self.opencl_enabled.isChecked())
+        self.thread_count.setDisabled(self.opencl_enabled.isChecked())
 
     def switch_iter_auto_mode(self, event):
         # function for making QLabel near checkbox clickable
@@ -512,15 +509,17 @@ class HenonSettings(QtGui.QDialog):
         self.parent.animation_delay = self.animation_delay.value()
 
         ### Calculation settings ###
-        self.parent.thread_count = self.thread_count.value()        
         self.parent.drop_iter = self.drop_iter.value()
         self.parent.opencl_enabled = self.opencl_enabled.isChecked()
+        
+        if not self.opencl_enabled.isChecked():
+            self.parent.thread_count = self.thread_count.value()            
 
         for i in range(len(self.devices_cb)):
             if self.devices_cb[i].isChecked():
                 self.parent.device_selection = i
         
-        if self.opencl_enabled.isChecked() and (not self.parent.opencl_initialized):
+        if self.opencl_enabled.isChecked():
             self.parent.initialize_opencl()
         
         self.parent.statusBar().showMessage(self.tr("Parameter settings updated; press R to re-draw"), 3000)
