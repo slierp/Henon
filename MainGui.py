@@ -202,8 +202,7 @@ class MainGui(QtGui.QMainWindow):
                 self.Henon_widget.window_width, self.Henon_widget.window_height, self.enlarge_rare_pixels,\
                 self.benchmark)
         else: # for OpenCL
-            self.Henon_calc = HenonCalc2(self.Henon_widget.window_representation, params, self.context,\
-                self.command_queue, self.mem_flags, self.program)
+            self.Henon_calc = HenonCalc2(params, self.context, self.command_queue, self.mem_flags, self.program)
             self.Henon_update = HenonUpdate2(self.thread_count, self.Henon_calc.cl_arr,\
                 self.Henon_widget.window_representation, self.Henon_widget.window_width,\
                 self.Henon_widget.window_height, self.enlarge_rare_pixels, self.benchmark)
@@ -245,7 +244,7 @@ class MainGui(QtGui.QMainWindow):
         try:
             self.program = cl.Program(self.context, """
             #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable    
-            __kernel void henon(__global float2 *q, __global ushort *window_representation,
+            __kernel void henon(__global double2 *q, __global ushort *window_representation,
                                 __global uint const *int_params, __global float const *float_params)
             {
                 int gid = get_global_id(0);
@@ -281,6 +280,9 @@ class MainGui(QtGui.QMainWindow):
                         window_representation[location] = 255;
                     }
                 }
+                
+                q[gid].x = x;
+                q[gid].y = y;
             }
             """).build()
         except:

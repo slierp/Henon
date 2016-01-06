@@ -164,7 +164,7 @@ class WorkerProcess(mp.Process):
                 new_arr = np.bitwise_or(arr, local_array) # add newly calculated pixels
                 ctypes.memmove(self.array, new_arr.data[:], len(new_arr.data)) # copy result into shared array   
                 # indicate to HenonUpdate that we have some new pixels to draw
-                self.interval_flags[run_number] = True             
+                self.interval_flags[run_number] = True
             
             if (iter_count > max_iter):
                 break
