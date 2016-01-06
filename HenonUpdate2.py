@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 from PyQt4 import QtCore
-#from datetime import datetime #DEBUG
+from datetime import datetime
 import numpy as np
 
 class Signal(QtCore.QObject):
@@ -10,17 +10,21 @@ class Signal(QtCore.QObject):
     def __init__(self):
         QtCore.QObject.__init__(self)    
 
+class StringSignal(QtCore.QObject):
+    sig = QtCore.pyqtSignal(str)
+
 class HenonUpdate2(QtCore.QObject):
     # waits for signals from worker threads; once received it copies the results into
     # window_representation and sends a signal to trigger a screen re-draw
 
-    def __init__(self, _thread_count, _cl_arr, _window_representation, _window_width, _window_height, _enlarge_rare_pixels):
+    def __init__(self, _thread_count, _cl_arr, _window_representation, _window_width, _window_height, _enlarge_rare_pixels, _benchmark):
         QtCore.QObject.__init__(self)
         
 #        print "[HenonUpdate2] Initialization" #DEBUG
 
         self.signal = Signal()
         self.quit_signal = Signal()
+        self.benchmark_signal = StringSignal()
         
         self.thread_count = _thread_count
         self.cl_arr = _cl_arr
@@ -28,7 +32,11 @@ class HenonUpdate2(QtCore.QObject):
         self.window_width = _window_width
         self.window_height = _window_height        
         self.enlarge_rare_pixels = _enlarge_rare_pixels
+        self.benchmark = _benchmark
 #        self.time_prev = datetime.now() #DEBUG
+
+        if self.benchmark:
+            self.time_start = datetime.now()
         
         self.updates_started = False        
 
@@ -59,6 +67,11 @@ class HenonUpdate2(QtCore.QObject):
             self.interval_flag = False # reset for new signal             
         elif self.stop_signal: # quit updates        
             self.perform_update() # draw final result
+
+            if self.benchmark:
+                delta = datetime.now() - self.time_start
+                self.benchmark_signal.sig.emit(str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds")
+            
             self.quit_signal.sig.emit()
             return
         

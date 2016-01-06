@@ -67,6 +67,7 @@ class MainGui(QtGui.QMainWindow):
         self.full_screen = False
         self.first_run = True
         self.enlarge_rare_pixels = False
+        self.benchmark = False
         
         # animation settings
         self.hena_mid = 0.8
@@ -124,6 +125,10 @@ class MainGui(QtGui.QMainWindow):
                 thread.quit()
             else:
                 return
+    
+    @QtCore.pyqtSlot(str)
+    def benchmark_result(self,result):
+        self.statusBar().showMessage(result,3000)
 
     def initialize_calculation(self):
         
@@ -186,6 +191,7 @@ class MainGui(QtGui.QMainWindow):
         params['max_iter'] = self.max_iter
         params['plot_interval'] = self.plot_interval
         params['drop_iter'] = self.drop_iter
+        params['benchmark'] = self.benchmark
 
         if not self.opencl_enabled: # for multiprocessing
             # Henon_calc will start workers and wait for stop signal
@@ -193,13 +199,14 @@ class MainGui(QtGui.QMainWindow):
             # Henon_updateWill will wait for worker signals and then send screen update signals
             self.Henon_update = HenonUpdate(self.Henon_calc.interval_flags, self.Henon_calc.stop_signal,\
                 self.thread_count, self.Henon_calc.mp_arr, self.Henon_widget.window_representation,\
-                self.Henon_widget.window_width, self.Henon_widget.window_height, self.enlarge_rare_pixels)
+                self.Henon_widget.window_width, self.Henon_widget.window_height, self.enlarge_rare_pixels,\
+                self.benchmark)
         else: # for OpenCL
             self.Henon_calc = HenonCalc2(self.Henon_widget.window_representation, params, self.context,\
                 self.command_queue, self.mem_flags, self.program)
             self.Henon_update = HenonUpdate2(self.thread_count, self.Henon_calc.cl_arr,\
                 self.Henon_widget.window_representation, self.Henon_widget.window_width,\
-                self.Henon_widget.window_height, self.enlarge_rare_pixels)
+                self.Henon_widget.window_height, self.enlarge_rare_pixels, self.benchmark)
             
             self.Henon_calc.interval_signal.sig.connect(self.Henon_update.receive_interval_signal)
             self.Henon_calc.stop_signal.sig.connect(self.Henon_update.receive_stop_signal)
@@ -215,6 +222,9 @@ class MainGui(QtGui.QMainWindow):
         self.Henon_update.signal.sig.connect(self.update_screen) # Get signal for screen updates
         self.Henon_update.quit_signal.sig.connect(self.qt_thread0.quit) # Quit thread when finished
         self.Henon_calc.quit_signal.sig.connect(self.qt_thread1.quit) # Quit thread when finished
+
+        if self.benchmark:        
+            self.Henon_update.benchmark_signal.sig.connect(self.benchmark_result)
         
         self.qt_thread0.start()        
         self.qt_thread1.start()
@@ -378,6 +388,14 @@ class MainGui(QtGui.QMainWindow):
             
         self.stop_calculation()       
 
+    def toggle_benchmark(self):
+        self.benchmark = not self.benchmark
+        
+        if self.benchmark:
+            self.statusBar().showMessage(self.tr("Benchmarking turned on"),1000)
+        else:
+            self.statusBar().showMessage(self.tr("Benchmarking turned off"),1000)
+
     def closeEvent(self, event):
         # call stop function in order to terminate calculation processes
         # processes will continue after window close otherwise
@@ -433,6 +451,14 @@ class MainGui(QtGui.QMainWindow):
         animate_action.setStatusTip(tip)
         animate_action.setShortcut('A')
 
+        tip = self.tr("Benchmark")        
+        benchmark_action = QtGui.QAction(self.tr("Benchmark"), self)
+        benchmark_action.setIcon(QtGui.QIcon(":clock.png"))
+        benchmark_action.triggered.connect(self.toggle_benchmark)        
+        benchmark_action.setToolTip(tip)
+        benchmark_action.setStatusTip(tip)
+        benchmark_action.setShortcut('B')
+
         tip = self.tr("Re-draw screen")        
         start_action = QtGui.QAction(self.tr("Re-draw"), self)
         start_action.setIcon(QtGui.QIcon(":redo.png"))
@@ -459,6 +485,7 @@ class MainGui(QtGui.QMainWindow):
         
         self.run_menu.addAction(settings_action)
         self.run_menu.addAction(animate_action)
+        self.run_menu.addAction(benchmark_action)
         self.run_menu.addAction(start_action)
         self.run_menu.addAction(stop_action)
         self.run_menu.addAction(quit_action)
