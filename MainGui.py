@@ -57,9 +57,10 @@ class MainGui(QtGui.QMainWindow):
         self.module_opencl_present = module_opencl_present
         self.opencl_enabled = False
         self.opencl_initialized = False
-        self.device_selection = 0 # selected OpenCL device
+        self.device_selection = [] # selected OpenCL devices
         
-        self.thread_count = cpu_count()            
+        self.thread_count = cpu_count()
+        self.global_work_size = 256            
         self.plot_interval = 1
         self.max_iter = 1
         self.drop_iter = 100
@@ -143,13 +144,18 @@ class MainGui(QtGui.QMainWindow):
         if self.first_run:
             self.first_run = False
 
+        if self.opencl_enabled:
+            threads = self.global_work_size
+        else:
+            threads = self.thread_count
+
         if self.iter_auto_mode and (not self.animation_running): 
             # set default maximum number of iterations
             # heavily optimized formula for calculating required number of iterations
             # as a function of the number of screen pixels and the x,y space represented by it
             area = (self.xright - self.xleft) * (self.ytop - self.ybottom)        
-            self.max_iter = int(0.5 * abs(log(area/10)**2/log(0.24)**2) *  self.Henon_widget.window_width * self.Henon_widget.window_height / self.thread_count)
-            self.plot_interval = int(200000/self.thread_count)
+            self.max_iter = int(0.5 * abs(log(area/10)**2/log(0.24)**2) *  self.Henon_widget.window_width * self.Henon_widget.window_height / threads)
+            self.plot_interval = int(200000/threads)
             
             if self.plot_interval < 10000:
                 # avoid low numbers for high thread-count simulations
@@ -188,6 +194,7 @@ class MainGui(QtGui.QMainWindow):
         params['window_width'] = self.Henon_widget.window_width
         params['window_height'] = self.Henon_widget.window_height
         params['thread_count'] = self.thread_count
+        params['global_work_size'] = self.global_work_size
         params['max_iter'] = self.max_iter
         params['plot_interval'] = self.plot_interval
         params['drop_iter'] = self.drop_iter
@@ -230,13 +237,27 @@ class MainGui(QtGui.QMainWindow):
 
     def initialize_opencl(self):
 
+        if len(self.device_selection) == 0:
+            self.opencl_enabled = False
+            msg = self.tr("No OpenCL devices selected. OpenCL function has been turned off automatically.")
+            QtGui.QMessageBox.about(self, self.tr("Warning"), msg)
+            return
+
         num = 0
+        included_devices = []
         for platform in cl.get_platforms():
             for device in platform.get_devices():
-                if num == self.device_selection:
-                    self.thread_count = device.max_compute_units
-                    self.context = cl.Context([device])
+                if num in self.device_selection:
+                    included_devices.append(device)
                 num += 1
+        
+        try:
+            self.context = cl.Context(devices=included_devices)
+        except:
+            self.opencl_enabled = False
+            msg = self.tr("Current OpenCL device selection does not work. OpenCL function has been turned off automatically.")
+            QtGui.QMessageBox.about(self, self.tr("Warning"), msg)
+            return
 
         self.command_queue = cl.CommandQueue(self.context)    
         self.mem_flags = cl.mem_flags
@@ -289,6 +310,7 @@ class MainGui(QtGui.QMainWindow):
             self.opencl_enabled = False
             msg = self.tr("Error during OpenCL kernel build. OpenCL function has been turned off automatically.")
             QtGui.QMessageBox.about(self, self.tr("Warning"), msg)
+            return
 
     def initialize_animation(self):
         

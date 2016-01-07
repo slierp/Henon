@@ -38,7 +38,7 @@ class HenonCalc2(QtCore.QObject):
         self.ybottom = _params['ybottom']
         self.window_width = _params['window_width']
         self.window_height = _params['window_height']
-        self.thread_count = _params['thread_count']
+        self.global_work_size = _params['global_work_size']
         self.max_iter = _params['max_iter']
         self.plot_interval = _params['plot_interval']
         self.drop_iter = _params['drop_iter']
@@ -77,8 +77,8 @@ class HenonCalc2(QtCore.QObject):
         # random x,y values in (-0.1,0.1) range for each GPU thread
         # opencl-float2 does not exist in current pyopencl version, but complex does
         # so we'll use that for now to pass along x,y values
-        xx = ((np.random.random_sample(self.thread_count)-0.5)/5)
-        yy = ((np.random.random_sample(self.thread_count)-0.5)/5) * 1j
+        xx = ((np.random.random_sample(self.global_work_size)-0.5)/5)
+        yy = ((np.random.random_sample(self.global_work_size)-0.5)/5) * 1j
         queue = xx+yy
         first_run = True
 

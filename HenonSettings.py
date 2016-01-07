@@ -397,24 +397,33 @@ class HenonSettings(QtGui.QDialog):
         vbox_tab_calculation.addLayout(hbox)
 
         hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Enable OpenCL")
-        self.opencl_enabled = QtGui.QCheckBox()
+        self.opencl_enabled = QtGui.QCheckBox("Enable OpenCL")
         self.opencl_enabled.setDisabled(not self.parent.module_opencl_present)
-        description.setDisabled(not self.parent.module_opencl_present)
         self.opencl_enabled.setChecked(self.parent.opencl_enabled)
         self.opencl_enabled.mouseReleaseEvent = self.switch_opencl_enabled
-        description.mouseReleaseEvent = self.switch_opencl_enabled
         hbox.addWidget(self.opencl_enabled)
-        hbox.addWidget(description)
         hbox.addStretch(1)                
         vbox_tab_calculation.addLayout(hbox)
 
         if self.parent.module_opencl_present:
 
+            hbox = QtGui.QHBoxLayout()
+            description = QtGui.QLabel("Global work size")
+            self.global_work_size = QtGui.QSpinBox()
+            self.global_work_size.setAccelerated(True)
+            self.global_work_size.setMaximum(9999)
+            self.global_work_size.setMinimum(1)
+            self.global_work_size.setValue(self.parent.global_work_size)           
+            self.global_work_size.setDisabled(not self.parent.opencl_enabled)
+            hbox.addWidget(self.global_work_size) 
+            hbox.addWidget(description)
+            hbox.addStretch(1)                
+            vbox_tab_calculation.addLayout(hbox)
+
             self.scroll_area = QtGui.QScrollArea()
             self.scroll_area.setDisabled(not self.opencl_enabled.isChecked())
             checkbox_widget = QtGui.QWidget()
-            checkbox_vbox = QtGui.QVBoxLayout()            
+            checkbox_vbox = QtGui.QVBoxLayout()
             
             self.devices_cb = []
 
@@ -423,10 +432,10 @@ class HenonSettings(QtGui.QDialog):
                 platform_name = QtGui.QLabel("Platform: " + platform.name)
                 checkbox_vbox.addWidget(platform_name)
                 for device in platform.get_devices():
-                    self.devices_cb.append(QtGui.QRadioButton(device.name))
+                    self.devices_cb.append(QtGui.QCheckBox(device.name))
                     self.devices_cb[num].setMinimumWidth(400) # prevent obscured text
                     checkbox_vbox.addWidget(self.devices_cb[num])
-                    if num == self.parent.device_selection:
+                    if num in self.parent.device_selection:
                         self.devices_cb[num].setChecked(True)                     
                     num += 1
 
@@ -461,6 +470,7 @@ class HenonSettings(QtGui.QDialog):
         self.opencl_enabled.setChecked(not self.opencl_enabled.isChecked())
         self.scroll_area.setDisabled(not self.opencl_enabled.isChecked())
         self.thread_count.setDisabled(self.opencl_enabled.isChecked())
+        self.global_work_size.setDisabled(not self.opencl_enabled.isChecked())
 
     def switch_iter_auto_mode(self, event):
         # function for making QLabel near checkbox clickable
@@ -518,9 +528,12 @@ class HenonSettings(QtGui.QDialog):
         if self.parent.module_opencl_present:
             self.parent.opencl_enabled = self.opencl_enabled.isChecked()            
             
+            self.parent.global_work_size = self.global_work_size.value()            
+            
+            self.parent.device_selection = []
             for i in range(len(self.devices_cb)):
                 if self.devices_cb[i].isChecked():
-                    self.parent.device_selection = i
+                    self.parent.device_selection.append(i)
         
             if self.opencl_enabled.isChecked():
                 self.parent.initialize_opencl()
