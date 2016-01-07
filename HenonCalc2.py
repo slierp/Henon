@@ -82,8 +82,8 @@ class HenonCalc2(QtCore.QObject):
         queue = xx+yy
         first_run = True
 
-        int_params = np.array([self.plot_interval,self.drop_iter,self.window_height,self.window_width],dtype=np.uint32)
-        float_params = np.array([self.hena,self.henb,self.xleft,self.ybottom,xratio,yratio],dtype=np.float32)
+        int_params = np.array([self.plot_interval,self.drop_iter,self.window_height,self.window_width],dtype=np.uint32) #np.uint64
+        float_params = np.array([self.hena,self.henb,self.xleft,self.ybottom,xratio,yratio],dtype=np.float64)
 
         while True:
     
@@ -91,7 +91,7 @@ class HenonCalc2(QtCore.QObject):
             int_params_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=int_params)    
             float_params_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=float_params)
             queue_buffer = cl.Buffer(self.context, self.mem_flags.READ_WRITE | self.mem_flags.COPY_HOST_PTR, hostbuf=queue)
-            cl_arr_buffer = cl.Buffer(self.context, self.mem_flags.READ_WRITE | self.mem_flags.COPY_HOST_PTR, hostbuf=self.cl_arr)
+            cl_arr_buffer = cl.Buffer(self.context, self.mem_flags.WRITE_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=self.cl_arr)
 
             # run GPU calculations
             self.program.henon(self.command_queue, queue.shape, None, queue_buffer, cl_arr_buffer,\

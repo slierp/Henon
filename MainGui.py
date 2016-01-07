@@ -241,14 +241,14 @@ class MainGui(QtGui.QMainWindow):
         self.command_queue = cl.CommandQueue(self.context)    
         self.mem_flags = cl.mem_flags
     
-        try:
+        try: #uint for 32-bit (ulong for 64-bit not recommended due to much longer execution time)
             self.program = cl.Program(self.context, """
             #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable    
             __kernel void henon(__global double2 *q, __global ushort *window_representation,
-                                __global uint const *int_params, __global float const *float_params)
+                                __global uint const *int_params, __global double const *float_params)
             {
                 int gid = get_global_id(0);
-                float x,y,xtemp,x_draw,y_draw;
+                double x,y,xtemp,x_draw,y_draw;
                 x = q[gid].x;
                 y = q[gid].y;
     
