@@ -91,10 +91,7 @@ class HenonUpdate(QtCore.QObject):
             # enlarge pixels if there are very few of them
             pixel_number = np.count_nonzero(arr)
             if (pixel_number < 17) and (pixel_number > 0):
-                arr = np.bitwise_or(arr,np.roll(arr,1,0))
-                arr = np.bitwise_or(arr,np.roll(arr,-1,0))
-                arr = np.bitwise_or(arr,np.roll(arr,1,1))
-                arr = np.bitwise_or(arr,np.roll(arr,-1,1)) 
+                arr = arr + np.roll(arr,1,0) + np.roll(arr,-1,0) + np.roll(arr,1,1) + np.roll(arr,-1,1)  
             
         self.window_representation[arr == True] = 255 # add newly calculated pixels
 

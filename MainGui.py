@@ -62,7 +62,7 @@ class MainGui(QtGui.QMainWindow):
         self.thread_count = cpu_count()            
         self.plot_interval = 1
         self.max_iter = 1
-        self.drop_iter = 1000
+        self.drop_iter = 100
         self.iter_auto_mode = True
         self.full_screen = False
         self.first_run = True
@@ -81,7 +81,7 @@ class MainGui(QtGui.QMainWindow):
         self.animation_running = False
         self.max_iter_anim = 10000
         self.plot_interval_anim = 10000
-        self.animation_delay = 500
+        self.animation_delay = 999
         
         self.qt_thread0 = QtCore.QThread(self) # Separate Qt thread for generating screen update signals        
         self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels
@@ -320,26 +320,27 @@ class MainGui(QtGui.QMainWindow):
     def animate(self):       
         
         if self.hena_anim and self.henb_anim:
-            if (self.hena < (self.hena_mid + 0.5*self.hena_range)) and (self.henb < (self.henb_mid + 0.5*self.henb_range)):
+            if (round(self.hena + self.hena_increment,3) <= round(self.hena_mid + 0.5*self.hena_range,3)) and\
+                    (round(self.henb + self.henb_increment,3) <= round(self.henb_mid + 0.5*self.henb_range,3)):
                 self.hena += self.hena_increment
                 self.henb += self.henb_increment
-            elif (self.hena < (self.hena_mid + 0.5*self.hena_range)):
+            elif (round(self.hena + self.hena_increment,3) <= round(self.hena_mid + 0.5*self.hena_range,3)):
                 self.hena += self.hena_increment
-            elif (self.henb < (self.henb_mid + 0.5*self.henb_range)):
+            elif (round(self.henb + self.henb_increment,3) <= round(self.henb_mid + 0.5*self.henb_range,3)):
                 self.henb += self.henb_increment
             else:
                 self.timer.stop()
                 self.animation_running = False                
                 return                                    
-        elif (self.hena_anim):                
-            if (self.hena < (self.hena_mid + 0.5*self.hena_range)):
+        elif self.hena_anim:  
+            if (round(self.hena + self.hena_increment,3) <= round(self.hena_mid + 0.5*self.hena_range,3)):
                 self.hena += self.hena_increment                 
             else:
                 self.timer.stop()
                 self.animation_running = False                
                 return                
-        elif (self.henb_anim):
-            if (self.henb < (self.henb_mid + 0.5*self.henb_range)):
+        elif self.henb_anim:
+            if (round(self.henb + self.henb_increment,3) <= round(self.henb_mid + 0.5*self.henb_range,3)):
                 self.henb += self.henb_increment
             else:
                 self.timer.stop()
