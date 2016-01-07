@@ -299,6 +299,8 @@ class MainGui(QtGui.QMainWindow):
             # cannot animate if no variables are selected for animation
             return
 
+        self.benchmark = False # make sure status bar can show a/b values
+
 #        print "[MainGui] Starting animation" #DEBUG
 
         self.stop_calculation()

@@ -94,8 +94,6 @@ class HenonUpdate2(QtCore.QObject):
                 arr = np.bitwise_or(arr,np.roll(arr,-1,0))
                 arr = np.bitwise_or(arr,np.roll(arr,1,1))
                 arr = np.bitwise_or(arr,np.roll(arr,-1,1)) 
-            
-        self.window_representation[arr == 255] = 255 # add newly calculated pixels
 
 #        print "[HenonUpdate2] Pixels in screen window: " + str(self.window_width*self.window_height) #DEBUG
 #        print "[HenonUpdate2] Pixels in copied array: " + str(np.count_nonzero(arr)) #DEBUG 
