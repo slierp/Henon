@@ -292,9 +292,6 @@ class MainGui(QtGui.QMainWindow):
 
     def initialize_animation(self):
         
-        if self.opencl_enabled:
-            return
-        
         if self.first_run:
             return
         
