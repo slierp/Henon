@@ -162,7 +162,7 @@ class MainGui(QtGui.QMainWindow):
     
     @QtCore.pyqtSlot(str)
     def benchmark_result(self,result):
-        self.statusBar().showMessage(result,3000)
+        self.statusBar().showMessage(result,1000)
 
     def initialize_calculation(self):
         
@@ -186,8 +186,8 @@ class MainGui(QtGui.QMainWindow):
             # set default maximum number of iterations
             # heavily optimized formula for calculating required number of iterations
             # as a function of the number of screen pixels and the x,y space represented by it
-            area = (self.xright - self.xleft) * (self.ytop - self.ybottom)        
-            self.max_iter = int(0.5 * abs(log(area/10)**2/log(0.24)**2) *  self.Henon_widget.window_width * self.Henon_widget.window_height / threads)
+            area_factor = (self.xright - self.xleft) * (self.ytop - self.ybottom) / 2.4           
+            self.max_iter = int(self.Henon_widget.window_width*self.Henon_widget.window_height/(threads*(area_factor**0.4)))
             self.plot_interval = int(200000/threads)
             
             if self.plot_interval < 10000:
@@ -538,6 +538,7 @@ class MainGui(QtGui.QMainWindow):
 
     def load_default_settings(self):
         self.implement_settings(self.default_settings)
+        self.statusBar().showMessage(self.tr("Default settings loaded"),1000)
     
     def implement_settings(self,settings):
         self.hena = settings['hena']
