@@ -439,6 +439,15 @@ class MainGui(QtGui.QMainWindow):
         settings_dialog.setModal(True)
         settings_dialog.show() 
 
+    def load_settings(self):
+        pass
+    
+    def save_settings(self):
+        pass
+
+    def default_settings(self):
+        pass
+
     def create_main_frame(self):
         
         self.Henon_widget = HenonWidget(self)
@@ -457,31 +466,55 @@ class MainGui(QtGui.QMainWindow):
         self.statusBar().showMessage(self.tr(""))
 
     def create_menu(self):        
-        self.run_menu = self.menuBar().addMenu(self.tr("Run"))      
+        self.file_menu = self.menuBar().addMenu(self.tr("File"))         
+
+        tip = self.tr("Load settings")        
+        load_action = QtGui.QAction(self.tr("Load settings"), self)
+        load_action.setIcon(QtGui.QIcon(":open.png"))
+        load_action.triggered.connect(self.load_settings)        
+        load_action.setToolTip(tip)
+        load_action.setStatusTip(tip)
+        load_action.setShortcut('CTRL+L')
+
+        tip = self.tr("Save settings")        
+        save_action = QtGui.QAction(self.tr("Save settings"), self)
+        save_action.setIcon(QtGui.QIcon(":save.png"))
+        save_action.triggered.connect(self.save_settings)        
+        save_action.setToolTip(tip)
+        save_action.setStatusTip(tip)
+        save_action.setShortcut('CTRL+S')
 
         tip = self.tr("Change settings")        
-        settings_action = QtGui.QAction(self.tr("Settings"), self)
+        settings_action = QtGui.QAction(self.tr("Change settings"), self)
         settings_action.setIcon(QtGui.QIcon(":gear.png"))
         settings_action.triggered.connect(self.open_settings_dialog)        
         settings_action.setToolTip(tip)
         settings_action.setStatusTip(tip)
         settings_action.setShortcut('S')
 
-        tip = self.tr("Animate")        
-        animate_action = QtGui.QAction(self.tr("Animate"), self)
-        animate_action.setIcon(QtGui.QIcon(":play.png"))
-        animate_action.triggered.connect(self.initialize_animation)        
-        animate_action.setToolTip(tip)
-        animate_action.setStatusTip(tip)
-        animate_action.setShortcut('A')
+        tip = self.tr("Default settings")        
+        default_action = QtGui.QAction(self.tr("Default settings"), self)
+        default_action.setIcon(QtGui.QIcon(":revert.png"))
+        default_action.triggered.connect(self.default_settings)        
+        default_action.setToolTip(tip)
+        default_action.setStatusTip(tip)
+        default_action.setShortcut('D')
 
-        tip = self.tr("Benchmark")        
-        benchmark_action = QtGui.QAction(self.tr("Benchmark"), self)
-        benchmark_action.setIcon(QtGui.QIcon(":clock.png"))
-        benchmark_action.triggered.connect(self.toggle_benchmark)        
-        benchmark_action.setToolTip(tip)
-        benchmark_action.setStatusTip(tip)
-        benchmark_action.setShortcut('B')
+        tip = self.tr("Quit")        
+        quit_action = QtGui.QAction(self.tr("Quit"), self)
+        quit_action.setIcon(QtGui.QIcon(":quit.png"))
+        quit_action.triggered.connect(self.close)        
+        quit_action.setToolTip(tip)
+        quit_action.setStatusTip(tip)
+        quit_action.setShortcut('Q')
+
+        self.file_menu.addAction(load_action)
+        self.file_menu.addAction(save_action)
+        self.file_menu.addAction(settings_action)
+        self.file_menu.addAction(default_action)        
+        self.file_menu.addAction(quit_action)
+        
+        self.run_menu = self.menuBar().addMenu(self.tr("Run"))      
 
         tip = self.tr("Re-draw screen")        
         start_action = QtGui.QAction(self.tr("Re-draw"), self)
@@ -499,20 +532,26 @@ class MainGui(QtGui.QMainWindow):
         stop_action.setStatusTip(tip)
         stop_action.setShortcut('X')
 
-        tip = self.tr("Quit")        
-        quit_action = QtGui.QAction(self.tr("Quit"), self)
-        quit_action.setIcon(QtGui.QIcon(":quit.png"))
-        quit_action.triggered.connect(self.close)        
-        quit_action.setToolTip(tip)
-        quit_action.setStatusTip(tip)
-        quit_action.setShortcut('Q')
-        
-        self.run_menu.addAction(settings_action)
+        tip = self.tr("Animate")        
+        animate_action = QtGui.QAction(self.tr("Animate"), self)
+        animate_action.setIcon(QtGui.QIcon(":play.png"))
+        animate_action.triggered.connect(self.initialize_animation)        
+        animate_action.setToolTip(tip)
+        animate_action.setStatusTip(tip)
+        animate_action.setShortcut('A')
+
+        tip = self.tr("Benchmark")        
+        benchmark_action = QtGui.QAction(self.tr("Benchmark"), self)
+        benchmark_action.setIcon(QtGui.QIcon(":clock.png"))
+        benchmark_action.triggered.connect(self.toggle_benchmark)        
+        benchmark_action.setToolTip(tip)
+        benchmark_action.setStatusTip(tip)
+        benchmark_action.setShortcut('B')
+
+        self.run_menu.addAction(start_action)
+        self.run_menu.addAction(stop_action)        
         self.run_menu.addAction(animate_action)
         self.run_menu.addAction(benchmark_action)
-        self.run_menu.addAction(start_action)
-        self.run_menu.addAction(stop_action)
-        self.run_menu.addAction(quit_action)
 
         self.view_menu = self.menuBar().addMenu(self.tr("View"))
 
