@@ -10,7 +10,7 @@ from HenonHelp import HenonHelp
 from HenonSettings import HenonSettings
 from multiprocessing import cpu_count
 from math import log
-import os
+import os, ntpath, pickle
 
 try:
     # check if PyOpenCL is present as it is optional
@@ -44,46 +44,79 @@ class MainGui(QtGui.QMainWindow):
         
         self.create_menu()
         self.create_main_frame()        
+
+        self.default_settings = {} # put parameters in dict for easy saving/loading
         
         # general settings
         self.hena = 1.4
+        self.default_settings['hena'] = self.hena
         self.henb = 0.3
+        self.default_settings['henb'] = self.henb
         self.xleft = -1.5
+        self.default_settings['xleft'] = self.xleft
         self.ytop = 0.4
+        self.default_settings['ytop'] = self.ytop
         self.xright = 1.5
+        self.default_settings['xright'] = self.xright
         self.ybottom = -0.4
+        self.default_settings['ybottom'] = self.ybottom
         
-        # calculation settings
-        self.module_opencl_present = module_opencl_present
+        # calculation settings        
         self.opencl_enabled = False
-        self.opencl_initialized = False
+        self.default_settings['opencl_enabled'] = self.opencl_enabled
         self.device_selection = [] # selected OpenCL devices
+        self.default_settings['device_selection'] = self.device_selection
         
         self.thread_count = cpu_count()
-        self.global_work_size = 256            
+        self.default_settings['thread_count'] = self.thread_count
+        self.global_work_size = 256
+        self.default_settings['global_work_size'] = self.global_work_size
         self.plot_interval = 1
+        self.default_settings['plot_interval'] = self.plot_interval
         self.max_iter = 1
+        self.default_settings['max_iter'] = self.max_iter
         self.drop_iter = 100
+        self.default_settings['drop_iter'] = self.drop_iter
         self.iter_auto_mode = True
-        self.full_screen = False
-        self.first_run = True
+        self.default_settings['iter_auto_mode'] = self.iter_auto_mode
         self.enlarge_rare_pixels = False
+        self.default_settings['enlarge_rare_pixels'] = self.enlarge_rare_pixels
         self.benchmark = False
+        self.default_settings['benchmark'] = self.benchmark
         
         # animation settings
         self.hena_mid = 0.8
+        self.default_settings['hena_mid'] = self.hena_mid
         self.hena_range = 1.2
+        self.default_settings['hena_range'] = self.hena_range
         self.hena_increment = 0.05
+        self.default_settings['hena_increment'] = self.hena_increment
         self.hena_anim = False
+        self.default_settings['hena_anim'] = self.hena_anim
         self.henb_mid = -0.05
+        self.default_settings['henb_mid'] = self.henb_mid
         self.henb_range = 0.7
+        self.default_settings['henb_range'] = self.henb_range
         self.henb_increment = 0.05
+        self.default_settings['henb_increment'] = self.henb_increment
         self.henb_anim = False
+        self.default_settings['henb_anim'] = self.henb_anim
         self.animation_running = False
+        self.default_settings['animation_running'] = self.animation_running
         self.max_iter_anim = 10000
+        self.default_settings['max_iter_anim'] = self.max_iter_anim
         self.plot_interval_anim = 10000
+        self.default_settings['plot_interval_anim'] = self.plot_interval_anim
         self.animation_delay = 999
-        
+        self.default_settings['animation_delay'] = self.animation_delay
+
+        # misc settings (not for saving)
+        self.first_run = True
+        self.full_screen = False
+        self.prev_dir_path = ""
+        self.module_opencl_present = module_opencl_present
+
+        # program flow controls        
         self.qt_thread0 = QtCore.QThread(self) # Separate Qt thread for generating screen update signals        
         self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels
         
@@ -440,13 +473,104 @@ class MainGui(QtGui.QMainWindow):
         settings_dialog.show() 
 
     def load_settings(self):
-        pass
+        filename = QtGui.QFileDialog.getOpenFileName(self,self.tr("Open file"), self.prev_dir_path, "Settings Files (*.conf)")
+        
+        if (not filename):
+            return
+
+        if (not os.path.isfile(filename.toAscii())):
+            msg = self.tr("Filenames with non-ASCII characters were found.\n\nThe application currently only supports ASCII filenames.")
+            QtGui.QMessageBox.about(self, self.tr("Warning"), msg) 
+            return
+        
+        self.prev_dir_path = ntpath.dirname(str(filename))
+        
+        with open(str(filename)) as f:
+            all_settings = pickle.load(f)
+
+        self.implement_settings(all_settings)
+            
+        self.statusBar().showMessage(self.tr("New settings loaded"),1000)
     
     def save_settings(self):
-        pass
+        filename = QtGui.QFileDialog.getSaveFileName(self,self.tr("Save file"), self.prev_dir_path, "Settings Files (*.conf)")
+        
+        if (not filename):
+            return
 
-    def default_settings(self):
-        pass
+        # Check for non-ASCII here does not seem to work        
+        self.prev_dir_path = ntpath.dirname(str(filename))
+
+        current_settings = {}
+        current_settings['hena'] = self.hena
+        current_settings['henb'] = self.henb
+        current_settings['xleft'] = self.xleft
+        current_settings['ytop'] = self.ytop
+        current_settings['xright'] = self.xright
+        current_settings['ybottom'] = self.ybottom
+        current_settings['opencl_enabled'] = self.opencl_enabled
+        current_settings['device_selection'] = self.device_selection
+        current_settings['thread_count'] = self.thread_count
+        current_settings['global_work_size'] = self.global_work_size
+        current_settings['plot_interval'] = self.plot_interval
+        current_settings['max_iter'] = self.max_iter
+        current_settings['drop_iter'] = self.drop_iter
+        current_settings['iter_auto_mode'] = self.iter_auto_mode
+        current_settings['enlarge_rare_pixels'] = self.enlarge_rare_pixels
+        current_settings['benchmark'] = self.benchmark
+        current_settings['hena_mid'] = self.hena_mid
+        current_settings['hena_range'] = self.hena_range
+        current_settings['hena_increment'] = self.hena_increment
+        current_settings['hena_anim'] = self.hena_anim
+        current_settings['henb_mid'] = self.henb_mid
+        current_settings['henb_range'] = self.henb_range
+        current_settings['henb_increment'] = self.henb_increment
+        current_settings['henb_anim'] = self.henb_anim
+        current_settings['animation_running'] = self.animation_running
+        current_settings['max_iter_anim'] = self.max_iter_anim
+        current_settings['plot_interval_anim'] = self.plot_interval_anim 
+        current_settings['animation_delay'] = self.animation_delay
+        
+        with open(str(filename), 'w') as f:
+            pickle.dump(current_settings, f)
+            
+        self.statusBar().showMessage(self.tr("File saved"),1000) 
+
+    def load_default_settings(self):
+        self.implement_settings(self.default_settings)
+    
+    def implement_settings(self,settings):
+        self.hena = settings['hena']
+        self.henb = settings['henb']
+        self.xleft = settings['xleft']
+        self.ytop = settings['ytop']
+        self.xright = settings['xright']
+        self.ybottom = settings['ybottom']
+        if self.module_opencl_present:
+            self.opencl_enabled = settings['opencl_enabled']
+        else:
+            self.opencl_enabled = False
+        self.device_selection = settings['device_selection']
+        self.thread_count = settings['thread_count']
+        self.global_work_size = settings['global_work_size']
+        self.plot_interval = settings['plot_interval']
+        self.max_iter = settings['max_iter']
+        self.drop_iter = settings['drop_iter']
+        self.iter_auto_mode = settings['iter_auto_mode']
+        self.enlarge_rare_pixels = settings['enlarge_rare_pixels']
+        self.benchmark = settings['benchmark']
+        self.hena_mid = settings['hena_mid']
+        self.hena_range = settings['hena_range']
+        self.hena_increment = settings['hena_increment']
+        self.hena_anim = settings['hena_anim']
+        self.henb_mid = settings['henb_mid']
+        self.henb_range = settings['henb_range']
+        self.henb_increment = settings['henb_increment']
+        self.henb_anim = settings['henb_anim']
+        self.animation_running = settings['animation_running']
+        self.max_iter_anim = settings['max_iter_anim']
+        self.plot_interval_anim = settings['plot_interval_anim']
+        self.animation_delay = settings['animation_delay']
 
     def create_main_frame(self):
         
@@ -495,7 +619,7 @@ class MainGui(QtGui.QMainWindow):
         tip = self.tr("Default settings")        
         default_action = QtGui.QAction(self.tr("Default settings"), self)
         default_action.setIcon(QtGui.QIcon(":revert.png"))
-        default_action.triggered.connect(self.default_settings)        
+        default_action.triggered.connect(self.load_default_settings)        
         default_action.setToolTip(tip)
         default_action.setStatusTip(tip)
         default_action.setShortcut('D')
