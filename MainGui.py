@@ -9,7 +9,6 @@ from HenonCalc import HenonCalc
 from HenonHelp import HenonHelp
 from HenonSettings import HenonSettings
 from multiprocessing import cpu_count
-from math import log
 import os, ntpath, pickle
 
 try:
@@ -541,6 +540,8 @@ class MainGui(QtGui.QMainWindow):
         self.statusBar().showMessage(self.tr("Default settings loaded"),1000)
     
     def implement_settings(self,settings):
+        self.stop_calculation()
+        
         self.hena = settings['hena']
         self.henb = settings['henb']
         self.xleft = settings['xleft']
@@ -572,6 +573,10 @@ class MainGui(QtGui.QMainWindow):
         self.max_iter_anim = settings['max_iter_anim']
         self.plot_interval_anim = settings['plot_interval_anim']
         self.animation_delay = settings['animation_delay']
+
+        if self.module_opencl_present:
+            if self.opencl_enabled:
+                self.initialize_opencl()
 
     def create_main_frame(self):
         
