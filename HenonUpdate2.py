@@ -34,6 +34,7 @@ class HenonUpdate2(QtCore.QObject):
         self.enlarge_rare_pixels = _settings['enlarge_rare_pixels']
         self.benchmark = _settings['benchmark']
         self.animation_running = _settings['animation_running']
+        self.animation_delay = _settings['animation_delay']        
 #        self.time_prev = datetime.now() #DEBUG
 
         if self.benchmark:
@@ -77,8 +78,11 @@ class HenonUpdate2(QtCore.QObject):
             return
         
         # call itself again in some time
-        # needs to be less than minimum animation time delay
-        self.timer.start(25) 
+        if self.animation_running:
+            time_delay = max([25,self.animation_delay])
+            self.timer.start(time_delay)
+        else:
+            self.timer.start(25)
 
     def perform_update(self):
 

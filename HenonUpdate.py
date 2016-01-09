@@ -66,9 +66,9 @@ class HenonUpdate(QtCore.QObject):
        
         if all(i for i in self.interval_flags): # perform update
             self.perform_update()
-            self.interval_flags[:] = [False]*self.thread_count # reset for new signal            
-        
-        if self.stop_signal.value: # quit updates
+            self.interval_flags[:] = [False]*self.thread_count # reset for new signal        
+        elif self.stop_signal.value: # quit updates
+            self.perform_update()
             if self.benchmark:
                 delta = datetime.now() - self.time_start
                 self.benchmark_signal.sig.emit(str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds")

@@ -4,7 +4,6 @@ from PyQt4 import QtCore
 import pyopencl as cl
 #from datetime import datetime #DEBUG
 import numpy as np
-from random import uniform
 
 class Signal(QtCore.QObject):
     sig = QtCore.pyqtSignal()

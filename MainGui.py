@@ -10,6 +10,7 @@ from HenonHelp import HenonHelp
 from HenonSettings import HenonSettings
 from multiprocessing import cpu_count
 import os, ntpath, pickle
+from math import ceil
 
 try:
     # check if PyOpenCL is present as it is optional
@@ -114,7 +115,9 @@ class MainGui(QtGui.QMainWindow):
         self.full_screen = False
         self.prev_dir_path = ""
         self.module_opencl_present = module_opencl_present
-
+        self.hena_max = round(self.hena_mid + 0.5*self.hena_range,3)
+        self.henb_max = round(self.henb_mid + 0.5*self.henb_range,3)
+        
         # program flow controls        
         self.qt_thread0 = QtCore.QThread(self) # Separate Qt thread for generating screen update signals        
         self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels
@@ -136,16 +139,20 @@ class MainGui(QtGui.QMainWindow):
           
         #self.Henon_widget.updateGL() # for OpenGL Henon widget
         self.Henon_widget.showEvent(QtGui.QShowEvent()) # for PyQt-only Henon widget
-            
+        
         if self.animation_running:
-                
+
             self.statusBar().showMessage("a = " + str('%.3f' % self.hena) + "; b = " + str('%.3f' % self.henb))
             
             if (self.hena_anim):
-                self.hena += self.hena_increment
-    
+                new_hena = round(self.hena + self.hena_increment,3)
+                if new_hena <= self.hena_max:
+                    self.hena = new_hena                
+                
             if (self.henb_anim):
-                self.henb += self.henb_increment
+                new_henb = round(self.henb + self.henb_increment,3)
+                if new_henb <= self.henb_max:
+                    self.henb = new_henb         
 
     def wait_thread_end(self, thread):
         
@@ -157,8 +164,9 @@ class MainGui(QtGui.QMainWindow):
 
     @QtCore.pyqtSlot()
     def animation_stopped(self):
-        if self.animation_running:
+        if self.animation_running:            
             self.animation_running = False
+                
             self.statusBar().showMessage("Animation finished",1000)
     
     @QtCore.pyqtSlot(str)
@@ -348,17 +356,17 @@ class MainGui(QtGui.QMainWindow):
 
         if (self.hena_anim):
             self.hena = self.hena_mid - 0.5*self.hena_range
-            a_frames = int(self.hena_range / self.hena_increment)
+            a_frames = ceil(self.hena_range / self.hena_increment) + 1
 
         if (self.henb_anim):
             self.henb = self.henb_mid - 0.5*self.henb_range
-            b_frames = int(self.henb_range / self.henb_increment)
+            b_frames = ceil(self.henb_range / self.henb_increment) + 1
 
         self.max_iter_anim = max([a_frames,b_frames]) * self.plot_interval_anim
-
-        self.animation_running = True
+        self.hena_max = round(self.hena_mid + 0.5*self.hena_range,3)
+        self.henb_max = round(self.henb_mid + 0.5*self.henb_range,3)
         
-        self.statusBar().showMessage("a = " + str(self.hena) + "; b = " + str(self.henb))        
+        self.animation_running = True
 
         self.initialize_calculation()
     

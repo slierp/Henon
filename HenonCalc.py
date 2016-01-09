@@ -123,9 +123,8 @@ class WorkerProcess(mp.Process):
                 henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
             return henx,heny
         except OverflowError: # if x,y results move towards infinity
-            self.interval_flags[self.run_number] = True # send message to HenonUpdate to show end result
 #            print "[WorkerProcess] Worker " + str(self.run_number) + " overflow" #DEBUG                
-            return None,None
+            return uniform(-0.1,0.1),uniform(-0.1,0.1)
 
     def run(self):
         
@@ -162,8 +161,8 @@ class WorkerProcess(mp.Process):
             hena_anim = self.hena_anim
             henb_increment = self.henb_increment
             henb_anim = self.henb_anim
-            hena_max = self.hena_mid + 0.5*self.hena_range
-            henb_max = self.henb_mid + 0.5*self.henb_range
+            hena_max = round(self.hena_mid + 0.5*self.hena_range,3)
+            henb_max = round(self.henb_mid + 0.5*self.henb_range,3)
             plot_interval = self.plot_interval_anim
             max_iter = self.max_iter_anim
 
@@ -180,7 +179,7 @@ class WorkerProcess(mp.Process):
                 y_draw = (heny-ybottom) * yratio
             except OverflowError:
 #                print "[WorkerProcess] Worker " + str(run_number) + " overflow" #DEBUG                
-                break
+                pass
             
             if (not isinf(x_draw)) and (not isinf(y_draw)) and (not isnan(x_draw)) and (not isnan(y_draw)):                
                 # do not convert to int unless the number is finite
@@ -195,7 +194,7 @@ class WorkerProcess(mp.Process):
                                         
             iter_count += 1
             
-            if iter_count % plot_interval == 0:
+            if iter_count % plot_interval == 0:                    
                 # copy local array to multiprocessing array when plot_interval is reached
                 # TODO: find way to do 'bitwise or' on ctypes array directly
                 if not animation_running:
@@ -205,30 +204,30 @@ class WorkerProcess(mp.Process):
                     # indicate to HenonUpdate that we have some new pixels to draw
                     self.interval_flags[run_number] = True                
                 else:
+                    while not self.exit.is_set(): # wait until previous data was updated
+                        if self.interval_flags[run_number]:
+                            time.sleep(0.01)
+                        else:
+                            break
+                    
+                    # replace previous data                   
                     ctypes.memmove(self.mp_arr, local_array.data[:], len(local_array.data))
                     self.interval_flags[run_number] = True
                     
                     if iter_count >= max_iter:
                         pass
-                    
+
                     if hena_anim:
-                        if (hena + hena_increment) <= hena_max:
-                            hena += hena_increment
-                        
+                        new_hena = round(hena + hena_increment,3)
+                        if new_hena <= hena_max:
+                            hena = new_hena
+
                     if henb_anim:
-                        if (henb + henb_increment) <= henb_max:
-                           henb += henb_increment
+                        new_henb = round(henb + henb_increment,3)
+                        if new_henb <= henb_max:
+                           henb = new_henb
                     
                     henx,heny = self.drop_iterations(hena,henb,henx,heny)
-            
-                    if not henx or not heny:
-                        break
-                    
-                    while not self.exit.is_set():
-                        if self.interval_flags[run_number]:
-                            time.sleep(0.01)
-                        else:
-                            break
                     
                     local_array = np.zeros(len(local_array),dtype=ctypes.c_byte)
             
