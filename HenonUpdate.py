@@ -18,7 +18,7 @@ class HenonUpdate(QtCore.QObject):
     # waits for signals from worker threads; once all are received it copies the results into
     # window_representation and sends a signal to trigger a screen re-draw
 
-    def __init__(self, _interval_flags, _stop_signal, _thread_count, _mp_arr, _window_representation, _window_width, _window_height, _enlarge_rare_pixels, _benchmark):
+    def __init__(self, _settings, _interval_flags, _stop_signal, _mp_arr, _window_representation):       
         QtCore.QObject.__init__(self)
         
 #        print "[HenonUpdate] Initialization" #DEBUG
@@ -29,13 +29,15 @@ class HenonUpdate(QtCore.QObject):
         
         self.interval_flags = _interval_flags
         self.stop_signal = _stop_signal
-        self.thread_count = _thread_count
+        self.thread_count = _settings['thread_count']
         self.mp_arr = _mp_arr
         self.window_representation = _window_representation
-        self.window_width = _window_width
-        self.window_height = _window_height
-        self.enlarge_rare_pixels = _enlarge_rare_pixels
-        self.benchmark = _benchmark
+        self.window_width = _settings['window_width']
+        self.window_height = _settings['window_height']
+        self.enlarge_rare_pixels = _settings['enlarge_rare_pixels']
+        self.benchmark = _settings['benchmark']
+        self.animation_running = _settings['animation_running']
+        self.animation_delay = _settings['animation_delay']
 #        self.time_prev = datetime.now() #DEBUG
 
         if self.benchmark:
@@ -61,14 +63,12 @@ class HenonUpdate(QtCore.QObject):
         self.check_for_update()
 
     def check_for_update(self):
-        
+       
         if all(i for i in self.interval_flags): # perform update
             self.perform_update()
-            self.interval_flags[:] = [False]*self.thread_count # reset for new signal             
-        elif self.stop_signal.value: # quit updates
-#            print "[HenonUpdate] Received stop signal" #DEBUG        
-            self.perform_update() # draw final result
-
+            self.interval_flags[:] = [False]*self.thread_count # reset for new signal            
+        
+        if self.stop_signal.value: # quit updates
             if self.benchmark:
                 delta = datetime.now() - self.time_start
                 self.benchmark_signal.sig.emit(str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds")
@@ -77,8 +77,11 @@ class HenonUpdate(QtCore.QObject):
             return
         
         # call itself again in some time
-        # needs to be less than minimum animation time delay
-        self.timer.start(25) 
+        if self.animation_running:
+            time_delay = max([25,self.animation_delay])
+            self.timer.start(time_delay)
+        else:
+            self.timer.start(25)
 
     def perform_update(self):
 
@@ -91,8 +94,11 @@ class HenonUpdate(QtCore.QObject):
             # enlarge pixels if there are very few of them
             pixel_number = np.count_nonzero(arr)
             if (pixel_number < 17) and (pixel_number > 0):
-                arr = arr + np.roll(arr,1,0) + np.roll(arr,-1,0) + np.roll(arr,1,1) + np.roll(arr,-1,1)  
-            
+                arr = arr + np.roll(arr,1,0) + np.roll(arr,-1,0) + np.roll(arr,1,1) + np.roll(arr,-1,1)
+ 
+        if self.animation_running:
+            self.window_representation[:] = 0
+           
         self.window_representation[arr == True] = 255 # add newly calculated pixels
 
 #        print "[HenonUpdate] Pixels in screen window: " + str(self.window_width*self.window_height) #DEBUG

@@ -7,6 +7,7 @@ from math import isinf, isnan
 #from datetime import datetime #DEBUG
 import numpy as np
 import ctypes
+import time
 
 class Signal(QtCore.QObject):
     sig = QtCore.pyqtSignal()
@@ -17,24 +18,17 @@ class Signal(QtCore.QObject):
 class HenonCalc(QtCore.QObject):
     # Starts up worker threads for Henon calculations and then waits for stop signal
 
-    def __init__(self, _params):
+    def __init__(self, _settings):
         QtCore.QObject.__init__(self)
         
 #        print "[HenonCalc] Initialization" #DEBUG
-        self.params = _params
+        self.settings = _settings
         self.signal = Signal()
         self.quit_signal = Signal()
         
-        self.xleft = self.params['xleft']
-        self.ytop = self.params['ytop']
-        self.xright = self.params['xright']
-        self.ybottom = self.params['ybottom']
-        self.window_width = self.params['window_width']
-        self.window_height = self.params['window_height']
-        self.thread_count = self.params['thread_count']
-
-        xratio = self.window_width/(self.xright-self.xleft)
-        yratio = self.window_height/(self.ytop-self.ybottom)
+        self.window_width = self.settings['window_width']
+        self.window_height = self.settings['window_height']
+        self.thread_count = self.settings['thread_count']
 
         # shared array containing booleans for each pixel
         # content is a flattened array so it needs to be deflattened later on
@@ -46,13 +40,11 @@ class HenonCalc(QtCore.QObject):
 
         self.stop_signal = mp.Value('b', False) # Boolean for sending stop signal
 
-        vars_tuple = self.params['hena'],self.params['henb'],self.xleft,xratio,self.ybottom,yratio,self.params['plot_interval'],self.params['max_iter'],\
-            self.window_width,self.window_height, self.params['drop_iter']
         shared_tuple = self.mp_arr, self.interval_flags, self.stop_signal
 
         self.worker_list = []
         for i in range(self.thread_count):
-            self.worker_list.append(WorkerProcess(args=([i, vars_tuple, shared_tuple]))) # independent process
+            self.worker_list.append(WorkerProcess(args=([i, self.settings, shared_tuple]))) # independent process
             
         self.workers_started = False
                      
@@ -89,14 +81,51 @@ class WorkerProcess(mp.Process):
         mp.Process.__init__(self)
         self.exit = mp.Event()
         
-        self.run_number = args[0]
-        self.hena,self.henb,self.xleft,self.xratio,self.ybottom,self.yratio,self.plot_interval,self.max_iter,\
-            self.window_width,self.window_height, self.drop_iter = args[1]            
-        self.array, self.interval_flags, self.stop_signal = args[2]
+        self.run_number = args[0]           
+        
+        settings = args[1]
+        self.hena = settings['hena']
+        self.henb = settings['henb']
+        self.xleft = settings['xleft']
+        self.ytop = settings['ytop']
+        self.xright = settings['xright']
+        self.ybottom = settings['ybottom']
+        self.window_width = settings['window_width']
+        self.window_height = settings['window_height']
+        self.max_iter = settings['max_iter']
+        self.plot_interval = settings['plot_interval']
+        self.drop_iter = settings['drop_iter']
+        self.hena_mid = settings['hena_mid']
+        self.hena_range = settings['hena_range']        
+        self.hena_increment = settings['hena_increment']
+        self.hena_anim = settings['hena_anim']
+        self.henb_mid = settings['henb_mid']
+        self.henb_range = settings['henb_range']        
+        self.henb_increment = settings['henb_increment']
+        self.henb_anim = settings['henb_anim']
+        self.max_iter_anim = settings['max_iter_anim']
+        self.plot_interval_anim = settings['plot_interval_anim']        
+        self.animation_running = settings['animation_running']            
+        self.animation_delay = settings['animation_delay']
+
+        self.xratio = self.window_width/(self.xright-self.xleft)
+        self.yratio = self.window_height/(self.ytop-self.ybottom)
+            
+        self.mp_arr, self.interval_flags, self.stop_signal = args[2]
 
     def shutdown(self):
 #        print "[WorkerProcess] Worker " + str(self.run_number) + " shutdown initiated" #DEBUG
         self.exit.set()
+
+    def drop_iterations(self,hena,henb,henx,heny):        
+        try:            
+            for i in range(self.drop_iter): # prevent drawing first iterations
+                henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+            return henx,heny
+        except OverflowError: # if x,y results move towards infinity
+            self.interval_flags[self.run_number] = True # send message to HenonUpdate to show end result
+#            print "[WorkerProcess] Worker " + str(self.run_number) + " overflow" #DEBUG                
+            return None,None
 
     def run(self):
         
@@ -112,7 +141,7 @@ class WorkerProcess(mp.Process):
         # make local array for storing pixel during each iteration        
         # manipulating local array instead of multiprocessing array is a bit faster
         # subsequent data copying step takes almost no time
-        local_array = np.zeros(len(self.array),dtype=ctypes.c_byte)
+        local_array = np.zeros(len(self.mp_arr),dtype=ctypes.c_byte)
         
         # make local copies of variables to increase speed
         hena = self.hena
@@ -126,13 +155,21 @@ class WorkerProcess(mp.Process):
         window_width = self.window_width
         window_height = self.window_height
         run_number = self.run_number
+        animation_running = self.animation_running
+        
+        if animation_running:
+            hena_increment = self.hena_increment
+            hena_anim = self.hena_anim
+            henb_increment = self.henb_increment
+            henb_anim = self.henb_anim
+            hena_max = self.hena_mid + 0.5*self.hena_range
+            henb_max = self.henb_mid + 0.5*self.henb_range
+            plot_interval = self.plot_interval_anim
+            max_iter = self.max_iter_anim
 
-        try:            
-            for i in range(self.drop_iter): # prevent drawing first iterations
-                henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
-        except OverflowError: # if x,y results move towards infinity
-            self.interval_flags[run_number] = True # send message to HenonUpdate to show end result
-#            print "[WorkerProcess] Worker " + str(run_number) + " overflow" #DEBUG                
+        henx,heny = self.drop_iterations(hena,henb,henx,heny)
+
+        if not henx or not heny:
             return
 
         while not self.exit.is_set():             
@@ -160,13 +197,42 @@ class WorkerProcess(mp.Process):
             
             if iter_count % plot_interval == 0:
                 # copy local array to multiprocessing array when plot_interval is reached
-                arr = np.frombuffer(self.array, dtype=ctypes.c_byte) # get current array in numpy format
-                new_arr = np.bitwise_or(arr, local_array) # add newly calculated pixels
-                ctypes.memmove(self.array, new_arr.data[:], len(new_arr.data)) # copy result into shared array   
-                # indicate to HenonUpdate that we have some new pixels to draw
-                self.interval_flags[run_number] = True
+                # TODO: find way to do 'bitwise or' on ctypes array directly
+                if not animation_running:
+                    arr = np.frombuffer(self.mp_arr, dtype=ctypes.c_byte) # get current array in numpy format
+                    new_arr = np.bitwise_or(arr, local_array) # add newly calculated pixels that this worker generated
+                    ctypes.memmove(self.mp_arr, new_arr.data[:], len(new_arr.data)) # copy result into shared array
+                    # indicate to HenonUpdate that we have some new pixels to draw
+                    self.interval_flags[run_number] = True                
+                else:
+                    ctypes.memmove(self.mp_arr, local_array.data[:], len(local_array.data))
+                    self.interval_flags[run_number] = True
+                    
+                    if iter_count >= max_iter:
+                        pass
+                    
+                    if hena_anim:
+                        if (hena + hena_increment) <= hena_max:
+                            hena += hena_increment
+                        
+                    if henb_anim:
+                        if (henb + henb_increment) <= henb_max:
+                           henb += henb_increment
+                    
+                    henx,heny = self.drop_iterations(hena,henb,henx,heny)
             
-            if (iter_count > max_iter):
+                    if not henx or not heny:
+                        break
+                    
+                    while not self.exit.is_set():
+                        if self.interval_flags[run_number]:
+                            time.sleep(0.01)
+                        else:
+                            break
+                    
+                    local_array = np.zeros(len(local_array),dtype=ctypes.c_byte)
+            
+            if (iter_count >= max_iter):
                 break
             
         # send message to HenonUpdate to show end result

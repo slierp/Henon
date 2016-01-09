@@ -118,10 +118,6 @@ class MainGui(QtGui.QMainWindow):
         # program flow controls        
         self.qt_thread0 = QtCore.QThread(self) # Separate Qt thread for generating screen update signals        
         self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels
-        
-        # timer for enabling a delay between animation cycles
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.run_animation_cycle)
 
     def on_about(self):
         msg = self.tr("H\xe9non explorer\n\nAuthor: Ronald Naber\nLicense: Public domain")
@@ -137,19 +133,19 @@ class MainGui(QtGui.QMainWindow):
 
     @QtCore.pyqtSlot()
     def update_screen(self):
-      
+          
         #self.Henon_widget.updateGL() # for OpenGL Henon widget
         self.Henon_widget.showEvent(QtGui.QShowEvent()) # for PyQt-only Henon widget
             
         if self.animation_running:
-#            print "[MainGui] Starting next animation cycle" #DEBUG
+                
             self.statusBar().showMessage("a = " + str('%.3f' % self.hena) + "; b = " + str('%.3f' % self.henb))
-            self.timer.start(self.animation_delay)
-          
-    @QtCore.pyqtSlot()
-    def run_animation_cycle(self):
-        self.initialize_calculation()
-        self.animate()  
+            
+            if (self.hena_anim):
+                self.hena += self.hena_increment
+    
+            if (self.henb_anim):
+                self.henb += self.henb_increment
 
     def wait_thread_end(self, thread):
         
@@ -158,6 +154,12 @@ class MainGui(QtGui.QMainWindow):
                 thread.quit()
             else:
                 return
+
+    @QtCore.pyqtSlot()
+    def animation_stopped(self):
+        if self.animation_running:
+            self.animation_running = False
+            self.statusBar().showMessage("Animation finished",1000)
     
     @QtCore.pyqtSlot(str)
     def benchmark_result(self,result):
@@ -181,7 +183,7 @@ class MainGui(QtGui.QMainWindow):
         else:
             threads = self.thread_count
 
-        if self.iter_auto_mode and (not self.animation_running): 
+        if self.iter_auto_mode: 
             # set default maximum number of iterations
             # heavily optimized formula for calculating required number of iterations
             # as a function of the number of screen pixels and the x,y space represented by it
@@ -192,11 +194,6 @@ class MainGui(QtGui.QMainWindow):
             if self.plot_interval < 10000:
                 # avoid low numbers for high thread-count simulations
                 self.plot_interval = 10000
-#            print "[MainGui] Plot area: " + str(area) #DEBUG
-        elif self.animation_running:
-            # in case of animation, override previous and set to following low values
-            self.max_iter = self.max_iter_anim
-            self.plot_interval = self.plot_interval_anim
             
         if self.plot_interval > self.max_iter: # sanity check
             self.plot_interval = self.max_iter
@@ -216,35 +213,21 @@ class MainGui(QtGui.QMainWindow):
         self.Henon_widget.xright = self.xright
         self.Henon_widget.ybottom = self.ybottom
         
-        params = {} # put parameters in dict for easy transfer to calculation thread
-        params['hena'] = self.hena
-        params['henb'] = self.henb
-        params['xleft'] = self.xleft
-        params['ytop'] = self.ytop
-        params['xright'] = self.xright
-        params['ybottom'] = self.ybottom
-        params['window_width'] = self.Henon_widget.window_width
-        params['window_height'] = self.Henon_widget.window_height
-        params['thread_count'] = self.thread_count
-        params['global_work_size'] = self.global_work_size
-        params['max_iter'] = self.max_iter
-        params['plot_interval'] = self.plot_interval
-        params['drop_iter'] = self.drop_iter
-        params['benchmark'] = self.benchmark
+        current_settings = self.get_settings()
+        current_settings['window_width'] = self.Henon_widget.window_width
+        current_settings['window_height'] = self.Henon_widget.window_height
+        current_settings['animation_running'] = self.animation_running
 
         if not self.opencl_enabled: # for multiprocessing
             # Henon_calc will start workers and wait for stop signal
-            self.Henon_calc = HenonCalc(params) 
-            # Henon_updateWill will wait for worker signals and then send screen update signals
-            self.Henon_update = HenonUpdate(self.Henon_calc.interval_flags, self.Henon_calc.stop_signal,\
-                self.thread_count, self.Henon_calc.mp_arr, self.Henon_widget.window_representation,\
-                self.Henon_widget.window_width, self.Henon_widget.window_height, self.enlarge_rare_pixels,\
-                self.benchmark)
+            self.Henon_calc = HenonCalc(current_settings) 
+            # Henon_update will will wait for worker signals and then send screen update signals
+            self.Henon_update = HenonUpdate(current_settings,self.Henon_calc.interval_flags,\
+                self.Henon_calc.stop_signal,self.Henon_calc.mp_arr,self.Henon_widget.window_representation)
         else: # for OpenCL
-            self.Henon_calc = HenonCalc2(params, self.context, self.command_queue, self.mem_flags, self.program)
-            self.Henon_update = HenonUpdate2(self.thread_count, self.Henon_calc.cl_arr,\
-                self.Henon_widget.window_representation, self.Henon_widget.window_width,\
-                self.Henon_widget.window_height, self.enlarge_rare_pixels, self.benchmark)
+            self.Henon_calc = HenonCalc2(current_settings, self.context, self.command_queue, self.mem_flags, self.program)
+            self.Henon_update = HenonUpdate2(current_settings, self.Henon_calc.cl_arr,\
+                self.Henon_widget.window_representation)
             
             self.Henon_calc.interval_signal.sig.connect(self.Henon_update.receive_interval_signal)
             self.Henon_calc.stop_signal.sig.connect(self.Henon_update.receive_stop_signal)
@@ -259,6 +242,7 @@ class MainGui(QtGui.QMainWindow):
         
         self.Henon_update.signal.sig.connect(self.update_screen) # Get signal for screen updates
         self.Henon_update.quit_signal.sig.connect(self.qt_thread0.quit) # Quit thread when finished
+        self.Henon_update.quit_signal.sig.connect(self.animation_stopped) # Check if animation was running
         self.Henon_calc.quit_signal.sig.connect(self.qt_thread1.quit) # Quit thread when finished
 
         if self.benchmark:        
@@ -359,48 +343,25 @@ class MainGui(QtGui.QMainWindow):
 
         self.stop_calculation()
 
+        a_frames = 0
+        b_frames = 0
+
         if (self.hena_anim):
             self.hena = self.hena_mid - 0.5*self.hena_range
+            a_frames = int(self.hena_range / self.hena_increment)
 
         if (self.henb_anim):
             self.henb = self.henb_mid - 0.5*self.henb_range
+            b_frames = int(self.henb_range / self.henb_increment)
+
+        self.max_iter_anim = max([a_frames,b_frames]) * self.plot_interval_anim
 
         self.animation_running = True
         
         self.statusBar().showMessage("a = " + str(self.hena) + "; b = " + str(self.henb))        
 
         self.initialize_calculation()
-        
-    def animate(self):       
-        
-        if self.hena_anim and self.henb_anim:
-            if (round(self.hena + self.hena_increment,3) <= round(self.hena_mid + 0.5*self.hena_range,3)) and\
-                    (round(self.henb + self.henb_increment,3) <= round(self.henb_mid + 0.5*self.henb_range,3)):
-                self.hena += self.hena_increment
-                self.henb += self.henb_increment
-            elif (round(self.hena + self.hena_increment,3) <= round(self.hena_mid + 0.5*self.hena_range,3)):
-                self.hena += self.hena_increment
-            elif (round(self.henb + self.henb_increment,3) <= round(self.henb_mid + 0.5*self.henb_range,3)):
-                self.henb += self.henb_increment
-            else:
-                self.timer.stop()
-                self.animation_running = False                
-                return                                    
-        elif self.hena_anim:  
-            if (round(self.hena + self.hena_increment,3) <= round(self.hena_mid + 0.5*self.hena_range,3)):
-                self.hena += self.hena_increment                 
-            else:
-                self.timer.stop()
-                self.animation_running = False                
-                return                
-        elif self.henb_anim:
-            if (round(self.henb + self.henb_increment,3) <= round(self.henb_mid + 0.5*self.henb_range,3)):
-                self.henb += self.henb_increment
-            else:
-                self.timer.stop()
-                self.animation_running = False                
-                return 
-
+    
     def reset_view(self):       
         self.statusBar().showMessage(self.tr("Resetting view..."), 1000)
 
@@ -410,7 +371,6 @@ class MainGui(QtGui.QMainWindow):
         self.ybottom = -0.4
 
         if self.animation_running:
-            self.timer.stop()
             self.animation_running = False
             
         self.initialize_calculation()
@@ -439,7 +399,6 @@ class MainGui(QtGui.QMainWindow):
         self.statusBar().showMessage(self.tr("Sending stop signal..."), 1000)
         
         if self.animation_running:
-            self.timer.stop()
             self.animation_running = False
             
         self.stop_calculation()       
@@ -462,11 +421,7 @@ class MainGui(QtGui.QMainWindow):
         help_dialog.setModal(True)
         help_dialog.show()        
 
-    def open_settings_dialog(self):
-        if self.animation_running:
-            # prevent user from changing settings during animation
-            return
-            
+    def open_settings_dialog(self):            
         settings_dialog = HenonSettings(self)
         settings_dialog.setModal(True)
         settings_dialog.show() 
@@ -500,35 +455,7 @@ class MainGui(QtGui.QMainWindow):
         # Check for non-ASCII here does not seem to work        
         self.prev_dir_path = ntpath.dirname(str(filename))
 
-        current_settings = {}
-        current_settings['hena'] = self.hena
-        current_settings['henb'] = self.henb
-        current_settings['xleft'] = self.xleft
-        current_settings['ytop'] = self.ytop
-        current_settings['xright'] = self.xright
-        current_settings['ybottom'] = self.ybottom
-        current_settings['opencl_enabled'] = self.opencl_enabled
-        current_settings['device_selection'] = self.device_selection
-        current_settings['thread_count'] = self.thread_count
-        current_settings['global_work_size'] = self.global_work_size
-        current_settings['plot_interval'] = self.plot_interval
-        current_settings['max_iter'] = self.max_iter
-        current_settings['drop_iter'] = self.drop_iter
-        current_settings['iter_auto_mode'] = self.iter_auto_mode
-        current_settings['enlarge_rare_pixels'] = self.enlarge_rare_pixels
-        current_settings['benchmark'] = self.benchmark
-        current_settings['hena_mid'] = self.hena_mid
-        current_settings['hena_range'] = self.hena_range
-        current_settings['hena_increment'] = self.hena_increment
-        current_settings['hena_anim'] = self.hena_anim
-        current_settings['henb_mid'] = self.henb_mid
-        current_settings['henb_range'] = self.henb_range
-        current_settings['henb_increment'] = self.henb_increment
-        current_settings['henb_anim'] = self.henb_anim
-        current_settings['animation_running'] = self.animation_running
-        current_settings['max_iter_anim'] = self.max_iter_anim
-        current_settings['plot_interval_anim'] = self.plot_interval_anim 
-        current_settings['animation_delay'] = self.animation_delay
+        current_settings = self.get_settings()
         
         with open(str(filename), 'w') as f:
             pickle.dump(current_settings, f)
@@ -538,6 +465,38 @@ class MainGui(QtGui.QMainWindow):
     def load_default_settings(self):
         self.implement_settings(self.default_settings)
         self.statusBar().showMessage(self.tr("Default settings loaded"),1000)
+
+    def get_settings(self):
+        settings = {}
+        settings['hena'] = self.hena
+        settings['henb'] = self.henb
+        settings['xleft'] = self.xleft
+        settings['ytop'] = self.ytop
+        settings['xright'] = self.xright
+        settings['ybottom'] = self.ybottom
+        settings['opencl_enabled'] = self.opencl_enabled
+        settings['device_selection'] = self.device_selection
+        settings['thread_count'] = self.thread_count
+        settings['global_work_size'] = self.global_work_size
+        settings['plot_interval'] = self.plot_interval
+        settings['max_iter'] = self.max_iter
+        settings['drop_iter'] = self.drop_iter
+        settings['iter_auto_mode'] = self.iter_auto_mode
+        settings['enlarge_rare_pixels'] = self.enlarge_rare_pixels
+        settings['benchmark'] = self.benchmark
+        settings['hena_mid'] = self.hena_mid
+        settings['hena_range'] = self.hena_range
+        settings['hena_increment'] = self.hena_increment
+        settings['hena_anim'] = self.hena_anim
+        settings['henb_mid'] = self.henb_mid
+        settings['henb_range'] = self.henb_range
+        settings['henb_increment'] = self.henb_increment
+        settings['henb_anim'] = self.henb_anim
+        settings['animation_running'] = self.animation_running
+        settings['max_iter_anim'] = self.max_iter_anim
+        settings['plot_interval_anim'] = self.plot_interval_anim 
+        settings['animation_delay'] = self.animation_delay
+        return settings
     
     def implement_settings(self,settings):
         self.stop_calculation()

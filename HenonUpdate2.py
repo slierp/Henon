@@ -17,7 +17,7 @@ class HenonUpdate2(QtCore.QObject):
     # waits for signals from worker threads; once received it copies the results into
     # window_representation and sends a signal to trigger a screen re-draw
 
-    def __init__(self, _thread_count, _cl_arr, _window_representation, _window_width, _window_height, _enlarge_rare_pixels, _benchmark):
+    def __init__(self, _settings, _cl_arr, _window_representation):      
         QtCore.QObject.__init__(self)
         
 #        print "[HenonUpdate2] Initialization" #DEBUG
@@ -26,13 +26,14 @@ class HenonUpdate2(QtCore.QObject):
         self.quit_signal = Signal()
         self.benchmark_signal = StringSignal()
         
-        self.thread_count = _thread_count
+        self.thread_count = _settings['thread_count']
         self.cl_arr = _cl_arr
         self.window_representation = _window_representation
-        self.window_width = _window_width
-        self.window_height = _window_height        
-        self.enlarge_rare_pixels = _enlarge_rare_pixels
-        self.benchmark = _benchmark
+        self.window_width = _settings['window_width']
+        self.window_height = _settings['window_height']        
+        self.enlarge_rare_pixels = _settings['enlarge_rare_pixels']
+        self.benchmark = _settings['benchmark']
+        self.animation_running = _settings['animation_running']
 #        self.time_prev = datetime.now() #DEBUG
 
         if self.benchmark:
@@ -91,6 +92,9 @@ class HenonUpdate2(QtCore.QObject):
             pixel_number = np.count_nonzero(arr)
             if (pixel_number < 17) and (pixel_number > 0):
                 arr = arr + np.roll(arr,1,0) + np.roll(arr,-1,0) + np.roll(arr,1,1) + np.roll(arr,-1,1) 
+
+        if self.animation_running: # clear screen if animation running
+            self.window_representation[:] = 0
 
         self.window_representation[arr == 255] = 255 # add newly calculated pixels
 
