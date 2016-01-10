@@ -101,8 +101,6 @@ class MainGui(QtGui.QMainWindow):
         self.default_settings['henb_increment'] = self.henb_increment
         self.henb_anim = False
         self.default_settings['henb_anim'] = self.henb_anim
-        self.animation_running = False
-        self.default_settings['animation_running'] = self.animation_running
         self.max_iter_anim = 10000
         self.default_settings['max_iter_anim'] = self.max_iter_anim
         self.plot_interval_anim = 10000
@@ -114,6 +112,7 @@ class MainGui(QtGui.QMainWindow):
         self.first_run = True
         self.full_screen = False
         self.prev_dir_path = ""
+        self.animation_running = False
         self.module_opencl_present = module_opencl_present
         self.hena_max = round(self.hena_mid + 0.5*self.hena_range,3)
         self.henb_max = round(self.henb_mid + 0.5*self.henb_range,3)
@@ -231,23 +230,20 @@ class MainGui(QtGui.QMainWindow):
             self.Henon_calc = HenonCalc(current_settings) 
             # Henon_update will will wait for worker signals and then send screen update signals
             self.Henon_update = HenonUpdate(current_settings,self.Henon_calc.interval_flags,\
-                self.Henon_calc.stop_signal,self.Henon_calc.mp_arr,self.Henon_widget.window_representation)
-        else: # for OpenCL
+                self.Henon_calc.stop_signal, self.Henon_calc.mp_arr, self.Henon_widget.window_representation)
+        else: # for OpenCL            
             self.Henon_calc = HenonCalc2(current_settings, self.context, self.command_queue, self.mem_flags, self.program)
-            self.Henon_update = HenonUpdate2(current_settings, self.Henon_calc.cl_arr,\
-                self.Henon_widget.window_representation)
-            
-            self.Henon_calc.interval_signal.sig.connect(self.Henon_update.receive_interval_signal)
-            self.Henon_calc.stop_signal.sig.connect(self.Henon_update.receive_stop_signal)
-        
+            self.Henon_update = HenonUpdate2(current_settings, self.Henon_calc.interval_flag,\
+                self.Henon_calc.stop_signal, self.Henon_calc.cl_arr, self.Henon_widget.window_representation)
+
         self.Henon_update.moveToThread(self.qt_thread0) # Move updater to separate thread
-        self.Henon_calc.moveToThread(self.qt_thread1)        
+        self.Henon_calc.moveToThread(self.qt_thread1)
         
         # connecting like this appears crucial to make the thread run independently
         # and prevent GUI freeze
         self.qt_thread0.started.connect(self.Henon_update.run)            
         self.qt_thread1.started.connect(self.Henon_calc.run)
-        
+
         self.Henon_update.signal.sig.connect(self.update_screen) # Get signal for screen updates
         self.Henon_update.quit_signal.sig.connect(self.qt_thread0.quit) # Quit thread when finished
         self.Henon_update.quit_signal.sig.connect(self.animation_stopped) # Check if animation was running
@@ -500,7 +496,6 @@ class MainGui(QtGui.QMainWindow):
         settings['henb_range'] = self.henb_range
         settings['henb_increment'] = self.henb_increment
         settings['henb_anim'] = self.henb_anim
-        settings['animation_running'] = self.animation_running
         settings['max_iter_anim'] = self.max_iter_anim
         settings['plot_interval_anim'] = self.plot_interval_anim 
         settings['animation_delay'] = self.animation_delay
@@ -536,7 +531,6 @@ class MainGui(QtGui.QMainWindow):
         self.henb_range = settings['henb_range']
         self.henb_increment = settings['henb_increment']
         self.henb_anim = settings['henb_anim']
-        self.animation_running = settings['animation_running']
         self.max_iter_anim = settings['max_iter_anim']
         self.plot_interval_anim = settings['plot_interval_anim']
         self.animation_delay = settings['animation_delay']

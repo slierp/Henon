@@ -7,7 +7,7 @@ from math import isinf, isnan
 #from datetime import datetime #DEBUG
 import numpy as np
 import ctypes
-import time
+from time import sleep
 
 class Signal(QtCore.QObject):
     sig = QtCore.pyqtSignal()
@@ -105,8 +105,7 @@ class WorkerProcess(mp.Process):
         self.henb_anim = settings['henb_anim']
         self.max_iter_anim = settings['max_iter_anim']
         self.plot_interval_anim = settings['plot_interval_anim']        
-        self.animation_running = settings['animation_running']            
-        self.animation_delay = settings['animation_delay']
+        self.animation_running = settings['animation_running']
 
         self.xratio = self.window_width/(self.xright-self.xleft)
         self.yratio = self.window_height/(self.ytop-self.ybottom)
@@ -141,6 +140,7 @@ class WorkerProcess(mp.Process):
         # manipulating local array instead of multiprocessing array is a bit faster
         # subsequent data copying step takes almost no time
         local_array = np.zeros(len(self.mp_arr),dtype=ctypes.c_byte)
+        empty_array = np.zeros(len(self.mp_arr),dtype=ctypes.c_byte)
         
         # make local copies of variables to increase speed
         hena = self.hena
@@ -195,23 +195,25 @@ class WorkerProcess(mp.Process):
             iter_count += 1
             
             if iter_count % plot_interval == 0:                    
-                # copy local array to multiprocessing array when plot_interval is reached
-                # TODO: find way to do 'bitwise or' on ctypes array directly
+                # 'bitwise or' on local array and multiprocessing array when plot_interval is reached
                 if not animation_running:
-                    arr = np.frombuffer(self.mp_arr, dtype=ctypes.c_byte) # get current array in numpy format
-                    new_arr = np.bitwise_or(arr, local_array) # add newly calculated pixels that this worker generated
-                    ctypes.memmove(self.mp_arr, new_arr.data[:], len(new_arr.data)) # copy result into shared array
+                    # add newly calculated pixels that this worker generatedy
+                    np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
                     # indicate to HenonUpdate that we have some new pixels to draw
                     self.interval_flags[run_number] = True                
                 else:
                     while not self.exit.is_set(): # wait until previous data was updated
                         if self.interval_flags[run_number]:
-                            time.sleep(0.01)
+                            sleep(0.01)
                         else:
                             break
+
+                    if (run_number == 0): # empty current array
+                        ctypes.memmove(self.mp_arr, empty_array.data[:], len(empty_array.data))
+                    else: # allow some time for worker 0 to empty array
+                        sleep(0.01)
                     
-                    # replace previous data                   
-                    ctypes.memmove(self.mp_arr, local_array.data[:], len(local_array.data))
+                    np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
                     self.interval_flags[run_number] = True
                     
                     if iter_count >= max_iter:

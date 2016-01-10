@@ -17,18 +17,20 @@ class HenonUpdate2(QtCore.QObject):
     # waits for signals from worker threads; once received it copies the results into
     # window_representation and sends a signal to trigger a screen re-draw
 
-    def __init__(self, _settings, _cl_arr, _window_representation):      
+    def __init__(self,  _settings, _interval_flag, _stop_signal, _cl_arr, _window_representation):    
         QtCore.QObject.__init__(self)
         
 #        print "[HenonUpdate2] Initialization" #DEBUG
 
-        self.signal = Signal()
+        self.signal = Signal() # for screen updates
         self.quit_signal = Signal()
         self.benchmark_signal = StringSignal()
-        
-        self.thread_count = _settings['thread_count']
-        self.cl_arr = _cl_arr
+
+        self.interval_flag = _interval_flag
+        self.stop_signal = _stop_signal        
+        self.cl_arr = _cl_arr        
         self.window_representation = _window_representation
+        self.thread_count = _settings['thread_count']
         self.window_width = _settings['window_width']
         self.window_height = _settings['window_height']        
         self.enlarge_rare_pixels = _settings['enlarge_rare_pixels']
@@ -40,10 +42,7 @@ class HenonUpdate2(QtCore.QObject):
         if self.benchmark:
             self.time_start = datetime.now()
         
-        self.updates_started = False        
-
-        self.interval_flag = False
-        self.stop_signal = False        
+        self.updates_started = False       
 
     def run(self):
 
@@ -64,10 +63,15 @@ class HenonUpdate2(QtCore.QObject):
 
     def check_for_update(self):
         
-        if self.interval_flag: # perform update
+        if self.interval_flag.value: # perform update
             self.perform_update()
-            self.interval_flag = False # reset for new signal             
-        elif self.stop_signal: # quit updates        
+            self.interval_flag.value = False
+#            print "[HenonUpdate2] Sent signal to HenonCalc" #DEBUG            
+            
+            if self.animation_running:
+                self.timer.start(self.animation_delay)
+                return
+        elif self.stop_signal.value: # quit updates        
             self.perform_update() # draw final result
 
             if self.benchmark:
@@ -78,11 +82,8 @@ class HenonUpdate2(QtCore.QObject):
             return
         
         # call itself again in some time
-        if self.animation_running:
-            time_delay = max([25,self.animation_delay])
-            self.timer.start(time_delay)
-        else:
-            self.timer.start(25)
+        self.timer.start(10)
+#        print "[HenonUpdate2] Waiting for signal from HenonCalc" #DEBUG
 
     def perform_update(self):
 
@@ -108,13 +109,4 @@ class HenonUpdate2(QtCore.QObject):
 
 #        delta = datetime.now() - self.time_prev #DEBUG
 #        print "[HenonUpdate2] Sending signal after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG
-        self.signal.sig.emit()
-    
-    @QtCore.pyqtSlot()
-    def receive_interval_signal(self):
-        self.interval_flag = True
-        
-    @QtCore.pyqtSlot()        
-    def receive_stop_signal(self):
-#        print "[HenonUpdate2] Received stop signal" #DEBUG        
-        self.stop_signal = True
+        self.signal.sig.emit() # Signal for MainGui to update screen     
