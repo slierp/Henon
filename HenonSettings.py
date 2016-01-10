@@ -65,7 +65,7 @@ class HenonSettings(QtGui.QDialog):
         vbox_tab_general.addLayout(hbox)
 
         hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Max iterations")
+        description = QtGui.QLabel("Max iterations per thread")
         self.max_iter = QtGui.QSpinBox()
         self.max_iter.setAccelerated(True)
         self.max_iter.setMaximum(999999999)
@@ -79,7 +79,7 @@ class HenonSettings(QtGui.QDialog):
         vbox_tab_general.addLayout(hbox)
         
         hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Plot interval")
+        description = QtGui.QLabel("Plot interval per thread")
         self.plot_interval = QtGui.QSpinBox()
         self.plot_interval.setAccelerated(True)
         self.plot_interval.setMaximum(999999999)

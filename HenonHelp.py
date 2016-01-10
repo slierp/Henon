@@ -46,8 +46,8 @@ Press 'S' to open a settings dialog.</p>
 You can view the H&eacute;non map as its parameters are changing. See the Animation section for details.</p>
 
 <p><b>Generic actions</b><br>
-- Stop current calculation with 'ESC'. To bail out of just about anything, press Escape.<br>
-- Re-start the calculation with 'R'. If you wish to re-start the calculation using the current settings, press 'R'.</p>
+- Stop current calculation with 'X'<br>
+- Re-draw the current screen with 'R'</p>
 
 <p><h2><a name="settings">Settings dialog</a></h2></p>
 The settings dialog can be opened by pressing 'S'. In it you can define the H&eacute;non parameter values that you would like to try,
@@ -56,45 +56,36 @@ define animations (in which the H&eacute;non parameter values are varied) and se
 <p><b>General settings</b></p>
 <p>The definition of a and b is straightforward, but keep in mind that some settings may not yield a stable attractor or not even any periodic behaviour, so the screen may remain empty.</p>
 
-<p>The viewing area can be set manually by selecting values for the left edge, bottom edge, width and height of the area. There are some restrictions to these values
-in order to prevent algorithm execution problems. These restrictions are enforced immediately after changing to a new value.</p>
-
-<p>For certain a,b values there will be periodic behaviour, which means that only a few pixels will show up on the screen. Single pixels can be hard to see so this is why the program
-can enlarge such rare pixels. This functionality can be turned on using the 'Enlarge rare pixels' checkbox. If there are between 1 and 16 pixels in total during any screen update then they will
-be enlarged to nine pixels for better visibility.</p>
-
 <p>For control over the calculations it is possible to define the maximum number of iterations for each thread and define the iteration interval after which the result is plotted to screen.
 By default these settings are determined automatically by the program, which calculates optimized settings based on the window size, zoom-level and the number of availabe threads.
 The user can disable the auto-mode and set their own values. Please keep in mind that some sanity checks are done before the calculation is started, so the program may change the
-entered settings. For the plot interval it should also be understood that there is also a minimum time defined between screen updates of 100 ms, so for very low plot interval values
-the program may drop some screen plot requests if they present themselves too soon after the previous one. These restrictions are in place to maintain the responsiveness of the user
-interface.</p>
+entered settings.</p>
 
 <p><b>Animation settings</b></p>
-<p>In the animation tab one can set the mid-point, range and increment for H&eacute;non parameters a and b in order to define the animation settings. ou can also
+<p>In the animation tab one can set the mid-point, range and increment for H&eacute;non parameters a and b in order to define the animation settings. You can also
 select whether you want to animate either a or b or both at the same time. The animation will start at (midpoint - 0.5 * range) and end when the range limit has been reached.</p>
 
-<p>For animations it is necessary to lower the maximum number of iterations and plot interval compared to those used for viewing still images, so these values can be defined separately and have
-lower default values. The parameter itself is the same as for still images however.</p>
+<p>For animations it is necessary to lower the maximum number of iterations compared to those used for viewing still images, so these values can be defined separately and have
+lower default values. The minimum time delay between each animation frame can be set. The actual delay may be longer depending on how long it takes to calculate each frame.</p>
 
-<p>Please note that the program does not return to your previous settings after completing an animation. The a/b and iteration parameters remain as they are, although the iteration
-parameters are by default set automatically to optimized settings.</p>
+<p>For certain a,b values there will be periodic behaviour, which means that only a few pixels will show up on the screen. Single pixels can be hard to see so this is why there is an option to
+enlarge such rare pixels. If there are between 1 and 16 pixels in total during any screen update then each one will be enlarged to 5 pixels for better visibility.</p>
 
 <p><b>Calculation settings</b></p>
-
-<p><b>Thread count</b><br>
-The program runs several threads at the same time by default in order to speed up the calculations. By default the thread count is equal to the number of CPU's detected, but
-it can be set to a lower value.</p>
 
 <p><b>Drop iterations</b><br>
 The number of dropped iterations that are performed for each thread can be set here. Each calculation thread starts from x,y values that are chosen randomly
 in the range of (-0.1,0.1), so that each thread can follow an independent path along the attractor, but the first few hundred iterations may not have reached the
 attractor yet, so this is why the program performs a few hundred iterations before it starts passing the information to the screen.</p>
 
+<p><b>Thread count</b><br>
+The program runs several threads at the same time by default in order to speed up the calculations. By default the thread count is equal to the number of CPU's detected, but
+it can be set to a lower value.</p>
+
 <p><b>Enable OpenCL</b><br>
-There is support for OpenCL for CPU/GPU multithreading. The OpenCL functionality can be enabled if the PyOpenCL Python module is installed and the environment
-variable 'PYOPEN_CTX' is set in order to select the OpenCL platform (Intel/AMD/NVIDIA) and device (CPU/GPU). This manual configuration
-is intended as a temporary solution. A dialog for selecting a platform and one or more devices still needs to be implemented.</p>
+There is support for OpenCL for CPU/GPU multithreading. The OpenCL functionality can be enabled if the PyOpenCL Python module can be loaded successfully, which may require appropriate
+drivers for each OpenCL platform (Intel/AMD/NVIDIA). One or more devices need to be selected to run the calculations on. Not all devices or device combinations may work well,
+but the program will give a message if this occurs.</p>
 
 <p><h2><a name="animations">Animations</a></h2></p>
 
