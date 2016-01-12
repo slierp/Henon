@@ -173,7 +173,7 @@ class WorkerProcess(mp.Process):
 
         while not self.exit.is_set():
 
-            for i in range(plot_interval):                
+            for i in xrange(plot_interval):                
                 try:
                     henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
                     x_draw = int((henx-xleft) * xratio) # adding rounding here is slightly more correct

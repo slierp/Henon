@@ -22,7 +22,7 @@ yratio = 1020/(ytop-ybottom)
 
 time_start = datetime.now()
 
-for i in range(100000):
+for i in xrange(1000000):
     try:
         x_test, y_test = 1 + heny - (hena*(henx**2)), henb * henx
         #print x_test, y_test
@@ -34,24 +34,24 @@ for i in range(100000):
         pass
 
 delta = datetime.now() - time_start
-print "Time: " + str(delta.microseconds) + " microseconds"
+print "Time: " + str(delta.seconds) + " seconds; " + str(delta.microseconds) + " microseconds"
 
 
-xy = np.array([henx,heny]) # initliazation
+xy = np.array([henx,heny]) # initialization
 A = np.array([[(1/xy[0])-hena*xy[0],1],[henb,0]]) # Henon formula
 B = np.array([[(1-xleft/xy[0])*xratio,0],[0,(1-ybottom/xy[1])*yratio]])
 
 time_start = datetime.now()
 
-for i in range(100000):
+for i in xrange(1000000):
     try:
         xy = np.sum(A*xy,axis=1) # iteration
         #print xy
-        xy_draw = np.sum(B*xy,axis=1).round() #.astype(int)
+        xy_draw = np.sum(B*xy,axis=1).astype(int)
         #print xy_draw
     except:
         pass
 
 delta = datetime.now() - time_start    
-print "Time: " + str(delta.microseconds) + " microseconds"
+print "Time: " + str(delta.seconds) + " seconds; " + str(delta.microseconds) + " microseconds"
 
