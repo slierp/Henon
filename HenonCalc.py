@@ -171,67 +171,64 @@ class WorkerProcess(mp.Process):
         if not henx or not heny:
             return
 
-        while not self.exit.is_set():             
+        while not self.exit.is_set():
 
-            try:
-                henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
-                x_draw = (henx-xleft) * xratio
-                y_draw = (heny-ybottom) * yratio
-            except OverflowError:
-#                print "[WorkerProcess] Worker " + str(run_number) + " overflow" #DEBUG                
-                pass
+            for i in range(plot_interval):                
+                try:
+                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
+                    x_draw = int((henx-xleft) * xratio) # adding rounding here is slightly more correct
+                    y_draw = int((heny-ybottom) * yratio) # but takes considerably more time
+                    if (0 < x_draw < window_width) and (0 < y_draw < window_height):
+                        # draw pixel if it is inside the current display area
+                        #local_array[(y_draw*window_width) + x_draw] = True # for bottom-left origin
+                        
+                        # for top-left origin
+                        # +0 is there in case of common bug in drawing method that returns invalid window width
+                        # in combination with array flattening such bugs give very distorted images                    
+                        local_array[(window_height-y_draw)*(window_width+0) + x_draw] = True
+                except:
+#                    print "[WorkerProcess] Worker " + str(run_number) + " overflow" #DEBUG
+                    pass
+                
+            iter_count += plot_interval
             
-            if (not isinf(x_draw)) and (not isinf(y_draw)) and (not isnan(x_draw)) and (not isnan(y_draw)):                
-                # do not convert to int unless the number is finite
-                if (0 < int(x_draw) < window_width) and (0 < int(y_draw) < window_height):
-                    # draw pixel if it is inside the current display area
-                    #local_array[(int(y_draw)*window_width) + int(x_draw)] = True # for bottom-left origin
-                    
-                    # for top-left origin
-                    # +0 is there in case of common bug in drawing method that returns invalid window width
-                    # in combination with array flattening such bugs give very distorted images
-                    local_array[int(window_height-y_draw)*(window_width+0) + int(x_draw)] = True 
-                                        
-            iter_count += 1
-            
-            if iter_count % plot_interval == 0:                    
-                # 'bitwise or' on local array and multiprocessing array when plot_interval is reached
-                if not animation_running:
-                    # add newly calculated pixels that this worker generatedy
-                    np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
-                    # indicate to HenonUpdate that we have some new pixels to draw
-                    self.interval_flags[run_number] = True                
-                else:
-                    while not self.exit.is_set(): # wait until previous data was updated
-                        if self.interval_flags[run_number]:
-                            sleep(0.01)
-                        else:
-                            break
-
-                    if (run_number == 0): # empty current array
-                        ctypes.memmove(self.mp_arr, empty_array.data[:], len(empty_array.data))
-                    else: # allow some time for worker 0 to empty array
+            # 'bitwise or' on local array and multiprocessing array when plot_interval is reached
+            if not animation_running:
+                # add newly calculated pixels that this worker generatedy
+                np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
+                # indicate to HenonUpdate that we have some new pixels to draw
+                self.interval_flags[run_number] = True                
+            else:
+                while not self.exit.is_set(): # wait until previous data was updated
+                    if self.interval_flags[run_number]:
                         sleep(0.01)
-                    
-                    np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
-                    self.interval_flags[run_number] = True
-                    
-                    if iter_count >= max_iter:
-                        pass
+                    else:
+                        break
 
-                    if hena_anim:
-                        new_hena = round(hena + hena_increment,3)
-                        if new_hena <= hena_max:
-                            hena = new_hena
+                if (run_number == 0): # empty current array
+                    ctypes.memmove(self.mp_arr, empty_array.data[:], len(empty_array.data))
+                else: # allow some time for worker 0 to empty array
+                    sleep(0.01)
+                
+                np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
+                self.interval_flags[run_number] = True
+                
+                if iter_count >= max_iter:
+                    pass
 
-                    if henb_anim:
-                        new_henb = round(henb + henb_increment,3)
-                        if new_henb <= henb_max:
-                           henb = new_henb
-                    
-                    henx,heny = self.drop_iterations(hena,henb,henx,heny)
-                    
-                    local_array = np.zeros(len(local_array),dtype=ctypes.c_byte)
+                if hena_anim:
+                    new_hena = round(hena + hena_increment,3)
+                    if new_hena <= hena_max:
+                        hena = new_hena
+
+                if henb_anim:
+                    new_henb = round(henb + henb_increment,3)
+                    if new_henb <= henb_max:
+                       henb = new_henb
+                
+                henx,heny = self.drop_iterations(hena,henb,henx,heny)
+                
+                local_array = np.zeros(len(local_array),dtype=ctypes.c_byte)
             
             if (iter_count >= max_iter):
                 break
