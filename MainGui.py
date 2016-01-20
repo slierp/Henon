@@ -353,7 +353,7 @@ class MainGui(QtGui.QMainWindow):
             return
             
         if self.orbit_mode:
-            self.statusBar().showMessage(self.tr("Animation is not available in orbit view mode"),1000)
+            self.statusBar().showMessage(self.tr("Animation is not available in orbit map mode"),1000)
             return
         
         if (not self.hena_anim) and (not self.henb_anim):
@@ -397,19 +397,7 @@ class MainGui(QtGui.QMainWindow):
             self.xright = 1.5
             self.ybottom = -0.4
         else:
-            if self.orbit_parameter: # parameter a
-                self.xleft = 1.0
-                self.xright = 1.4                
-            else: # parameter b
-                self.xleft = -0.3
-                self.xright = 0.3
-
-            if self.orbit_coordinate: # x-coordinate
-                self.ytop = 0.4
-                self.ybottom = -0.4
-            else: # y-coordinate
-                self.ytop = 1.5
-                self.ybottom = -1.5
+            self.initialize_orbit_mode()
             
         self.initialize_calculation()
 
@@ -461,22 +449,25 @@ class MainGui(QtGui.QMainWindow):
             return
                 
         self.orbit_mode = True
+        self.initialize_orbit_mode()
+
+        self.initialize_calculation()
+        self.statusBar().showMessage(self.tr("Press O to exit orbit map mode"),1000)
+
+    def initialize_orbit_mode(self):
         if self.orbit_parameter: # parameter a
-            self.xleft = 1.0
+            self.xleft = 0.9
             self.xright = 1.4                
         else: # parameter b
             self.xleft = -0.3
             self.xright = 0.3
 
-        if self.orbit_coordinate: # x-coordinate
+        if self.orbit_coordinate: # y-coordinate
             self.ytop = 0.4
             self.ybottom = -0.4
-        else: # y-coordinate
+        else: # x-coordinate
             self.ytop = 1.5
-            self.ybottom = -1.5
-
-        self.initialize_calculation()
-        self.statusBar().showMessage(self.tr("Press O to exit orbit view mode"),1000)
+            self.ybottom = -1.5        
 
     def closeEvent(self, event):
         # call stop function in order to terminate calculation processes
@@ -725,8 +716,8 @@ class MainGui(QtGui.QMainWindow):
         reset_action.setStatusTip(tip)
         reset_action.setShortcut('F5')
 
-        tip = self.tr("Orbit view")        
-        orbit_action = QtGui.QAction(self.tr("Orbit view"), self)
+        tip = self.tr("Orbit map")        
+        orbit_action = QtGui.QAction(self.tr("Orbit map"), self)
         orbit_action.triggered.connect(self.toggle_orbit_mode)         
         orbit_action.setToolTip(tip)
         orbit_action.setStatusTip(tip)

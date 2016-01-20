@@ -3,7 +3,6 @@ from __future__ import division
 from PyQt4 import QtCore
 from random import uniform
 import multiprocessing as mp
-#from datetime import datetime #DEBUG
 import numpy as np
 import ctypes
 
@@ -19,7 +18,6 @@ class HenonCalcOrbit(QtCore.QObject):
     def __init__(self, _settings):
         QtCore.QObject.__init__(self)
         
-#        print "[HenonCalc] Initialization" #DEBUG
         self.settings = _settings
         self.signal = Signal()
         self.quit_signal = Signal()
@@ -51,8 +49,6 @@ class HenonCalcOrbit(QtCore.QObject):
         if (self.workers_started): # fix strange problem where run command is started twice by QThread
             return
 
-#        print "[HenonCalc] Starting workers" #DEBUG
-
         for i in range(self.thread_count):            
             self.worker_list[i].start()
             
@@ -60,7 +56,6 @@ class HenonCalcOrbit(QtCore.QObject):
                     
     def stop(self):
                       
-#        print "[HenonCalc] Received stop signal" #DEBUG
         self.stop_signal.value = True # send signal to HenonUpdate
 
         for i in range(self.thread_count):
@@ -102,14 +97,9 @@ class WorkerProcess(mp.Process):
         self.mp_arr, self.interval_flags, self.stop_signal = args[2]
 
     def shutdown(self):
-#        print "[WorkerProcess] Worker " + str(self.run_number) + " shutdown initiated" #DEBUG
         self.exit.set()
 
     def run(self):
-        
-#        start_time = datetime.now() #DEBUG
-
-#        print "[WorkerProcess] Worker " + str(self.run_number) + " has started" #DEBUG
         
         henx = uniform(-0.1,0.1) # generate random starting points
         heny = uniform(-0.1,0.1)
@@ -159,7 +149,7 @@ class WorkerProcess(mp.Process):
                         y_draw = int((henx-ybottom) * yratio)
                         
                     if (0 < y_draw < window_height):                  
-                        local_array[(window_height-y_draw)*(window_width+0) + x_draw] = True
+                        local_array[(window_height-y_draw)*window_width + x_draw] = True
                 except:
                     break
 
@@ -178,13 +168,7 @@ class WorkerProcess(mp.Process):
                 break
             
         # send message to HenonUpdate to show end result
-        # in animation mode HenonUpdate will stop based only on interval_flags since there will be
-        # only frame to draw
         self.interval_flags[run_number] = True 
         
         if (run_number == 0):
             self.stop_signal.value = True # sends message to HenonUpdate to stop because max_iter reached
-        
-#        delta = datetime.now() - start_time #DEBUG             
-                        
-#        print "[WorkerProcess] Worker " + str(run_number) + " has stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG        

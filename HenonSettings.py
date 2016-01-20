@@ -276,11 +276,60 @@ class HenonSettings(QtGui.QDialog):
         generic_widget_animation.setLayout(vbox_tab_animation)
         tabwidget.addTab(generic_widget_animation, QtCore.QString("Animation"))
 
+        ### Orbit map tab ###
+        vbox_tab_orbit = QtGui.QVBoxLayout() 
+
+        hbox = QtGui.QHBoxLayout()
+        description = QtGui.QLabel("Number of iterations per pixel along screen width")
+        self.max_iter_orbit = QtGui.QSpinBox()
+        self.max_iter_orbit.setAccelerated(True)
+        self.max_iter_orbit.setMaximum(9999)
+        self.max_iter_orbit.setMinimum(1)
+        self.max_iter_orbit.setValue(self.parent.max_iter_orbit)
+        self.max_iter_orbit.setSingleStep(100)
+        hbox.addWidget(self.max_iter_orbit) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox_tab_orbit.addLayout(hbox) 
+
+        group_parameter = QtGui.QGroupBox("Parameter selection")
+        vbox_parameter = QtGui.QVBoxLayout()
+
+        self.orbit_parameter_a = QtGui.QRadioButton("Parameter a")
+        self.orbit_parameter_a.setChecked(self.parent.orbit_parameter)       
+        vbox_parameter.addWidget(self.orbit_parameter_a)
+
+        self.orbit_parameter_b = QtGui.QRadioButton("Parameter b")
+        self.orbit_parameter_b.setChecked(not self.parent.orbit_parameter)      
+        vbox_parameter.addWidget(self.orbit_parameter_b)
+
+        group_parameter.setLayout(vbox_parameter)        
+        vbox_tab_orbit.addWidget(group_parameter)
+        
+        group_coordinate = QtGui.QGroupBox("Coordinate selection")
+        vbox_coordinate = QtGui.QVBoxLayout()
+
+        self.orbit_coordinate_x = QtGui.QRadioButton("x coordinate")
+        self.orbit_coordinate_x.setChecked(not self.parent.orbit_coordinate)
+        vbox_coordinate.addWidget(self.orbit_coordinate_x)              
+
+        self.orbit_coordinate_y = QtGui.QRadioButton("y coordinate")
+        self.orbit_coordinate_y.setChecked(self.parent.orbit_coordinate)
+        vbox_coordinate.addWidget(self.orbit_coordinate_y)
+
+        group_coordinate.setLayout(vbox_coordinate)        
+        vbox_tab_orbit.addWidget(group_coordinate)
+
+        vbox_tab_orbit.addStretch(1)
+        generic_widget_animation = QtGui.QWidget()
+        generic_widget_animation.setLayout(vbox_tab_orbit)
+        tabwidget.addTab(generic_widget_animation, QtCore.QString("Orbit map"))
+
         ### Tab calculation ###
         vbox_tab_calculation = QtGui.QVBoxLayout()
 
         hbox = QtGui.QHBoxLayout()       
-        spec = QtGui.QLabel("<b>Calculation settings<b>")
+        spec = QtGui.QLabel("<b>Calculation settings</b>")
         hbox.addWidget(spec)
         hbox.addStretch(1)
         vbox_tab_calculation.addLayout(hbox)
@@ -429,6 +478,14 @@ class HenonSettings(QtGui.QDialog):
         self.parent.plot_interval_anim = self.plot_interval_anim.value()        
         self.parent.animation_delay = self.animation_delay.value()
         self.parent.enlarge_rare_pixels = self.enlarge_rare_pixels.isChecked()
+
+        ### Orbit map settings ###
+        self.parent.max_iter_orbit = self.max_iter_orbit.value()
+        self.parent.orbit_parameter = self.orbit_parameter_a.isChecked()
+        self.parent.orbit_coordinate = self.orbit_coordinate_y.isChecked()
+        
+        if self.parent.orbit_mode:
+            self.parent.initialize_orbit_mode()
 
         ### Calculation settings ###
         self.parent.drop_iter = self.drop_iter.value()
