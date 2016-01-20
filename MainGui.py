@@ -114,7 +114,7 @@ class MainGui(QtGui.QMainWindow):
         self.default_settings['orbit_mode'] = self.orbit_mode
         self.orbit_parameter = True # true is parameter a; false is parameter b
         self.default_settings['orbit_parameter'] = self.orbit_parameter
-        self.orbit_coordinate = True # true is x coordinate; false is y-coordinate
+        self.orbit_coordinate = True # true is y-coordinate; false is x-coordinate
         self.default_settings['orbit_coordinate'] = self.orbit_coordinate
         self.max_iter_orbit = 100
         self.default_settings['max_iter_orbit'] = self.max_iter_orbit        
@@ -403,13 +403,13 @@ class MainGui(QtGui.QMainWindow):
             else: # parameter b
                 self.xleft = -0.3
                 self.xright = 0.3
-    
+
             if self.orbit_coordinate: # x-coordinate
-                self.ytop = 1.5
-                self.ybottom = -1.5
-            else: # y-coordinate
                 self.ytop = 0.4
                 self.ybottom = -0.4
+            else: # y-coordinate
+                self.ytop = 1.5
+                self.ybottom = -1.5
             
         self.initialize_calculation()
 
@@ -469,11 +469,11 @@ class MainGui(QtGui.QMainWindow):
             self.xright = 0.3
 
         if self.orbit_coordinate: # x-coordinate
-            self.ytop = 1.5
-            self.ybottom = -1.5
-        else: # y-coordinate
             self.ytop = 0.4
             self.ybottom = -0.4
+        else: # y-coordinate
+            self.ytop = 1.5
+            self.ybottom = -1.5
 
         self.initialize_calculation()
         self.statusBar().showMessage(self.tr("Press O to exit orbit view mode"),1000)

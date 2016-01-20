@@ -94,6 +94,7 @@ class WorkerProcess(mp.Process):
         self.max_iter_orbit = settings['max_iter_orbit']        
         self.orbit_parameter = settings['orbit_parameter']
         self.orbit_coordinate = settings['orbit_coordinate']
+        self.thread_count = settings['thread_count']
 
         self.xratio = self.window_width/(self.xright-self.xleft)
         self.yratio = self.window_height/(self.ytop-self.ybottom)
@@ -103,15 +104,6 @@ class WorkerProcess(mp.Process):
     def shutdown(self):
 #        print "[WorkerProcess] Worker " + str(self.run_number) + " shutdown initiated" #DEBUG
         self.exit.set()
-
-    def drop_iterations(self,hena,henb,henx,heny):        
-        try:            
-            for i in range(self.drop_iter): # prevent drawing first iterations
-                henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
-            return henx,heny
-        except OverflowError: # if x,y results move towards infinity
-#            print "[WorkerProcess] Worker " + str(self.run_number) + " overflow" #DEBUG                
-            return uniform(-0.1,0.1),uniform(-0.1,0.1)
 
     def run(self):
         
@@ -127,14 +119,7 @@ class WorkerProcess(mp.Process):
         # subsequent data copying step takes almost no time
         local_array = np.zeros(len(self.mp_arr),dtype=ctypes.c_byte)
         
-        # make local copies of variables to increase speed
-        if self.orbit_parameter:
-            hena = self.xleft
-            henb = self.henb            
-        else:
-            hena = self.hena
-            henb = self.xleft
-            
+        # make local copies of variables to increase speed            
         xratio = self.xratio
         ybottom = self.ybottom
         yratio = self.yratio
@@ -143,7 +128,19 @@ class WorkerProcess(mp.Process):
         window_width = self.window_width
         window_height = self.window_height
         run_number = self.run_number
-        x_draw = 0
+        thread_count = self.thread_count 
+        x_draw = run_number
+        orbit_parameter = self.orbit_parameter
+        orbit_coordinate = self.orbit_coordinate
+
+        if orbit_parameter:
+            hena = self.xleft
+            hena += run_number/xratio
+            henb = self.henb            
+        else:
+            hena = self.hena
+            henb = self.xleft
+            henb += run_number/xratio
 
         while not self.exit.is_set():
 
@@ -156,7 +153,11 @@ class WorkerProcess(mp.Process):
                 
                 try:
                     henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
-                    y_draw = int((heny-ybottom) * yratio)
+                    if orbit_coordinate:
+                        y_draw = int((heny-ybottom) * yratio)
+                    else:
+                        y_draw = int((henx-ybottom) * yratio)
+                        
                     if (0 < y_draw < window_height):                  
                         local_array[(window_height-y_draw)*(window_width+0) + x_draw] = True
                 except:
@@ -166,8 +167,12 @@ class WorkerProcess(mp.Process):
             np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
             self.interval_flags[run_number] = True
             
-            x_draw += 1
-            hena += 1/xratio
+            x_draw += thread_count
+            
+            if orbit_parameter:
+                hena += thread_count/xratio
+            else:
+                henb += thread_count/xratio
             
             if (x_draw >= window_width):
                 break
