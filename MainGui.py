@@ -6,6 +6,7 @@ import HenonResources
 from HenonWidget2 import HenonWidget # for PyQt-only Henon widget
 from HenonUpdate import HenonUpdate
 from HenonCalc import HenonCalc
+from HenonCalcOrbit import HenonCalcOrbit
 from HenonHelp import HenonHelp
 from HenonSettings import HenonSettings
 from multiprocessing import cpu_count
@@ -107,6 +108,16 @@ class MainGui(QtGui.QMainWindow):
         self.default_settings['plot_interval_anim'] = self.plot_interval_anim
         self.animation_delay = 999
         self.default_settings['animation_delay'] = self.animation_delay
+
+        # orbit mode settings
+        self.orbit_mode = False
+        self.default_settings['orbit_mode'] = self.orbit_mode
+        self.orbit_parameter = True # true is parameter a; false is parameter b
+        self.default_settings['orbit_parameter'] = self.orbit_parameter
+        self.orbit_coordinate = True # true is x coordinate; false is y-coordinate
+        self.default_settings['orbit_coordinate'] = self.orbit_coordinate
+        self.max_iter_orbit = 100
+        self.default_settings['max_iter_orbit'] = self.max_iter_orbit        
 
         # misc settings (not for saving)
         self.first_run = True
@@ -225,17 +236,21 @@ class MainGui(QtGui.QMainWindow):
         current_settings['window_height'] = self.Henon_widget.window_height
         current_settings['animation_running'] = self.animation_running
 
-        if not self.opencl_enabled: # for multiprocessing
+        if not self.opencl_enabled and not self.orbit_mode: # for multiprocessing
             # Henon_calc will start workers and wait for stop signal
             self.Henon_calc = HenonCalc(current_settings) 
             # Henon_update will will wait for worker signals and then send screen update signals
             self.Henon_update = HenonUpdate(current_settings,self.Henon_calc.interval_flags,\
                 self.Henon_calc.stop_signal, self.Henon_calc.mp_arr, self.Henon_widget.window_representation)
-        else: # for OpenCL            
+        elif not self.orbit_mode: # for OpenCL            
             self.Henon_calc = HenonCalc2(current_settings, self.context, self.command_queue, self.mem_flags, self.program)
             self.Henon_update = HenonUpdate2(current_settings, self.Henon_calc.interval_flag,\
                 self.Henon_calc.stop_signal, self.Henon_calc.cl_arr, self.Henon_widget.window_representation)
-
+        else: # for orbit mode
+            self.Henon_calc = HenonCalcOrbit(current_settings) 
+            self.Henon_update = HenonUpdate(current_settings,self.Henon_calc.interval_flags,\
+                self.Henon_calc.stop_signal, self.Henon_calc.mp_arr, self.Henon_widget.window_representation)
+                
         self.Henon_update.moveToThread(self.qt_thread0) # Move updater to separate thread
         self.Henon_calc.moveToThread(self.qt_thread1)
         
@@ -336,6 +351,10 @@ class MainGui(QtGui.QMainWindow):
         
         if self.first_run:
             return
+            
+        if self.orbit_mode:
+            self.statusBar().showMessage(self.tr("Animation is not available in orbit view mode"),1000)
+            return
         
         if (not self.hena_anim) and (not self.henb_anim):
             # cannot animate if no variables are selected for animation
@@ -369,13 +388,28 @@ class MainGui(QtGui.QMainWindow):
     def reset_view(self):       
         self.statusBar().showMessage(self.tr("Resetting view..."), 1000)
 
-        self.xleft = -1.5
-        self.ytop = 0.4
-        self.xright = 1.5
-        self.ybottom = -0.4
-
         if self.animation_running:
             self.animation_running = False
+
+        if not self.orbit_mode:
+            self.xleft = -1.5
+            self.ytop = 0.4
+            self.xright = 1.5
+            self.ybottom = -0.4
+        else:
+            if self.orbit_parameter: # parameter a
+                self.xleft = 1.0
+                self.xright = 1.4                
+            else: # parameter b
+                self.xleft = -0.3
+                self.xright = 0.3
+    
+            if self.orbit_coordinate: # x-coordinate
+                self.ytop = 1.5
+                self.ybottom = -1.5
+            else: # y-coordinate
+                self.ytop = 0.4
+                self.ybottom = -0.4
             
         self.initialize_calculation()
 
@@ -385,7 +419,7 @@ class MainGui(QtGui.QMainWindow):
         if not self.full_screen: # toggle full screen mode
             self.showFullScreen()
             self.full_screen = True
-            self.statusBar().showMessage(self.tr("Press escape to exit full screen"), 1000)             
+            self.statusBar().showMessage(self.tr("Press escape to exit full-screen mode"), 1000)             
         else:
             self.showNormal()
             self.full_screen = False
@@ -414,6 +448,35 @@ class MainGui(QtGui.QMainWindow):
             self.statusBar().showMessage(self.tr("Benchmarking turned on"),1000)
         else:
             self.statusBar().showMessage(self.tr("Benchmarking turned off"),1000)
+
+    def toggle_orbit_mode(self):
+
+        if self.animation_running:
+            self.statusBar().showMessage(self.tr("Orbit mode is not available during animation"),1000)
+            return
+        
+        if self.orbit_mode:
+            self.orbit_mode = False
+            self.reset_view()
+            return
+                
+        self.orbit_mode = True
+        if self.orbit_parameter: # parameter a
+            self.xleft = 1.0
+            self.xright = 1.4                
+        else: # parameter b
+            self.xleft = -0.3
+            self.xright = 0.3
+
+        if self.orbit_coordinate: # x-coordinate
+            self.ytop = 1.5
+            self.ybottom = -1.5
+        else: # y-coordinate
+            self.ytop = 0.4
+            self.ybottom = -0.4
+
+        self.initialize_calculation()
+        self.statusBar().showMessage(self.tr("Press O to exit orbit view mode"),1000)
 
     def closeEvent(self, event):
         # call stop function in order to terminate calculation processes
@@ -499,6 +562,10 @@ class MainGui(QtGui.QMainWindow):
         settings['max_iter_anim'] = self.max_iter_anim
         settings['plot_interval_anim'] = self.plot_interval_anim 
         settings['animation_delay'] = self.animation_delay
+        settings['orbit_mode'] = self.orbit_mode
+        settings['orbit_parameter'] = self.orbit_parameter
+        settings['orbit_coordinate'] = self.orbit_coordinate
+        settings['max_iter_orbit'] = self.max_iter_orbit       
         return settings
     
     def implement_settings(self,settings):
@@ -534,6 +601,10 @@ class MainGui(QtGui.QMainWindow):
         self.max_iter_anim = settings['max_iter_anim']
         self.plot_interval_anim = settings['plot_interval_anim']
         self.animation_delay = settings['animation_delay']
+        self.orbit_mode = settings['orbit_mode']
+        self.orbit_parameter = settings['orbit_parameter']
+        self.orbit_coordinate = settings['orbit_coordinate']
+        self.max_iter_orbit = settings['max_iter_orbit']        
 
         if self.module_opencl_present:
             if self.opencl_enabled:
@@ -654,7 +725,14 @@ class MainGui(QtGui.QMainWindow):
         reset_action.setStatusTip(tip)
         reset_action.setShortcut('F5')
 
-        tip = self.tr("Toggle full-screen")        
+        tip = self.tr("Orbit view")        
+        orbit_action = QtGui.QAction(self.tr("Orbit view"), self)
+        orbit_action.triggered.connect(self.toggle_orbit_mode)         
+        orbit_action.setToolTip(tip)
+        orbit_action.setStatusTip(tip)
+        orbit_action.setShortcut('O')
+
+        tip = self.tr("Full-screen")        
         fullscreen_action = QtGui.QAction(self.tr("Full-screen"), self)
         fullscreen_action.setIcon(QtGui.QIcon(":expand.png"))
         fullscreen_action.triggered.connect(self.toggle_full_screen)         
@@ -663,6 +741,7 @@ class MainGui(QtGui.QMainWindow):
         fullscreen_action.setShortcut('F')
 
         self.view_menu.addAction(reset_action)
+        self.view_menu.addAction(orbit_action)
         self.view_menu.addAction(fullscreen_action)
            
         self.help_menu = self.menuBar().addMenu(self.tr("Help"))
