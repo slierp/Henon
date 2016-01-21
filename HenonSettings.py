@@ -277,29 +277,16 @@ class HenonSettings(QtGui.QDialog):
         tabwidget.addTab(generic_widget_animation, QtCore.QString("Animation"))
 
         ### Orbit map tab ###
-        vbox_tab_orbit = QtGui.QVBoxLayout() 
-
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Number of iterations per pixel along screen width")
-        self.max_iter_orbit = QtGui.QSpinBox()
-        self.max_iter_orbit.setAccelerated(True)
-        self.max_iter_orbit.setMaximum(9999)
-        self.max_iter_orbit.setMinimum(1)
-        self.max_iter_orbit.setValue(self.parent.max_iter_orbit)
-        self.max_iter_orbit.setSingleStep(100)
-        hbox.addWidget(self.max_iter_orbit) 
-        hbox.addWidget(description)
-        hbox.addStretch(1)                
-        vbox_tab_orbit.addLayout(hbox) 
+        vbox_tab_orbit = QtGui.QVBoxLayout()  
 
         group_parameter = QtGui.QGroupBox("Parameter selection")
         vbox_parameter = QtGui.QVBoxLayout()
 
-        self.orbit_parameter_a = QtGui.QRadioButton("Parameter a")
+        self.orbit_parameter_a = QtGui.QRadioButton("Parameter 'a'")
         self.orbit_parameter_a.setChecked(self.parent.orbit_parameter)       
         vbox_parameter.addWidget(self.orbit_parameter_a)
 
-        self.orbit_parameter_b = QtGui.QRadioButton("Parameter b")
+        self.orbit_parameter_b = QtGui.QRadioButton("Parameter 'b'")
         self.orbit_parameter_b.setChecked(not self.parent.orbit_parameter)      
         vbox_parameter.addWidget(self.orbit_parameter_b)
 
@@ -309,16 +296,42 @@ class HenonSettings(QtGui.QDialog):
         group_coordinate = QtGui.QGroupBox("Coordinate selection")
         vbox_coordinate = QtGui.QVBoxLayout()
 
-        self.orbit_coordinate_x = QtGui.QRadioButton("x coordinate")
+        self.orbit_coordinate_x = QtGui.QRadioButton("x-coordinate")
         self.orbit_coordinate_x.setChecked(not self.parent.orbit_coordinate)
         vbox_coordinate.addWidget(self.orbit_coordinate_x)              
 
-        self.orbit_coordinate_y = QtGui.QRadioButton("y coordinate")
+        self.orbit_coordinate_y = QtGui.QRadioButton("y-coordinate")
         self.orbit_coordinate_y.setChecked(self.parent.orbit_coordinate)
         vbox_coordinate.addWidget(self.orbit_coordinate_y)
 
         group_coordinate.setLayout(vbox_coordinate)        
         vbox_tab_orbit.addWidget(group_coordinate)
+
+        hbox = QtGui.QHBoxLayout()
+        description = QtGui.QLabel("Max iterations per pixel along screen width")
+        self.max_iter_orbit = QtGui.QSpinBox()
+        self.max_iter_orbit.setAccelerated(True)
+        self.max_iter_orbit.setMaximum(99999)
+        self.max_iter_orbit.setMinimum(1)
+        self.max_iter_orbit.setValue(self.parent.max_iter_orbit)
+        self.max_iter_orbit.setSingleStep(100)
+        hbox.addWidget(self.max_iter_orbit) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox_tab_orbit.addLayout(hbox)
+
+        hbox = QtGui.QHBoxLayout()
+        description = QtGui.QLabel("Plot interval per pixel along screen width")
+        self.plot_interval_orbit = QtGui.QSpinBox()
+        self.plot_interval_orbit.setAccelerated(True)
+        self.plot_interval_orbit.setMaximum(9999)
+        self.plot_interval_orbit.setMinimum(1)
+        self.plot_interval_orbit.setValue(self.parent.plot_interval_orbit)
+        self.plot_interval_orbit.setSingleStep(100)
+        hbox.addWidget(self.plot_interval_orbit) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox_tab_orbit.addLayout(hbox)
 
         vbox_tab_orbit.addStretch(1)
         generic_widget_animation = QtGui.QWidget()
@@ -481,6 +494,7 @@ class HenonSettings(QtGui.QDialog):
 
         ### Orbit map settings ###
         self.parent.max_iter_orbit = self.max_iter_orbit.value()
+        self.parent.plot_interval_orbit = self.plot_interval_orbit.value()
         self.parent.orbit_parameter = self.orbit_parameter_a.isChecked()
         self.parent.orbit_coordinate = self.orbit_coordinate_y.isChecked()
         

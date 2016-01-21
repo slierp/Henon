@@ -16,7 +16,8 @@ from math import ceil
 try:
     # check if PyOpenCL is present as it is optional
     import pyopencl as cl
-    from HenonCalc2 import HenonCalc2    
+    from HenonCalc2 import HenonCalc2
+    from HenonCalc2Orbit import HenonCalc2Orbit
     from HenonUpdate2 import HenonUpdate2
     module_opencl_present = True
 except ImportError:
@@ -117,7 +118,9 @@ class MainGui(QtGui.QMainWindow):
         self.orbit_coordinate = True # true is y-coordinate; false is x-coordinate
         self.default_settings['orbit_coordinate'] = self.orbit_coordinate
         self.max_iter_orbit = 100
-        self.default_settings['max_iter_orbit'] = self.max_iter_orbit        
+        self.default_settings['max_iter_orbit'] = self.max_iter_orbit
+        self.plot_interval_orbit = 100
+        self.default_settings['plot_interval_orbit'] = self.plot_interval_orbit
 
         # misc settings (not for saving)
         self.first_run = True
@@ -242,14 +245,18 @@ class MainGui(QtGui.QMainWindow):
             # Henon_update will will wait for worker signals and then send screen update signals
             self.Henon_update = HenonUpdate(current_settings,self.Henon_calc.interval_flags,\
                 self.Henon_calc.stop_signal, self.Henon_calc.mp_arr, self.Henon_widget.window_representation)
-        elif not self.orbit_mode: # for OpenCL            
+        elif self.opencl_enabled and not self.orbit_mode: # for OpenCL            
             self.Henon_calc = HenonCalc2(current_settings, self.context, self.command_queue, self.mem_flags, self.program)
             self.Henon_update = HenonUpdate2(current_settings, self.Henon_calc.interval_flag,\
                 self.Henon_calc.stop_signal, self.Henon_calc.cl_arr, self.Henon_widget.window_representation)
-        else: # for orbit mode
+        elif not self.opencl_enabled and self.orbit_mode: # for orbit mode with multiprocessing
             self.Henon_calc = HenonCalcOrbit(current_settings) 
             self.Henon_update = HenonUpdate(current_settings,self.Henon_calc.interval_flags,\
                 self.Henon_calc.stop_signal, self.Henon_calc.mp_arr, self.Henon_widget.window_representation)
+        elif self.opencl_enabled and self.orbit_mode: # for orbit mode with OpenCL
+            self.Henon_calc = HenonCalc2Orbit(current_settings, self.context, self.command_queue, self.mem_flags, self.program)
+            self.Henon_update = HenonUpdate2(current_settings, self.Henon_calc.interval_flag,\
+                self.Henon_calc.stop_signal, self.Henon_calc.cl_arr, self.Henon_widget.window_representation)
                 
         self.Henon_update.moveToThread(self.qt_thread0) # Move updater to separate thread
         self.Henon_calc.moveToThread(self.qt_thread1)
@@ -297,55 +304,122 @@ class MainGui(QtGui.QMainWindow):
         self.command_queue = cl.CommandQueue(self.context)    
         self.mem_flags = cl.mem_flags
     
-        try: #uint for 32-bit (ulong for 64-bit not recommended due to much longer execution time)
-            self.program = cl.Program(self.context, """
-            #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable    
-            __kernel void henon(__global double2 *q, __global ushort *window_representation,
-                                __global uint const *int_params, __global double const *float_params)
-            {
-                int gid = get_global_id(0);
-                double x,y,xtemp,x_draw,y_draw;
-                x = q[gid].x;
-                y = q[gid].y;
-    
-                // drop first set of iterations
-                for(int curiter = 0; curiter < int_params[1]; curiter++) {
-                    xtemp = x;
-                    x = 1 + y - (float_params[0] * x * x);
-                    y = float_params[1] * xtemp;            
-                }
+        if not self.orbit_mode: # kernel for normal Henon calculations
+            try: #uint for 32-bit (ulong for 64-bit not recommended due to much longer execution time)
+                self.program = cl.Program(self.context, """
+                #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable    
+                __kernel void henon(__global double2 *q, __global ushort *window_representation,
+                                    __global uint const *int_params, __global double const *float_params)
+                {
+                    int gid = get_global_id(0);
+                    double x,y,xtemp,x_draw,y_draw;
+                    x = q[gid].x;
+                    y = q[gid].y;
         
-                // perform main Henon calculation and assign pixels into window
-                for(int curiter = 0; curiter < int_params[0]; curiter++) {
-                    xtemp = x;
-                    x = 1 + y - (float_params[0] * x * x);
-                    y = float_params[1] * xtemp;
+                    // drop first set of iterations
+                    for(int curiter = 0; curiter < int_params[1]; curiter++) {
+                        xtemp = x;
+                        x = 1 + y - (float_params[0] * x * x);
+                        y = float_params[1] * xtemp;            
+                    }
+            
+                    // perform main Henon calculation and assign pixels into window
+                    for(int curiter = 0; curiter < int_params[0]; curiter++) {
+                        xtemp = x;
+                        x = 1 + y - (float_params[0] * x * x);
+                        y = float_params[1] * xtemp;
+                        
+                        if (x < float_params[2] || y < float_params[3]) { // convert_int cannot deal with negative numbers
+                            x_draw = 0;
+                            y_draw = 0;
+                        }
+                        else {
+                            x_draw = convert_int_sat((x-float_params[2]) * float_params[4]); // sat modifier avoids NaN problems
+                            y_draw = convert_int_sat((y-float_params[3]) * float_params[5]);
+                        }
+                        
+                        if ((0 < x_draw) && (x_draw < int_params[3]) && (0 < y_draw) && (y_draw < int_params[2])) {
+                            int location = convert_int(((int_params[2]-y_draw)*int_params[3]) + x_draw); // for top-left origin
+                            //int location = convert_int((y_draw*int_params[3]) + x_draw); // for bottom-left origin
+                            window_representation[location] = 255;
+                        }
+                    }
                     
-                    if (x < float_params[2] || y < float_params[3]) { // convert_int cannot deal with negative numbers
-                        x_draw = 0;
-                        y_draw = 0;
+                    q[gid].x = x;
+                    q[gid].y = y;
+                }
+                """).build()
+            except:
+                self.opencl_enabled = False
+                msg = self.tr("Error during OpenCL kernel build. OpenCL function has been turned off automatically.")
+                QtGui.QMessageBox.about(self, self.tr("Warning"), msg)
+                return
+        else: # kernel for orbit map calculations
+            try:
+                self.program = cl.Program(self.context, """
+                #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable    
+                __kernel void henon(__global double2 *q, __global ushort *window_representation,
+                                    __global uint const *int_params, __global double const *float_params)
+                {
+                    int gid = get_global_id(0);
+                    double x,y,xtemp,y_draw;
+                    x = q[gid].x;
+                    y = q[gid].y;
+    
+                    int orbit_parameter,orbit_coordinate;
+                    orbit_parameter = int_params[4];
+                    orbit_coordinate = int_params[5];
+            
+                    double a, b;
+                    if (orbit_parameter > 0) {
+                        a = float_params[2];
+                        a = a + gid/float_params[4];
+                        b = float_params[1];
                     }
                     else {
-                        x_draw = convert_int_sat((x-float_params[2]) * float_params[4]); // sat modifier avoids NaN problems
-                        y_draw = convert_int_sat((y-float_params[3]) * float_params[5]);
+                        a = float_params[0];
+                        b = float_params[2];
+                        b = b + gid/float_params[4];
+                    }
+        
+                    // drop first set of iterations
+                    for(int curiter = 0; curiter < int_params[1]; curiter++) {
+                        xtemp = x;
+                        x = 1 + y - (a * x * x);
+                        y = b * xtemp;            
+                    }
+            
+                    // perform main Henon calculation and assign pixels into window
+                    for(int curiter = 0; curiter < int_params[0]; curiter++) {
+                        xtemp = x;
+                        x = 1 + y - (a * x * x);
+                        y = b * xtemp;
+                        
+                        if (orbit_coordinate > 0) {
+                            // convert_int cannot deal with negative numbers
+                            if (y < float_params[3]) { y_draw = 0; }
+                            else { y_draw = convert_int_sat((y-float_params[3]) * float_params[5]); }
+                        }
+                        else {
+                            if (x < float_params[3]) { y_draw = 0; }
+                            else { y_draw = convert_int_sat((x-float_params[3]) * float_params[5]); }                    
+                        }
+                        
+                        if ((0 < y_draw) && (y_draw < int_params[2])) {
+                            int location = convert_int(((int_params[2]-y_draw)*int_params[3]) + gid);
+                            window_representation[location] = 255;
+                        }
                     }
                     
-                    if ((0 < x_draw) && (x_draw < int_params[3]) && (0 < y_draw) && (y_draw < int_params[2])) {
-                        int location = convert_int(((int_params[2]-y_draw)*int_params[3]) + x_draw); // for top-left origin
-                        //int location = convert_int((y_draw*int_params[3]) + x_draw); // for bottom-left origin
-                        window_representation[location] = 255;
-                    }
+                    q[gid].x = x;
+                    q[gid].y = y;
                 }
-                
-                q[gid].x = x;
-                q[gid].y = y;
-            }
-            """).build()
-        except:
-            self.opencl_enabled = False
-            msg = self.tr("Error during OpenCL kernel build. OpenCL function has been turned off automatically.")
-            QtGui.QMessageBox.about(self, self.tr("Warning"), msg)
-            return
+                """).build()
+            except:
+                self.opencl_enabled = False
+                msg = self.tr("Error during OpenCL kernel build. OpenCL function has been turned off automatically.")
+                QtGui.QMessageBox.about(self, self.tr("Warning"), msg)
+                return            
 
     def initialize_animation(self):
         
@@ -450,6 +524,8 @@ class MainGui(QtGui.QMainWindow):
                 
         self.orbit_mode = True
         self.initialize_orbit_mode()
+        if self.opencl_enabled:
+            self.initialize_opencl()
 
         self.initialize_calculation()
         self.statusBar().showMessage(self.tr("Press O to exit orbit map mode"),1000)
@@ -556,7 +632,8 @@ class MainGui(QtGui.QMainWindow):
         settings['orbit_mode'] = self.orbit_mode
         settings['orbit_parameter'] = self.orbit_parameter
         settings['orbit_coordinate'] = self.orbit_coordinate
-        settings['max_iter_orbit'] = self.max_iter_orbit       
+        settings['max_iter_orbit'] = self.max_iter_orbit
+        settings['plot_interval_orbit'] = self.plot_interval_orbit        
         return settings
     
     def implement_settings(self,settings):
@@ -595,7 +672,8 @@ class MainGui(QtGui.QMainWindow):
         self.orbit_mode = settings['orbit_mode']
         self.orbit_parameter = settings['orbit_parameter']
         self.orbit_coordinate = settings['orbit_coordinate']
-        self.max_iter_orbit = settings['max_iter_orbit']        
+        self.max_iter_orbit = settings['max_iter_orbit']
+        self.plot_interval_orbit = settings['plot_interval_orbit']
 
         if self.module_opencl_present:
             if self.opencl_enabled:
