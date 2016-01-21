@@ -77,7 +77,7 @@ class MainGui(QtGui.QMainWindow):
         self.default_settings['plot_interval'] = self.plot_interval
         self.max_iter = 1
         self.default_settings['max_iter'] = self.max_iter
-        self.drop_iter = 100
+        self.drop_iter = 1000
         self.default_settings['drop_iter'] = self.drop_iter
         self.iter_auto_mode = True
         self.default_settings['iter_auto_mode'] = self.iter_auto_mode
@@ -519,6 +519,8 @@ class MainGui(QtGui.QMainWindow):
         
         if self.orbit_mode:
             self.orbit_mode = False
+            if self.opencl_enabled:
+                self.initialize_opencl()            
             self.reset_view()
             return
                 

@@ -139,6 +139,8 @@ class WorkerProcess(mp.Process):
                     for i in range(drop_iter): # prevent drawing first iterations
                         henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
                 except OverflowError: # if x,y results move towards infinity
+                    henx = uniform(-0.1,0.1)
+                    heny = uniform(-0.1,0.1)
                     break                  
                 
                 try:
