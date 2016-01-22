@@ -6,6 +6,18 @@ import multiprocessing as mp
 import numpy as np
 import ctypes
 
+"""
+TODO
+
+Replace stop_signal mechanism for interval_flag with three states
+0 = no update
+1 = update
+2 = finished
+
+Then HenonUpdate can stop when all worker threads have stopped
+
+"""
+
 class Signal(QtCore.QObject):
     sig = QtCore.pyqtSignal()
     
@@ -86,7 +98,7 @@ class WorkerProcess(mp.Process):
         self.window_width = settings['window_width']
         self.window_height = settings['window_height']
         self.drop_iter = settings['drop_iter']
-        self.max_iter_orbit = settings['max_iter_orbit']        
+        self.max_iter_orbit = settings['max_iter_orbit']
         self.orbit_parameter = settings['orbit_parameter']
         self.orbit_coordinate = settings['orbit_coordinate']
         self.thread_count = settings['thread_count']
@@ -134,30 +146,36 @@ class WorkerProcess(mp.Process):
 
         while not self.exit.is_set():
 
-            for i in xrange(max_iter):                
-                try:            
-                    for i in range(drop_iter): # prevent drawing first iterations
-                        henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
-                except OverflowError: # if x,y results move towards infinity
-                    henx = uniform(-0.1,0.1)
-                    heny = uniform(-0.1,0.1)
-                    break                  
+            try:            
+                for i in range(drop_iter): # prevent drawing first iterations
+                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+            except OverflowError: # if x,y results move towards infinity
+                henx = uniform(-0.1,0.1)
+                heny = uniform(-0.1,0.1)
                 
-                try:
-                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
-                    if orbit_coordinate:
-                        y_draw = int((heny-ybottom) * yratio)
-                    else:
-                        y_draw = int((henx-ybottom) * yratio)
-                        
-                    if (0 < y_draw < window_height):                  
-                        local_array[(window_height-y_draw)*window_width + x_draw] = True
-                except:
+                x_draw += thread_count
+            
+                if orbit_parameter:
+                    hena += thread_count/xratio
+                else:
+                    henb += thread_count/xratio
+                
+                if (x_draw >= window_width):
                     break
-
-            # 'bitwise or' on local array and multiprocessing array
-            np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
-            self.interval_flags[run_number] = True
+            
+                continue
+            
+            # no plot interval as we only calculate #threads pixels at a time
+            # no try/except because we only allow working a,b ranges
+            for i in xrange(max_iter): 
+                henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
+                if orbit_coordinate:
+                    y_draw = int((heny-ybottom) * yratio)
+                else:
+                    y_draw = int((henx-ybottom) * yratio)
+                    
+                if (0 < y_draw < window_height):                  
+                    local_array[(window_height-y_draw)*window_width + x_draw] = True
             
             x_draw += thread_count
             
@@ -167,10 +185,13 @@ class WorkerProcess(mp.Process):
                 henb += thread_count/xratio
             
             if (x_draw >= window_width):
-                break
-            
+                break           
+
+        # 'bitwise or' on local array and multiprocessing array
+        np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
+        
         # send message to HenonUpdate to show end result
         self.interval_flags[run_number] = True 
         
-        if (run_number == 0):
+        if (run_number+1 == thread_count):
             self.stop_signal.value = True # sends message to HenonUpdate to stop because max_iter reached

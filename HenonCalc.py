@@ -8,6 +8,18 @@ import numpy as np
 import ctypes
 from time import sleep
 
+"""
+TODO
+
+Replace stop_signal mechanism for interval_flag with three states
+0 = no update
+1 = update
+2 = finished
+
+Then HenonUpdate can stop when all worker threads have stopped
+
+"""
+
 class Signal(QtCore.QObject):
     sig = QtCore.pyqtSignal()
     
@@ -105,6 +117,7 @@ class WorkerProcess(mp.Process):
         self.max_iter_anim = settings['max_iter_anim']
         self.plot_interval_anim = settings['plot_interval_anim']        
         self.animation_running = settings['animation_running']
+        self.thread_count = settings['thread_count']
 
         self.xratio = self.window_width/(self.xright-self.xleft)
         self.yratio = self.window_height/(self.ytop-self.ybottom)
@@ -237,7 +250,7 @@ class WorkerProcess(mp.Process):
         # only frame to draw
         self.interval_flags[run_number] = True 
         
-        if (run_number == 0):
+        if (run_number+1 == self.thread_count):
             self.stop_signal.value = True # sends message to HenonUpdate to stop because max_iter reached
         
 #        delta = datetime.now() - start_time #DEBUG             
