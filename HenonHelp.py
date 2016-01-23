@@ -12,6 +12,7 @@ help_text = """
 * <a href="#quick">Quick-start</a><br>
 * <a href="#settings">Settings dialog</a><br> 
 * <a href="#animations">Animations</a><br>
+* <a href="#orbit">Orbit map mode</a><br>
 
 <p><h2><a name="general">Introduction</a></h2></p>
 
@@ -71,6 +72,11 @@ lower default values. The minimum time delay between each animation frame can be
 <p>For certain a,b values there will be periodic behaviour, which means that only a few pixels will show up on the screen. Single pixels can be hard to see so this is why there is an option to
 enlarge such rare pixels. If there are between 1 and 16 pixels in total during any screen update then each one will be enlarged to 5 pixels for better visibility.</p>
 
+<p><b>Orbit map settings</b></p>
+In orbit map mode the horizonal axis represents a parameter (a or b) and the vertical axis a coordinate (x or y). In this screen one can choose the parameter and coordinate to use and
+one can set some calculation settings. It is possible to change the plot interval and the max iterations that will be used for each pixel/parameter value along the screen width.
+The plot interval value only does something when OpenCL is enabled.
+
 <p><b>Calculation settings</b></p>
 
 <p><b>Drop iterations</b><br>
@@ -94,6 +100,12 @@ started in the main screen by pressing 'A'. These default animations demonstrate
 a stable point that doubles its period a few times before it grows into the H&eacute;non attractor. For parameter 'A' the animation features look similar but it also shows a crisis,
 i.e. the sudden disappearance of the attractor near a = 1.2. When the attractor has formed almost fully you may notice that the attractor disappears again a few times.
 These must be periodic windows where there is a brief reappearance of periodic behaviour</p>
+
+<p><h2><a name="orbit">Orbit map mode</a></h2></p>
+
+<p>In orbit map mode the horizontal axis represents a parameter (a or b) and the vertical axis a coordinate (x or y). It is another way of visualizing the H&eacute;non
+attractor and is especially suited for showing the bifurcations and appearance and disappearance of chaotic behaviour. By default, the selected parameter is 'a' and the vertical coordinate is 'y'.
+It is possible to zoom-in on the image by selecting an area with the mouse. Right-click or 'F5' resets the view to the default setting.</p>
 
 </body>
 </html>

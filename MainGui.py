@@ -117,9 +117,9 @@ class MainGui(QtGui.QMainWindow):
         self.default_settings['orbit_parameter'] = self.orbit_parameter
         self.orbit_coordinate = True # true is y-coordinate; false is x-coordinate
         self.default_settings['orbit_coordinate'] = self.orbit_coordinate
-        self.max_iter_orbit = 100
+        self.max_iter_orbit = 500
         self.default_settings['max_iter_orbit'] = self.max_iter_orbit
-        self.plot_interval_orbit = 100
+        self.plot_interval_orbit = 500
         self.default_settings['plot_interval_orbit'] = self.plot_interval_orbit
 
         # misc settings (not for saving)
