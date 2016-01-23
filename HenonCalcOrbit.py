@@ -6,18 +6,6 @@ import multiprocessing as mp
 import numpy as np
 import ctypes
 
-"""
-TODO
-
-Replace stop_signal mechanism for interval_flag with three states
-0 = no update
-1 = update
-2 = finished
-
-Then HenonUpdate can stop when all worker threads have stopped
-
-"""
-
 class Signal(QtCore.QObject):
     sig = QtCore.pyqtSignal()
     
@@ -45,8 +33,10 @@ class HenonCalcOrbit(QtCore.QObject):
         self.mp_arr = mp.RawArray(ctypes.c_byte, self.window_width*self.window_height)
 
         self.interval_flags = mp.Array('b', self.thread_count) # Have worker tell us when a piece work is finished
+        self.interval_flags[:] = [False]*self.thread_count
 
-        self.stop_signal = mp.Value('b', False) # Boolean for sending stop signal
+        self.stop_signal = mp.Array('b', self.thread_count) # Booleans for sending stop signal
+        self.stop_signal[:] = [False]*self.thread_count
 
         shared_tuple = self.mp_arr, self.interval_flags, self.stop_signal
 
@@ -190,8 +180,5 @@ class WorkerProcess(mp.Process):
         # 'bitwise or' on local array and multiprocessing array
         np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
         
-        # send message to HenonUpdate to show end result
-        self.interval_flags[run_number] = True 
-        
-        if (run_number+1 == thread_count):
-            self.stop_signal.value = True # sends message to HenonUpdate to stop because max_iter reached
+        self.interval_flags[run_number] = True # send message to HenonUpdate to show end result 
+        self.stop_signal[run_number] = True # sends message to HenonUpdate to stop because max_iter reached

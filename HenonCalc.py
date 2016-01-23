@@ -8,18 +8,6 @@ import numpy as np
 import ctypes
 from time import sleep
 
-"""
-TODO
-
-Replace stop_signal mechanism for interval_flag with three states
-0 = no update
-1 = update
-2 = finished
-
-Then HenonUpdate can stop when all worker threads have stopped
-
-"""
-
 class Signal(QtCore.QObject):
     sig = QtCore.pyqtSignal()
     
@@ -48,8 +36,10 @@ class HenonCalc(QtCore.QObject):
         self.mp_arr = mp.RawArray(ctypes.c_byte, self.window_width*self.window_height)
 
         self.interval_flags = mp.Array('b', self.thread_count) # Have worker tell us when a piece work is finished
+        self.interval_flags[:] = [False]*self.thread_count
 
-        self.stop_signal = mp.Value('b', False) # Boolean for sending stop signal
+        self.stop_signal = mp.Array('b', self.thread_count) # Booleans for sending stop signal
+        self.stop_signal[:] = [False]*self.thread_count
 
         shared_tuple = self.mp_arr, self.interval_flags, self.stop_signal
 
@@ -74,7 +64,7 @@ class HenonCalc(QtCore.QObject):
     def stop(self):
                       
 #        print "[HenonCalc] Received stop signal" #DEBUG
-        self.stop_signal.value = True # send signal to HenonUpdate
+        self.stop_signal.value = [True]*self.thread_count
 
         for i in range(self.thread_count):
             # shut down workers if alive
@@ -244,15 +234,10 @@ class WorkerProcess(mp.Process):
             
             if (iter_count >= max_iter):
                 break
-            
-        # send message to HenonUpdate to show end result
-        # in animation mode HenonUpdate will stop based only on interval_flags since there will be
-        # only frame to draw
-        self.interval_flags[run_number] = True 
-        
-        if (run_number+1 == self.thread_count):
-            self.stop_signal.value = True # sends message to HenonUpdate to stop because max_iter reached
+                    
+        self.interval_flags[run_number] = True # send message to HenonUpdate to show end result 
+        self.stop_signal[run_number] = True # sends message to HenonUpdate to stop because max_iter reached
         
 #        delta = datetime.now() - start_time #DEBUG             
-                        
+
 #        print "[WorkerProcess] Worker " + str(run_number) + " has stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG        
