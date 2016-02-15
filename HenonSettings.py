@@ -315,6 +315,7 @@ class HenonSettings(QtGui.QDialog):
         self.max_iter_orbit.setMinimum(1)
         self.max_iter_orbit.setValue(self.parent.max_iter_orbit)
         self.max_iter_orbit.setSingleStep(100)
+        self.max_iter_orbit.setDisabled(self.parent.iter_auto_mode_orbit)
         hbox.addWidget(self.max_iter_orbit) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
@@ -328,7 +329,19 @@ class HenonSettings(QtGui.QDialog):
         self.plot_interval_orbit.setMinimum(1)
         self.plot_interval_orbit.setValue(self.parent.plot_interval_orbit)
         self.plot_interval_orbit.setSingleStep(100)
+        self.plot_interval_orbit.setDisabled(self.parent.iter_auto_mode_orbit)
         hbox.addWidget(self.plot_interval_orbit) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox_tab_orbit.addLayout(hbox)
+
+        hbox = QtGui.QHBoxLayout()
+        description = QtGui.QLabel("Auto-mode")
+        self.iter_auto_mode_orbit = QtGui.QCheckBox()
+        self.iter_auto_mode_orbit.setChecked(self.parent.iter_auto_mode_orbit)
+        self.iter_auto_mode_orbit.mouseReleaseEvent = self.switch_iter_auto_mode_orbit
+        description.mouseReleaseEvent = self.switch_iter_auto_mode_orbit
+        hbox.addWidget(self.iter_auto_mode_orbit)
         hbox.addWidget(description)
         hbox.addStretch(1)                
         vbox_tab_orbit.addLayout(hbox)
@@ -456,6 +469,12 @@ class HenonSettings(QtGui.QDialog):
         self.max_iter.setDisabled(self.iter_auto_mode.isChecked())
         self.plot_interval.setDisabled(self.iter_auto_mode.isChecked())
         
+    def switch_iter_auto_mode_orbit(self, event):
+        # function for making QLabel near checkbox clickable
+        self.iter_auto_mode_orbit.setChecked(not self.iter_auto_mode_orbit.isChecked())
+        self.max_iter_orbit.setDisabled(self.iter_auto_mode_orbit.isChecked())
+        self.plot_interval_orbit.setDisabled(self.iter_auto_mode_orbit.isChecked())        
+        
     def switch_hena_anim(self, event):
         # function for making QLabel near checkbox clickable
         self.hena_anim.setChecked(not self.hena_anim.isChecked())
@@ -495,6 +514,7 @@ class HenonSettings(QtGui.QDialog):
         ### Orbit map settings ###
         self.parent.max_iter_orbit = self.max_iter_orbit.value()
         self.parent.plot_interval_orbit = self.plot_interval_orbit.value()
+        self.parent.iter_auto_mode_orbit = self.iter_auto_mode_orbit.isChecked()
         self.parent.orbit_parameter = self.orbit_parameter_a.isChecked()
         self.parent.orbit_coordinate = self.orbit_coordinate_y.isChecked()
         

@@ -121,6 +121,8 @@ class MainGui(QtGui.QMainWindow):
         self.default_settings['max_iter_orbit'] = self.max_iter_orbit
         self.plot_interval_orbit = 500
         self.default_settings['plot_interval_orbit'] = self.plot_interval_orbit
+        self.iter_auto_mode_orbit = True
+        self.default_settings['iter_auto_mode_orbit'] = self.iter_auto_mode_orbit
 
         # misc settings (not for saving)
         self.first_run = True
@@ -204,23 +206,42 @@ class MainGui(QtGui.QMainWindow):
         else:
             threads = self.thread_count
 
-        if self.iter_auto_mode: 
-            # set default maximum number of iterations
-            # heavily optimized formula for calculating required number of iterations
-            # as a function of the number of screen pixels and the x,y space represented by it
-            area_factor = (self.xright - self.xleft) * (self.ytop - self.ybottom) / 2.4           
-            self.max_iter = int(self.Henon_widget.window_width*self.Henon_widget.window_height/(threads*(area_factor**0.4)))
-            self.plot_interval = int(200000/threads)
+        if not self.orbit_mode:
+            if self.iter_auto_mode: 
+                # set default maximum number of iterations
+                # heavily optimized formula for calculating required number of iterations
+                # as a function of the number of screen pixels and the x,y space represented by it
+                area_factor = (self.xright - self.xleft) * (self.ytop - self.ybottom) / 2.4           
+                self.max_iter = int(self.Henon_widget.window_width*self.Henon_widget.window_height/(threads*(area_factor**0.4)))
+                self.plot_interval = int(200000/threads)
+                
+                if self.plot_interval < 10000:
+                    # avoid low numbers for high thread-count simulations
+                    self.plot_interval = 10000
+                
+            if self.plot_interval > self.max_iter: # sanity check
+                self.plot_interval = self.max_iter
             
-            if self.plot_interval < 10000:
-                # avoid low numbers for high thread-count simulations
-                self.plot_interval = 10000
+            if (not self.max_iter): # sanity check
+                self.max_iter = 1
+        else:
+            if self.iter_auto_mode_orbit:
+                if self.orbit_coordinate:
+                    range_factor = (self.ytop - self.ybottom) / 0.8
+                else:
+                    range_factor = (self.ytop - self.ybottom) / 3.0
+                    
+                self.max_iter_orbit = int(self.Henon_widget.window_height/(range_factor**0.5))
+                self.plot_interval_orbit = self.max_iter_orbit
+                
+                if self.plot_interval_orbit > 1000:
+                    self.plot_interval_orbit = 1000
+
+            if self.plot_interval_orbit > self.max_iter_orbit: # sanity check
+                self.plot_interval_orbit = self.max_iter_orbit
             
-        if self.plot_interval > self.max_iter: # sanity check
-            self.plot_interval = self.max_iter
-        
-        if (not self.max_iter): # sanity check
-            self.max_iter = 1
+            if (not self.max_iter_orbit): # sanity check
+                self.max_iter_orbit = 1
         
 #        print "[MainGui] Window width: " + str(self.Henon_widget.window_width) #DEBUG
 #        print "[MainGui] Window height: " + str(self.Henon_widget.window_height) #DEBUG
