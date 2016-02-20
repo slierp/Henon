@@ -5,7 +5,7 @@ A Python program for exploring the Hénon attractor. For an explanation of what 
 
 <b>How to use the program</b>
 
-With this program you can draw the Hénon attractor and interact with it in various ways. You can zoom in by selecting an area, vary the Henon parameters manually and even make animations with them. The functionality is demonstrated in a <a href="https://www.youtube.com/watch?v=X00y91b8K3w">Youtube video</a>. There is a help function included that explains in more detail how to use the program.
+With this program you can draw the Hénon attractor and interact with it in various ways. You can zoom in by selecting an area, vary the Henon parameters manually and even make animations with them. The functionality is demonstrated in a <a href="https://youtu.be/42oeboRGqTo">Youtube video</a>. There is a help function included that explains in more detail how to use the program.
 
 <b>Multithreading support</b>
 
