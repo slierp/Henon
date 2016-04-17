@@ -87,7 +87,7 @@ class HenonWidget(QtGui.QLabel):
             self.rubberBand.setGeometry(QtCore.QRect(self.select_begin, QtCore.QSize()))
             self.rubberBand.show()
         elif event.button() == QtCore.Qt.RightButton:
-            self.parent.reset_view()                   
+            self.parent.previous_view()                 
      
     def mouseMoveEvent(self, event):
 
@@ -111,12 +111,16 @@ class HenonWidget(QtGui.QLabel):
             
     def zoom_selected_area(self):
 
+        # store current view
+        previous_view = [self.parent.xleft,self.parent.xright,self.parent.ybottom,self.parent.ytop]
+        self.parent.previous_views.append(previous_view)
+
         # calculate new coordinate system and re-draw
         # in opengl (0,0) is in the bottom_left, but in PyQt it is in the top_left
 
         left_edge = 0
         right_edge = 0
-
+        
         if (self.select_begin.x() < self.select_end.x()): # if the first point is more to the left
             
             if (self.window_width > self.select_begin.x() > 0): # if inside the screen

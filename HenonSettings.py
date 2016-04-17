@@ -515,10 +515,18 @@ class HenonSettings(QtGui.QDialog):
         self.parent.max_iter_orbit = self.max_iter_orbit.value()
         self.parent.plot_interval_orbit = self.plot_interval_orbit.value()
         self.parent.iter_auto_mode_orbit = self.iter_auto_mode_orbit.isChecked()
-        self.parent.orbit_parameter = self.orbit_parameter_a.isChecked()
-        self.parent.orbit_coordinate = self.orbit_coordinate_y.isChecked()
         
-        if self.parent.orbit_mode:
+        orbit_mode_changed = False 
+        if not (self.parent.orbit_parameter == self.orbit_parameter_a.isChecked()):
+            self.parent.orbit_parameter = self.orbit_parameter_a.isChecked()
+            orbit_mode_changed = True
+            
+        if not (self.parent.orbit_coordinate == self.orbit_coordinate_y.isChecked()):
+            self.parent.orbit_coordinate = self.orbit_coordinate_y.isChecked()
+            orbit_mode_changed = True
+        
+        if self.parent.orbit_mode and orbit_mode_changed:
+            # re-initialize if orbit mode is active and was changed (parameter or coordinate)
             self.parent.initialize_orbit_mode()
 
         ### Calculation settings ###

@@ -48,6 +48,7 @@ class MainGui(QtGui.QMainWindow):
         self.create_main_frame()        
 
         self.default_settings = {} # put parameters in dict for easy saving/loading
+        self.previous_views = [] # previous zoom-in view settings
         
         # general settings
         self.hena = 1.4
@@ -482,6 +483,8 @@ class MainGui(QtGui.QMainWindow):
     
     def reset_view(self):       
         self.statusBar().showMessage(self.tr("Resetting view..."), 1000)
+        
+        self.previous_views = [] # empty previous zoom-in view list
 
         if self.animation_running:
             self.animation_running = False
@@ -496,13 +499,29 @@ class MainGui(QtGui.QMainWindow):
             
         self.initialize_calculation()
 
+    def previous_view(self):
+        if not len(self.previous_views):
+            self.statusBar().showMessage(self.tr("No previous view available"), 1000)
+            return
+
+        if self.animation_running:
+            self.animation_running = False
+
+        self.xleft = self.previous_views[-1][0]
+        self.xright = self.previous_views[-1][1]
+        self.ybottom = self.previous_views[-1][2]
+        self.ytop = self.previous_views[-1][3]
+            
+        self.previous_views.pop()
+        self.initialize_calculation()
+
     def toggle_full_screen(self):
         self.stop_calculation()
         
         if not self.full_screen: # toggle full screen mode
             self.showFullScreen()
             self.full_screen = True
-            self.statusBar().showMessage(self.tr("Press escape to exit full-screen mode"), 1000)             
+            self.statusBar().showMessage(self.tr("Press Escape to exit full-screen mode"), 1000)             
         else:
             self.showNormal()
             self.full_screen = False
@@ -537,6 +556,8 @@ class MainGui(QtGui.QMainWindow):
         if self.animation_running:
             self.statusBar().showMessage(self.tr("Orbit mode is not available during animation"),1000)
             return
+
+        self.previous_views = [] # empty previous zoom-in view list
         
         if self.orbit_mode:
             self.orbit_mode = False
@@ -656,7 +677,8 @@ class MainGui(QtGui.QMainWindow):
         settings['orbit_parameter'] = self.orbit_parameter
         settings['orbit_coordinate'] = self.orbit_coordinate
         settings['max_iter_orbit'] = self.max_iter_orbit
-        settings['plot_interval_orbit'] = self.plot_interval_orbit        
+        settings['plot_interval_orbit'] = self.plot_interval_orbit
+        settings['iter_auto_mode_orbit'] = self.iter_auto_mode_orbit
         return settings
     
     def implement_settings(self,settings):
