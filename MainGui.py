@@ -31,8 +31,8 @@ class MainGui(QtGui.QMainWindow):
         
         super(MainGui, self).__init__(parent)
         
-        self.setWindowTitle(self.tr("H\xe9non explorer"))
-        self.setWindowIcon(QtGui.QIcon(":HenonExplorer.png"))
+        self.setWindowTitle(self.tr("H\xe9non browser"))
+        self.setWindowIcon(QtGui.QIcon(":HenonBrowser.png"))
 
         ### Set initial geometry and center the window on the screen ###
         self.resize(1024, 576)
@@ -139,7 +139,7 @@ class MainGui(QtGui.QMainWindow):
         self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels
 
     def on_about(self):
-        msg = self.tr("H\xe9non explorer\n\nAuthor: Ronald Naber\nLicense: Public domain")
+        msg = self.tr("H\xe9non browser\nAuthor: Ronald Naber\nLicense: Public domain")
         QtGui.QMessageBox.about(self, self.tr("About the application"), msg)
 
     def keyPressEvent(self, e):             

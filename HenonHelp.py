@@ -6,7 +6,7 @@ help_text = """
 <html>
 <head><head/>
 <body>
-<h1>H&eacute;non explorer</h1>
+<h1>H&eacute;non browser</h1>
 
 * <a href="#general">Introduction</a><br>
 * <a href="#quick">Quick-start</a><br>
