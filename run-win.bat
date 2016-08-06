@@ -1,2 +1,2 @@
-python Main.py
+python Henon\Main.py
 pause

@@ -1,4 +1,4 @@
-rm -f *.so
-rm -f *.c
-rm -f *.pyc
-rm -rf __pycache__
+rm -f Henon/*.so
+rm -f Henon/*.c
+rm -f Henon/*.pyc
+rm -rf Henon/__pycache__

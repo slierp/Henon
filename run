@@ -1,4 +1,4 @@
 # avoid library load issue
 # export LIBGL_ALWAYS_INDIRECT=yes
 
-python Main.py
+python Henon/Main.py
