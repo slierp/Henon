@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 from datetime import datetime
 import numpy as np
 
@@ -21,7 +20,7 @@ class HenonUpdate(QtCore.QObject):
     def __init__(self, _settings, _interval_flags, _stop_signal, _mp_arr, _window_representation):       
         QtCore.QObject.__init__(self)
         
-#        print "[HenonUpdate] Initialization" #DEBUG
+        #print("[HenonUpdate] Initialization") #DEBUG
 
         self.signal = Signal()
         self.quit_signal = Signal()
@@ -38,7 +37,7 @@ class HenonUpdate(QtCore.QObject):
         self.benchmark = _settings['benchmark']
         self.animation_running = _settings['animation_running']
         self.animation_delay = _settings['animation_delay']
-#        self.time_prev = datetime.now() #DEBUG
+        #self.time_prev = datetime.now() #DEBUG
 
         if self.benchmark:
             self.time_start = datetime.now()
@@ -50,7 +49,7 @@ class HenonUpdate(QtCore.QObject):
         if (self.updates_started): # fix strange problem where run command is started twice by QThread
             return
 
-#        print "[HenonUpdate] Ready for screen updates" #DEBUG
+        #print("[HenonUpdate] Ready for screen updates") #DEBUG
         
         self.updates_started = True
 
@@ -84,7 +83,7 @@ class HenonUpdate(QtCore.QObject):
 
     def perform_update(self):
 
-#        print "[HenonUpdate] Copying results and sending screen re-draw signal" #DEBUG
+        #print("[HenonUpdate] Copying results and sending screen re-draw signal") #DEBUG
        
         arr = np.frombuffer(self.mp_arr, dtype=np.bool) # get calculation result
         arr = arr.reshape((self.window_height,self.window_width)) # deflatten array
@@ -100,10 +99,10 @@ class HenonUpdate(QtCore.QObject):
            
         self.window_representation[arr == True] = 255 # add newly calculated pixels
 
-#        print "[HenonUpdate] Pixels in screen window: " + str(self.window_width*self.window_height) #DEBUG
-#        print "[HenonUpdate] Pixels in copied array: " + str(np.count_nonzero(arr)) #DEBUG 
-#        print "[HenonUpdate] Pixels in window array: " + str(np.count_nonzero(self.window_representation)) #DEBUG
+        #print("[HenonUpdate] Pixels in screen window: " + str(self.window_width*self.window_height)) #DEBUG
+        #print("[HenonUpdate] Pixels in copied array: " + str(np.count_nonzero(arr))) #DEBUG 
+        #print("[HenonUpdate] Pixels in window array: " + str(np.count_nonzero(self.window_representation))) #DEBUG
 
-#        delta = datetime.now() - self.time_prev #DEBUG
-#        print "[HenonUpdate] Sending signal after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG
+        #delta = datetime.now() - self.time_prev #DEBUG
+        #print("[HenonUpdate] Sending signal after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds") #DEBUG
         self.signal.sig.emit()       

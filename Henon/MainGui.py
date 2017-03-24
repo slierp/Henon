@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtWidgets, QtCore, QtGui
 import HenonResources
-#from HenonWidget import HenonWidget # for OpenGL Henon widget
-from HenonWidget2 import HenonWidget # for PyQt-only Henon widget
+from HenonWidget import HenonWidget # for PyQt-only Henon widget
 from HenonUpdate import HenonUpdate
 from HenonCalc import HenonCalc
 from HenonCalcOrbit import HenonCalcOrbit
 from HenonHelp import HenonHelp
 from HenonSettings import HenonSettings
 from multiprocessing import cpu_count
-import os, ntpath, pickle
+import ntpath, pickle
 from math import ceil
 
 try:
@@ -23,7 +21,7 @@ try:
 except ImportError:
     module_opencl_present = False
 
-class MainGui(QtGui.QMainWindow):
+class MainGui(QtWidgets.QMainWindow):
     # Main user interface; starts up main window and initiates a first Henon calculation
     # and then waits for user input
     
@@ -37,7 +35,7 @@ class MainGui(QtGui.QMainWindow):
         ### Set initial geometry and center the window on the screen ###
         self.resize(1024, 576)
         frameGm = self.frameGeometry()
-        centerPoint = QtGui.QDesktopWidget().availableGeometry().center()
+        centerPoint = QtWidgets.QDesktopWidget().availableGeometry().center()
         frameGm.moveCenter(centerPoint)
         self.move(frameGm.topLeft())        
         
@@ -140,7 +138,7 @@ class MainGui(QtGui.QMainWindow):
 
     def on_about(self):
         msg = self.tr("H\xe9non browser\nAuthor: Ronald Naber\nLicense: Public domain")
-        QtGui.QMessageBox.about(self, self.tr("About the application"), msg)
+        QtWidgets.QMessageBox.about(self, self.tr("About the application"), msg)
 
     def keyPressEvent(self, e):             
         if (e.key() == QtCore.Qt.Key_Escape):
@@ -152,9 +150,9 @@ class MainGui(QtGui.QMainWindow):
 
     @QtCore.pyqtSlot()
     def update_screen(self):
-          
+        #print("[MainGui] Updating screen")
         #self.Henon_widget.updateGL() # for OpenGL Henon widget
-        self.Henon_widget.showEvent(QtGui.QShowEvent()) # for PyQt-only Henon widget
+        self.Henon_widget.showEvent(QtGui.QShowEvent()) # for PyQt-only Henon widget        
         
         if self.animation_running:
 
@@ -190,6 +188,8 @@ class MainGui(QtGui.QMainWindow):
         self.statusBar().showMessage(result,1000)
 
     def initialize_calculation(self):
+        
+        #print("[MainGui] Initializing calculation")
         
         # stop any current calculation and make sure
         # threads have finished before proceeding
@@ -244,11 +244,11 @@ class MainGui(QtGui.QMainWindow):
             if (not self.max_iter_orbit): # sanity check
                 self.max_iter_orbit = 1
         
-#        print "[MainGui] Window width: " + str(self.Henon_widget.window_width) #DEBUG
-#        print "[MainGui] Window height: " + str(self.Henon_widget.window_height) #DEBUG
-#        print "[MainGui] Thread count: " + str(self.thread_count) #DEBUG            
-#        print "[MainGui] Maximum iterations: " + str(self.max_iter) #DEBUG
-#        print "[MainGui] Plot interval for iterations: " + str(self.plot_interval) #DEBUG
+        #print("[MainGui] Window width: " + str(self.Henon_widget.window_width)) #DEBUG
+        #print("[MainGui] Window height: " + str(self.Henon_widget.window_height)) #DEBUG
+        #print("[MainGui] Thread count: " + str(self.thread_count)) #DEBUG            
+        #print("[MainGui] Maximum iterations: " + str(self.max_iter)) #DEBUG
+        #print("[MainGui] Plot interval for iterations: " + str(self.plot_interval)) #DEBUG
         
         # set widget plot area
         self.Henon_widget.xleft = self.xleft
@@ -304,7 +304,7 @@ class MainGui(QtGui.QMainWindow):
         if len(self.device_selection) == 0:
             self.opencl_enabled = False
             msg = self.tr("No OpenCL devices selected. OpenCL function has been turned off automatically.")
-            QtGui.QMessageBox.about(self, self.tr("Warning"), msg)
+            QtWidgets.QMessageBox.about(self, self.tr("Warning"), msg)
             return
 
         num = 0
@@ -320,7 +320,7 @@ class MainGui(QtGui.QMainWindow):
         except:
             self.opencl_enabled = False
             msg = self.tr("Current OpenCL device selection does not work. OpenCL function has been turned off automatically.")
-            QtGui.QMessageBox.about(self, self.tr("Warning"), msg)
+            QtWidgets.QMessageBox.about(self, self.tr("Warning"), msg)
             return
 
         self.command_queue = cl.CommandQueue(self.context)    
@@ -374,7 +374,7 @@ class MainGui(QtGui.QMainWindow):
             except:
                 self.opencl_enabled = False
                 msg = self.tr("Error during OpenCL kernel build. OpenCL function has been turned off automatically.")
-                QtGui.QMessageBox.about(self, self.tr("Warning"), msg)
+                QtWidgets.QMessageBox.about(self, self.tr("Warning"), msg)
                 return
         else: # kernel for orbit map calculations
             try:
@@ -440,7 +440,7 @@ class MainGui(QtGui.QMainWindow):
             except:
                 self.opencl_enabled = False
                 msg = self.tr("Error during OpenCL kernel build. OpenCL function has been turned off automatically.")
-                QtGui.QMessageBox.about(self, self.tr("Warning"), msg)
+                QtWidgets.QMessageBox.about(self, self.tr("Warning"), msg)
                 return            
 
     def initialize_animation(self):
@@ -458,7 +458,7 @@ class MainGui(QtGui.QMainWindow):
 
         self.benchmark = False # make sure status bar can show a/b values
 
-#        print "[MainGui] Starting animation" #DEBUG
+        #print("[MainGui] Starting animation") #DEBUG
 
         self.stop_calculation()
 
@@ -605,19 +605,22 @@ class MainGui(QtGui.QMainWindow):
         settings_dialog.show() 
 
     def load_settings(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self,self.tr("Open file"), self.prev_dir_path, "Settings Files (*.conf)")
+        filename = QtWidgets.QFileDialog.getOpenFileName(self,self.tr("Open file"), self.prev_dir_path, "Settings Files (*.conf)")
+        filename = filename[0]
         
         if (not filename):
             return
 
-        if (not os.path.isfile(filename.toAscii())):
+        try:
+            filename.encode('ascii')
+        except:
             msg = self.tr("Filenames with non-ASCII characters were found.\n\nThe application currently only supports ASCII filenames.")
-            QtGui.QMessageBox.about(self, self.tr("Warning"), msg) 
+            QtWidgets.QMessageBox.about(self, self.tr("Warning"), msg) 
             return
         
         self.prev_dir_path = ntpath.dirname(str(filename))
         
-        with open(str(filename)) as f:
+        with open(str(filename), 'rb') as f:
             all_settings = pickle.load(f)
 
         self.implement_settings(all_settings)
@@ -625,17 +628,24 @@ class MainGui(QtGui.QMainWindow):
         self.statusBar().showMessage(self.tr("New settings loaded"),1000)
     
     def save_settings(self):
-        filename = QtGui.QFileDialog.getSaveFileName(self,self.tr("Save file"), self.prev_dir_path, "Settings Files (*.conf)")
+        filename = QtWidgets.QFileDialog.getSaveFileName(self,self.tr("Save file"), self.prev_dir_path, "Settings Files (*.conf)")
+        filename = filename[0]
         
         if (not filename):
             return
 
-        # Check for non-ASCII here does not seem to work        
+        try:
+            filename.encode('ascii')
+        except:
+            msg = self.tr("Filenames with non-ASCII characters were found.\n\nThe application currently only supports ASCII filenames.")
+            QtWidgets.QMessageBox.about(self, self.tr("Warning"), msg) 
+            return
+        
         self.prev_dir_path = ntpath.dirname(str(filename))
 
         current_settings = self.get_settings()
         
-        with open(str(filename), 'w') as f:
+        with open(str(filename), 'wb') as f:
             pickle.dump(current_settings, f)
             
         self.statusBar().showMessage(self.tr("File saved"),1000) 
@@ -727,17 +737,17 @@ class MainGui(QtGui.QMainWindow):
     def create_main_frame(self):
         
         self.Henon_widget = HenonWidget(self)
-        vbox = QtGui.QVBoxLayout()
+        vbox = QtWidgets.QVBoxLayout()
         vbox.setSpacing(0)
-        vbox.setMargin(0)
+        vbox.setContentsMargins(0,0,0,0) # .setMargin(0)
         vbox.addWidget(self.Henon_widget)
 
-        main_frame = QtGui.QWidget()
+        main_frame = QtWidgets.QWidget()
         main_frame.setLayout(vbox)
 
         self.setCentralWidget(main_frame)
 
-        self.status_text = QtGui.QLabel("")     
+        self.status_text = QtWidgets.QLabel("")     
         self.statusBar().addWidget(self.status_text,1)
         self.statusBar().showMessage(self.tr(""))
 
@@ -745,7 +755,7 @@ class MainGui(QtGui.QMainWindow):
         self.file_menu = self.menuBar().addMenu(self.tr("File"))         
 
         tip = self.tr("Load settings")        
-        load_action = QtGui.QAction(self.tr("Load settings"), self)
+        load_action = QtWidgets.QAction(self.tr("Load settings"), self)
         load_action.setIcon(QtGui.QIcon(":open.png"))
         load_action.triggered.connect(self.load_settings)        
         load_action.setToolTip(tip)
@@ -753,7 +763,7 @@ class MainGui(QtGui.QMainWindow):
         load_action.setShortcut('CTRL+L')
 
         tip = self.tr("Save settings")        
-        save_action = QtGui.QAction(self.tr("Save settings"), self)
+        save_action = QtWidgets.QAction(self.tr("Save settings"), self)
         save_action.setIcon(QtGui.QIcon(":save.png"))
         save_action.triggered.connect(self.save_settings)        
         save_action.setToolTip(tip)
@@ -761,7 +771,7 @@ class MainGui(QtGui.QMainWindow):
         save_action.setShortcut('CTRL+S')
 
         tip = self.tr("Change settings")        
-        settings_action = QtGui.QAction(self.tr("Change settings"), self)
+        settings_action = QtWidgets.QAction(self.tr("Change settings"), self)
         settings_action.setIcon(QtGui.QIcon(":gear.png"))
         settings_action.triggered.connect(self.open_settings_dialog)        
         settings_action.setToolTip(tip)
@@ -769,7 +779,7 @@ class MainGui(QtGui.QMainWindow):
         settings_action.setShortcut('S')
 
         tip = self.tr("Default settings")        
-        default_action = QtGui.QAction(self.tr("Default settings"), self)
+        default_action = QtWidgets.QAction(self.tr("Default settings"), self)
         default_action.setIcon(QtGui.QIcon(":revert.png"))
         default_action.triggered.connect(self.load_default_settings)        
         default_action.setToolTip(tip)
@@ -777,7 +787,7 @@ class MainGui(QtGui.QMainWindow):
         default_action.setShortcut('D')
 
         tip = self.tr("Quit")        
-        quit_action = QtGui.QAction(self.tr("Quit"), self)
+        quit_action = QtWidgets.QAction(self.tr("Quit"), self)
         quit_action.setIcon(QtGui.QIcon(":quit.png"))
         quit_action.triggered.connect(self.close)        
         quit_action.setToolTip(tip)
@@ -793,7 +803,7 @@ class MainGui(QtGui.QMainWindow):
         self.run_menu = self.menuBar().addMenu(self.tr("Run"))      
 
         tip = self.tr("Re-draw screen")        
-        start_action = QtGui.QAction(self.tr("Re-draw"), self)
+        start_action = QtWidgets.QAction(self.tr("Re-draw"), self)
         start_action.setIcon(QtGui.QIcon(":redo.png"))
         start_action.triggered.connect(self.restart_calculation)        
         start_action.setToolTip(tip)
@@ -801,7 +811,7 @@ class MainGui(QtGui.QMainWindow):
         start_action.setShortcut('R')
 
         tip = self.tr("Stop")        
-        stop_action = QtGui.QAction(self.tr("Stop"), self)
+        stop_action = QtWidgets.QAction(self.tr("Stop"), self)
         stop_action.setIcon(QtGui.QIcon(":stop.png"))
         stop_action.triggered.connect(self.stop_user_command)        
         stop_action.setToolTip(tip)
@@ -809,7 +819,7 @@ class MainGui(QtGui.QMainWindow):
         stop_action.setShortcut('X')
 
         tip = self.tr("Animate")        
-        animate_action = QtGui.QAction(self.tr("Animate"), self)
+        animate_action = QtWidgets.QAction(self.tr("Animate"), self)
         animate_action.setIcon(QtGui.QIcon(":play.png"))
         animate_action.triggered.connect(self.initialize_animation)        
         animate_action.setToolTip(tip)
@@ -817,7 +827,7 @@ class MainGui(QtGui.QMainWindow):
         animate_action.setShortcut('A')
 
         tip = self.tr("Benchmark")        
-        benchmark_action = QtGui.QAction(self.tr("Benchmark"), self)
+        benchmark_action = QtWidgets.QAction(self.tr("Benchmark"), self)
         benchmark_action.setIcon(QtGui.QIcon(":clock.png"))
         benchmark_action.triggered.connect(self.toggle_benchmark)        
         benchmark_action.setToolTip(tip)
@@ -832,7 +842,7 @@ class MainGui(QtGui.QMainWindow):
         self.view_menu = self.menuBar().addMenu(self.tr("View"))
 
         tip = self.tr("Reset view")        
-        reset_action = QtGui.QAction(self.tr("Reset view"), self)
+        reset_action = QtWidgets.QAction(self.tr("Reset view"), self)
         reset_action.setIcon(QtGui.QIcon(":revert.png"))
         reset_action.triggered.connect(self.reset_view)         
         reset_action.setToolTip(tip)
@@ -840,14 +850,14 @@ class MainGui(QtGui.QMainWindow):
         reset_action.setShortcut('F5')
 
         tip = self.tr("Orbit map")        
-        orbit_action = QtGui.QAction(self.tr("Orbit map"), self)
+        orbit_action = QtWidgets.QAction(self.tr("Orbit map"), self)
         orbit_action.triggered.connect(self.toggle_orbit_mode)         
         orbit_action.setToolTip(tip)
         orbit_action.setStatusTip(tip)
         orbit_action.setShortcut('O')
 
         tip = self.tr("Full-screen")        
-        fullscreen_action = QtGui.QAction(self.tr("Full-screen"), self)
+        fullscreen_action = QtWidgets.QAction(self.tr("Full-screen"), self)
         fullscreen_action.setIcon(QtGui.QIcon(":expand.png"))
         fullscreen_action.triggered.connect(self.toggle_full_screen)         
         fullscreen_action.setToolTip(tip)
@@ -861,7 +871,7 @@ class MainGui(QtGui.QMainWindow):
         self.help_menu = self.menuBar().addMenu(self.tr("Help"))
 
         tip = self.tr("Help information")        
-        help_action = QtGui.QAction(self.tr("Help..."), self)
+        help_action = QtWidgets.QAction(self.tr("Help..."), self)
         help_action.setIcon(QtGui.QIcon(":help.png"))
         help_action.triggered.connect(self.open_help_dialog)         
         help_action.setToolTip(tip)
@@ -869,7 +879,7 @@ class MainGui(QtGui.QMainWindow):
         help_action.setShortcut('H')
 
         tip = self.tr("About the application")        
-        about_action = QtGui.QAction(self.tr("About..."), self)
+        about_action = QtWidgets.QAction(self.tr("About..."), self)
         about_action.setIcon(QtGui.QIcon(":info.png"))
         about_action.triggered.connect(self.on_about)         
         about_action.setToolTip(tip)

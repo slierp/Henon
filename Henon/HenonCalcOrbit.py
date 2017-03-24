@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 from random import uniform
 import multiprocessing as mp
 import numpy as np
@@ -157,7 +157,7 @@ class WorkerProcess(mp.Process):
             
             # no plot interval as we only calculate #threads pixels at a time
             # no try/except because we only allow working a,b ranges
-            for i in xrange(max_iter): 
+            for i in range(max_iter): # changed xrange to range for Python3 conversion
                 henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
                 if orbit_coordinate:
                     y_draw = int((heny-ybottom) * yratio)

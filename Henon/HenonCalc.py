@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 from random import uniform
 import multiprocessing as mp
 #from datetime import datetime #DEBUG
 import numpy as np
 import ctypes
 from time import sleep
+from itertools import repeat
 
 class Signal(QtCore.QObject):
     sig = QtCore.pyqtSignal()
@@ -20,7 +20,7 @@ class HenonCalc(QtCore.QObject):
     def __init__(self, _settings):
         QtCore.QObject.__init__(self)
         
-#        print "[HenonCalc] Initialization" #DEBUG
+        #print("[HenonCalc] Initialization") #DEBUG
         self.settings = _settings
         self.signal = Signal()
         self.quit_signal = Signal()
@@ -54,16 +54,16 @@ class HenonCalc(QtCore.QObject):
         if (self.workers_started): # fix strange problem where run command is started twice by QThread
             return
 
-#        print "[HenonCalc] Starting workers" #DEBUG
-
+        #print("[HenonCalc] Starting workers") #DEBUG
+        
         for i in range(self.thread_count):            
-            self.worker_list[i].start()
+            self.worker_list[i].run()
             
         self.workers_started = True
                     
     def stop(self):
                       
-#        print "[HenonCalc] Received stop signal" #DEBUG
+        #print("[HenonCalc] Received stop signal") #DEBUG
         self.stop_signal.value = [True]*self.thread_count
 
         for i in range(self.thread_count):
@@ -113,25 +113,27 @@ class WorkerProcess(mp.Process):
         self.yratio = self.window_height/(self.ytop-self.ybottom)
             
         self.mp_arr, self.interval_flags, self.stop_signal = args[2]
+        
+        #print("[HenonCalc] Worker " + str(self.run_number) + " initialization") #DEBUG        
 
     def shutdown(self):
-#        print "[WorkerProcess] Worker " + str(self.run_number) + " shutdown initiated" #DEBUG
+        #print("[WorkerProcess] Worker " + str(self.run_number) + " shutdown initiated") #DEBUG
         self.exit.set()
 
     def drop_iterations(self,hena,henb,henx,heny):        
         try:            
-            for i in range(self.drop_iter): # prevent drawing first iterations
+            #for i in range(self.drop_iter): # prevent drawing first iterations
+            for _ in repeat(None, self.drop_iter):
                 henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
             return henx,heny
         except OverflowError: # if x,y results move towards infinity
-#            print "[WorkerProcess] Worker " + str(self.run_number) + " overflow" #DEBUG                
+            #print("[WorkerProcess] Worker " + str(self.run_number) + " overflow") #DEBUG                
             return uniform(-0.1,0.1),uniform(-0.1,0.1)
 
     def run(self):
         
-#        start_time = datetime.now() #DEBUG
-
-#        print "[WorkerProcess] Worker " + str(self.run_number) + " has started" #DEBUG
+        #start_time = datetime.now() #DEBUG
+        #print("[WorkerProcess] Worker " + str(self.run_number) + " has started") #DEBUG
         
         henx = uniform(-0.1,0.1) # generate random starting points
         heny = uniform(-0.1,0.1)
@@ -148,8 +150,10 @@ class WorkerProcess(mp.Process):
         hena = self.hena
         henb = self.henb
         xleft = self.xleft
+        xright = self.xright
         xratio = self.xratio
         ybottom = self.ybottom
+        ytop = self.ytop
         yratio = self.yratio
         plot_interval = self.plot_interval
         max_iter = self.max_iter
@@ -157,7 +161,7 @@ class WorkerProcess(mp.Process):
         window_height = self.window_height
         run_number = self.run_number
         animation_running = self.animation_running
-        
+
         if animation_running:
             hena_increment = self.hena_increment
             hena_anim = self.hena_anim
@@ -175,21 +179,25 @@ class WorkerProcess(mp.Process):
 
         while not self.exit.is_set():
 
-            for i in xrange(plot_interval):                
+            #for i in xrange(plot_interval):
+            for _ in repeat(None, plot_interval):
                 try:
                     henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
-                    x_draw = int((henx-xleft) * xratio) # adding rounding here is slightly more correct
-                    y_draw = int((heny-ybottom) * yratio) # but takes considerably more time
-                    if (0 < x_draw < window_width) and (0 < y_draw < window_height):
+
+                    #if (0 < x_draw < window_width) and (0 < y_draw < window_height):
+                    if (xleft < henx < xright) and (ybottom < heny < ytop):                        
                         # draw pixel if it is inside the current display area
+                        x_draw = int((henx-xleft) * xratio) # adding rounding here is slightly more correct
+                        y_draw = int((heny-ybottom) * yratio) # but takes considerably more time
+
                         #local_array[(y_draw*window_width) + x_draw] = True # for bottom-left origin
                         
                         # for top-left origin
-                        # +0 is there in case of common bug in drawing method that returns invalid window width
+                        # +0 is there in case of common bug in drawing method that returns invalid window width;
                         # in combination with array flattening such bugs give very distorted images                    
                         local_array[(window_height-y_draw)*(window_width+0) + x_draw] = True
                 except:
-#                    print "[WorkerProcess] Worker " + str(run_number) + " overflow" #DEBUG
+                    #print("[WorkerProcess] Worker " + str(run_number) + " overflow") #DEBUG
                     pass
                 
             iter_count += plot_interval
@@ -238,6 +246,6 @@ class WorkerProcess(mp.Process):
         self.interval_flags[run_number] = True # send message to HenonUpdate to show end result 
         self.stop_signal[run_number] = True # sends message to HenonUpdate to stop because max_iter reached
         
-#        delta = datetime.now() - start_time #DEBUG             
-
-#        print "[WorkerProcess] Worker " + str(run_number) + " has stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds" #DEBUG        
+        #delta = datetime.now() - start_time #DEBUG
+        #print("[WorkerProcess] Worker " + str(run_number) + " has stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds") #DEBUG        
+        #print("[WorkerProcess] Worker " + str(run_number) + " has stopped")

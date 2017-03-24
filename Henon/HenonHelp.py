@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
-from PyQt4 import QtGui
+from PyQt5 import QtGui, QtWidgets
 
 help_text = """
 <html>
@@ -111,26 +110,26 @@ It is possible to zoom-in on the image by selecting an area with the mouse. Righ
 </html>
 """
 
-class HenonHelp(QtGui.QDialog):
+class HenonHelp(QtWidgets.QDialog):
     # Generates help document browser    
     
     def __init__(self, parent):
-        super(QtGui.QDialog, self).__init__(parent)
+        super(QtWidgets.QDialog, self).__init__(parent)
         
         self.parent = parent       
         
         self.setWindowTitle(self.tr("Help"))
-        vbox = QtGui.QVBoxLayout()
-
-        browser = QtGui.QTextBrowser()
+        vbox = QtWidgets.QVBoxLayout()
+        
+        browser = QtWidgets.QTextBrowser()
         browser.insertHtml(help_text)
         browser.moveCursor(QtGui.QTextCursor.Start)
 
         vbox.addWidget(browser)
 
         ### Buttonbox for ok or cancel ###
-        hbox = QtGui.QHBoxLayout()
-        buttonbox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok)
+        hbox = QtWidgets.QHBoxLayout()
+        buttonbox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok)
         buttonbox.accepted.connect(self.close)
         hbox.addStretch(1) 
         hbox.addWidget(buttonbox)

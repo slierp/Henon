@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets
 from sys import platform as _platform
 from multiprocessing import cpu_count
 
@@ -9,30 +8,30 @@ try: # check if PyOpenCL is present as it is optional
 except ImportError:
     pass
 
-class HenonSettings(QtGui.QDialog):
+class HenonSettings(QtWidgets.QDialog):
     # Generates a settings dialog    
     
     def __init__(self, _parent):
-        super(QtGui.QDialog, self).__init__(_parent)
+        super(QtWidgets.QDialog, self).__init__(_parent)
         
         self.parent = _parent
         
         self.setWindowTitle(self.tr("Settings"))
 
-        tabwidget = QtGui.QTabWidget()
+        tabwidget = QtWidgets.QTabWidget()
         
         ### Tab general ###
-        vbox_tab_general = QtGui.QVBoxLayout() 
+        vbox_tab_general = QtWidgets.QVBoxLayout() 
 
-        hbox = QtGui.QHBoxLayout()       
-        spec = QtGui.QLabel("<b>H\xe9non parameter settings<b>")
+        hbox = QtWidgets.QHBoxLayout()       
+        spec = QtWidgets.QLabel("<b>H\xe9non parameter settings<b>")
         hbox.addWidget(spec)
         hbox.addStretch(1)
         vbox_tab_general.addLayout(hbox)        
         
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Parameter 'a'")
-        self.hena = QtGui.QDoubleSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Parameter 'a'")
+        self.hena = QtWidgets.QDoubleSpinBox()
         self.hena.setDecimals(3)
         self.hena.setAccelerated(True)
         self.hena.setMaximum(3.0)
@@ -44,9 +43,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)
         vbox_tab_general.addLayout(hbox)          
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Parameter 'b'")
-        self.henb = QtGui.QDoubleSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Parameter 'b'")
+        self.henb = QtWidgets.QDoubleSpinBox()
         self.henb.setDecimals(3)
         self.henb.setAccelerated(True)
         self.henb.setMaximum(3.0)
@@ -58,15 +57,15 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_tab_general.addLayout(hbox) 
 
-        hbox = QtGui.QHBoxLayout()           
-        spec = QtGui.QLabel("<b>Number of iterations</b>")
+        hbox = QtWidgets.QHBoxLayout()           
+        spec = QtWidgets.QLabel("<b>Number of iterations</b>")
         hbox.addWidget(spec)
         hbox.addStretch(1)
         vbox_tab_general.addLayout(hbox)
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Max iterations per thread")
-        self.max_iter = QtGui.QSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Max iterations per thread")
+        self.max_iter = QtWidgets.QSpinBox()
         self.max_iter.setAccelerated(True)
         self.max_iter.setMaximum(999999999)
         self.max_iter.setMinimum(1)
@@ -78,9 +77,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_tab_general.addLayout(hbox)
         
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Plot interval per thread")
-        self.plot_interval = QtGui.QSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Plot interval per thread")
+        self.plot_interval = QtWidgets.QSpinBox()
         self.plot_interval.setAccelerated(True)
         self.plot_interval.setMaximum(999999999)
         self.plot_interval.setMinimum(1)
@@ -92,9 +91,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_tab_general.addLayout(hbox)         
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Auto-mode")
-        self.iter_auto_mode = QtGui.QCheckBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Auto-mode")
+        self.iter_auto_mode = QtWidgets.QCheckBox()
         self.iter_auto_mode.setChecked(self.parent.iter_auto_mode)
         self.iter_auto_mode.mouseReleaseEvent = self.switch_iter_auto_mode
         description.mouseReleaseEvent = self.switch_iter_auto_mode
@@ -104,27 +103,27 @@ class HenonSettings(QtGui.QDialog):
         vbox_tab_general.addLayout(hbox)
 
         vbox_tab_general.addStretch(1)
-        generic_widget_general = QtGui.QWidget()
+        generic_widget_general = QtWidgets.QWidget()
         generic_widget_general.setLayout(vbox_tab_general)
-        tabwidget.addTab(generic_widget_general, QtCore.QString("General"))
+        tabwidget.addTab(generic_widget_general, "General")
 
         ### Tab animation ###
-        vbox_tab_animation = QtGui.QVBoxLayout()
+        vbox_tab_animation = QtWidgets.QVBoxLayout()
         
-        hbox = QtGui.QHBoxLayout()           
-        spec = QtGui.QLabel("<b>Animation settings</b>")
+        hbox = QtWidgets.QHBoxLayout()           
+        spec = QtWidgets.QLabel("<b>Animation settings</b>")
         hbox.addWidget(spec)
         hbox.addStretch(1)
         vbox_tab_animation.addLayout(hbox)  
                 
-        vbox_anim_left = QtGui.QVBoxLayout()
-        vbox_anim_right = QtGui.QVBoxLayout()
+        vbox_anim_left = QtWidgets.QVBoxLayout()
+        vbox_anim_right = QtWidgets.QVBoxLayout()
         
-        vbox_anim_left.addWidget(QtGui.QLabel("Parameter 'a'"))
+        vbox_anim_left.addWidget(QtWidgets.QLabel("Parameter 'a'"))
         
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Mid-point")
-        self.hena_mid = QtGui.QDoubleSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Mid-point")
+        self.hena_mid = QtWidgets.QDoubleSpinBox()
         self.hena_mid.setDecimals(3)
         self.hena_mid.setAccelerated(True)
         self.hena_mid.setMaximum(3.0)
@@ -136,9 +135,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_anim_left.addLayout(hbox)
         
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Range")
-        self.hena_range = QtGui.QDoubleSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Range")
+        self.hena_range = QtWidgets.QDoubleSpinBox()
         self.hena_range.setDecimals(3)
         self.hena_range.setAccelerated(True)
         self.hena_range.setMaximum(3.0)
@@ -150,9 +149,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_anim_left.addLayout(hbox) 
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Increment")
-        self.hena_increment = QtGui.QDoubleSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Increment")
+        self.hena_increment = QtWidgets.QDoubleSpinBox()
         self.hena_increment.setAccelerated(True)
         self.hena_increment.setDecimals(3)
         self.hena_increment.setMaximum(0.5)
@@ -164,9 +163,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_anim_left.addLayout(hbox) 
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Animate")
-        self.hena_anim = QtGui.QCheckBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Animate")
+        self.hena_anim = QtWidgets.QCheckBox()
         self.hena_anim.setChecked(self.parent.hena_anim)
         description.mouseReleaseEvent = self.switch_hena_anim
         hbox.addWidget(self.hena_anim)
@@ -174,11 +173,11 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_anim_left.addLayout(hbox)        
 
-        vbox_anim_right.addWidget(QtGui.QLabel("Parameter 'b'"))
+        vbox_anim_right.addWidget(QtWidgets.QLabel("Parameter 'b'"))
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Mid-point")
-        self.henb_mid = QtGui.QDoubleSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Mid-point")
+        self.henb_mid = QtWidgets.QDoubleSpinBox()
         self.henb_mid.setDecimals(3)
         self.henb_mid.setAccelerated(True)
         self.henb_mid.setMaximum(3.0)
@@ -190,9 +189,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_anim_right.addLayout(hbox)
         
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Range")
-        self.henb_range = QtGui.QDoubleSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Range")
+        self.henb_range = QtWidgets.QDoubleSpinBox()
         self.henb_range.setDecimals(3)
         self.henb_range.setAccelerated(True)
         self.henb_range.setMaximum(3.0)
@@ -204,9 +203,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_anim_right.addLayout(hbox) 
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Increment")
-        self.henb_increment = QtGui.QDoubleSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Increment")
+        self.henb_increment = QtWidgets.QDoubleSpinBox()
         self.henb_increment.setAccelerated(True)
         self.henb_increment.setDecimals(3)
         self.henb_increment.setMaximum(0.5)
@@ -218,9 +217,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_anim_right.addLayout(hbox) 
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Animate")
-        self.henb_anim = QtGui.QCheckBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Animate")
+        self.henb_anim = QtWidgets.QCheckBox()
         self.henb_anim.setChecked(self.parent.henb_anim)
         description.mouseReleaseEvent = self.switch_henb_anim
         hbox.addWidget(self.henb_anim)
@@ -228,16 +227,16 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_anim_right.addLayout(hbox)
         
-        hbox = QtGui.QHBoxLayout()
+        hbox = QtWidgets.QHBoxLayout()
         hbox.addLayout(vbox_anim_left)
         hbox.addSpacing(10)      
         hbox.addLayout(vbox_anim_right)
         hbox.addStretch(1)
         vbox_tab_animation.addLayout(hbox)
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Number of iterations per frame")
-        self.plot_interval_anim = QtGui.QSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Number of iterations per frame")
+        self.plot_interval_anim = QtWidgets.QSpinBox()
         self.plot_interval_anim.setAccelerated(True)
         self.plot_interval_anim.setMaximum(99999)
         self.plot_interval_anim.setMinimum(1)
@@ -248,9 +247,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_tab_animation.addLayout(hbox)
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Animation time delay [ms]")
-        self.animation_delay = QtGui.QSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Animation time delay [ms]")
+        self.animation_delay = QtWidgets.QSpinBox()
         self.animation_delay.setAccelerated(True)
         self.animation_delay.setMaximum(999)
         self.animation_delay.setMinimum(50)
@@ -261,9 +260,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_tab_animation.addLayout(hbox)
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Enlarge rare pixels")
-        self.enlarge_rare_pixels = QtGui.QCheckBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Enlarge rare pixels")
+        self.enlarge_rare_pixels = QtWidgets.QCheckBox()
         self.enlarge_rare_pixels.setChecked(self.parent.enlarge_rare_pixels)
         description.mouseReleaseEvent = self.switch_enlarge_rare_pixels
         hbox.addWidget(self.enlarge_rare_pixels)
@@ -272,44 +271,44 @@ class HenonSettings(QtGui.QDialog):
         vbox_tab_animation.addLayout(hbox)
         
         vbox_tab_animation.addStretch(1)
-        generic_widget_animation = QtGui.QWidget()
+        generic_widget_animation = QtWidgets.QWidget()
         generic_widget_animation.setLayout(vbox_tab_animation)
-        tabwidget.addTab(generic_widget_animation, QtCore.QString("Animation"))
+        tabwidget.addTab(generic_widget_animation, "Animation")
 
         ### Orbit map tab ###
-        vbox_tab_orbit = QtGui.QVBoxLayout()  
+        vbox_tab_orbit = QtWidgets.QVBoxLayout()  
 
-        group_parameter = QtGui.QGroupBox("Parameter selection")
-        vbox_parameter = QtGui.QVBoxLayout()
+        group_parameter = QtWidgets.QGroupBox("Parameter selection")
+        vbox_parameter = QtWidgets.QVBoxLayout()
 
-        self.orbit_parameter_a = QtGui.QRadioButton("Parameter 'a'")
+        self.orbit_parameter_a = QtWidgets.QRadioButton("Parameter 'a'")
         self.orbit_parameter_a.setChecked(self.parent.orbit_parameter)       
         vbox_parameter.addWidget(self.orbit_parameter_a)
 
-        self.orbit_parameter_b = QtGui.QRadioButton("Parameter 'b'")
+        self.orbit_parameter_b = QtWidgets.QRadioButton("Parameter 'b'")
         self.orbit_parameter_b.setChecked(not self.parent.orbit_parameter)      
         vbox_parameter.addWidget(self.orbit_parameter_b)
 
         group_parameter.setLayout(vbox_parameter)        
         vbox_tab_orbit.addWidget(group_parameter)
         
-        group_coordinate = QtGui.QGroupBox("Coordinate selection")
-        vbox_coordinate = QtGui.QVBoxLayout()
+        group_coordinate = QtWidgets.QGroupBox("Coordinate selection")
+        vbox_coordinate = QtWidgets.QVBoxLayout()
 
-        self.orbit_coordinate_x = QtGui.QRadioButton("x-coordinate")
+        self.orbit_coordinate_x = QtWidgets.QRadioButton("x-coordinate")
         self.orbit_coordinate_x.setChecked(not self.parent.orbit_coordinate)
         vbox_coordinate.addWidget(self.orbit_coordinate_x)              
 
-        self.orbit_coordinate_y = QtGui.QRadioButton("y-coordinate")
+        self.orbit_coordinate_y = QtWidgets.QRadioButton("y-coordinate")
         self.orbit_coordinate_y.setChecked(self.parent.orbit_coordinate)
         vbox_coordinate.addWidget(self.orbit_coordinate_y)
 
         group_coordinate.setLayout(vbox_coordinate)        
         vbox_tab_orbit.addWidget(group_coordinate)
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Max iterations per pixel along screen width")
-        self.max_iter_orbit = QtGui.QSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Max iterations per pixel along screen width")
+        self.max_iter_orbit = QtWidgets.QSpinBox()
         self.max_iter_orbit.setAccelerated(True)
         self.max_iter_orbit.setMaximum(99999)
         self.max_iter_orbit.setMinimum(1)
@@ -321,9 +320,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_tab_orbit.addLayout(hbox)
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Plot interval per pixel along screen width")
-        self.plot_interval_orbit = QtGui.QSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Plot interval per pixel along screen width")
+        self.plot_interval_orbit = QtWidgets.QSpinBox()
         self.plot_interval_orbit.setAccelerated(True)
         self.plot_interval_orbit.setMaximum(9999)
         self.plot_interval_orbit.setMinimum(1)
@@ -335,9 +334,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_tab_orbit.addLayout(hbox)
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Auto-mode")
-        self.iter_auto_mode_orbit = QtGui.QCheckBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Auto-mode")
+        self.iter_auto_mode_orbit = QtWidgets.QCheckBox()
         self.iter_auto_mode_orbit.setChecked(self.parent.iter_auto_mode_orbit)
         self.iter_auto_mode_orbit.mouseReleaseEvent = self.switch_iter_auto_mode_orbit
         description.mouseReleaseEvent = self.switch_iter_auto_mode_orbit
@@ -347,22 +346,22 @@ class HenonSettings(QtGui.QDialog):
         vbox_tab_orbit.addLayout(hbox)
 
         vbox_tab_orbit.addStretch(1)
-        generic_widget_animation = QtGui.QWidget()
+        generic_widget_animation = QtWidgets.QWidget()
         generic_widget_animation.setLayout(vbox_tab_orbit)
-        tabwidget.addTab(generic_widget_animation, QtCore.QString("Orbit map"))
+        tabwidget.addTab(generic_widget_animation, "Orbit map")
 
         ### Tab calculation ###
-        vbox_tab_calculation = QtGui.QVBoxLayout()
+        vbox_tab_calculation = QtWidgets.QVBoxLayout()
 
-        hbox = QtGui.QHBoxLayout()       
-        spec = QtGui.QLabel("<b>Calculation settings</b>")
+        hbox = QtWidgets.QHBoxLayout()       
+        spec = QtWidgets.QLabel("<b>Calculation settings</b>")
         hbox.addWidget(spec)
         hbox.addStretch(1)
         vbox_tab_calculation.addLayout(hbox)
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Drop iterations")
-        self.drop_iter = QtGui.QSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Drop iterations")
+        self.drop_iter = QtWidgets.QSpinBox()
         self.drop_iter.setAccelerated(True)
         self.drop_iter.setMaximum(99999)
         self.drop_iter.setMinimum(0)
@@ -373,9 +372,9 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_tab_calculation.addLayout(hbox)
 
-        hbox = QtGui.QHBoxLayout()
-        description = QtGui.QLabel("Thread count")
-        self.thread_count = QtGui.QSpinBox()
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Thread count")
+        self.thread_count = QtWidgets.QSpinBox()
         self.thread_count.setAccelerated(True)
         self.thread_count.setMaximum(cpu_count())
         self.thread_count.setMinimum(1)
@@ -387,8 +386,8 @@ class HenonSettings(QtGui.QDialog):
         hbox.addStretch(1)                
         vbox_tab_calculation.addLayout(hbox)
 
-        hbox = QtGui.QHBoxLayout()
-        self.opencl_enabled = QtGui.QCheckBox("Enable OpenCL")
+        hbox = QtWidgets.QHBoxLayout()
+        self.opencl_enabled = QtWidgets.QCheckBox("Enable OpenCL")
         self.opencl_enabled.setDisabled(not self.parent.module_opencl_present)
         self.opencl_enabled.setChecked(self.parent.opencl_enabled)
         self.opencl_enabled.mouseReleaseEvent = self.switch_opencl_enabled
@@ -398,9 +397,9 @@ class HenonSettings(QtGui.QDialog):
 
         if self.parent.module_opencl_present:
 
-            hbox = QtGui.QHBoxLayout()
-            description = QtGui.QLabel("Global work size")
-            self.global_work_size = QtGui.QSpinBox()
+            hbox = QtWidgets.QHBoxLayout()
+            description = QtWidgets.QLabel("Global work size")
+            self.global_work_size = QtWidgets.QSpinBox()
             self.global_work_size.setAccelerated(True)
             self.global_work_size.setMaximum(9999)
             self.global_work_size.setMinimum(1)
@@ -411,19 +410,19 @@ class HenonSettings(QtGui.QDialog):
             hbox.addStretch(1)                
             vbox_tab_calculation.addLayout(hbox)
 
-            self.scroll_area = QtGui.QScrollArea()
+            self.scroll_area = QtWidgets.QScrollArea()
             self.scroll_area.setDisabled(not self.opencl_enabled.isChecked())
-            checkbox_widget = QtGui.QWidget()
-            checkbox_vbox = QtGui.QVBoxLayout()
+            checkbox_widget = QtWidgets.QWidget()
+            checkbox_vbox = QtWidgets.QVBoxLayout()
             
             self.devices_cb = []
 
             num = 0
             for platform in cl.get_platforms():
-                platform_name = QtGui.QLabel("Platform: " + platform.name)
+                platform_name = QtWidgets.QLabel("Platform: " + platform.name)
                 checkbox_vbox.addWidget(platform_name)
                 for device in platform.get_devices():
-                    self.devices_cb.append(QtGui.QCheckBox(device.name))
+                    self.devices_cb.append(QtWidgets.QCheckBox(device.name))
                     self.devices_cb[num].setMinimumWidth(400) # prevent obscured text
                     checkbox_vbox.addWidget(self.devices_cb[num])
                     if num in self.parent.device_selection:
@@ -435,19 +434,19 @@ class HenonSettings(QtGui.QDialog):
             vbox_tab_calculation.addWidget(self.scroll_area)
 
         vbox_tab_calculation.addStretch(1)
-        generic_widget_calculation = QtGui.QWidget()
+        generic_widget_calculation = QtWidgets.QWidget()
         generic_widget_calculation.setLayout(vbox_tab_calculation)
-        tabwidget.addTab(generic_widget_calculation, QtCore.QString("Calculation"))
+        tabwidget.addTab(generic_widget_calculation, "Calculation")
         
-        layout = QtGui.QVBoxLayout(self)
+        layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(tabwidget)
 
         ### Buttonbox for ok or cancel ###
-        buttonbox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
+        buttonbox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
         buttonbox.accepted.connect(self.read)
         buttonbox.rejected.connect(self.reject)
         if _platform == "linux" or _platform == "linux2":
-            buttonbox.layout().setDirection(QtGui.QBoxLayout.RightToLeft)
+            buttonbox.layout().setDirection(QtWidgets.QBoxLayout.RightToLeft)
 
         layout.addWidget(buttonbox)
         self.setMinimumWidth(512)
@@ -532,7 +531,7 @@ class HenonSettings(QtGui.QDialog):
         ### Calculation settings ###
         self.parent.drop_iter = self.drop_iter.value()
         
-        if self.parent.module_opencl_present and not self.opencl_enabled.isChecked():
+        if not self.parent.module_opencl_present and not self.opencl_enabled.isChecked():
             self.parent.thread_count = self.thread_count.value()            
 
         if self.parent.module_opencl_present:
