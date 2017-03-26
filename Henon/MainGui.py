@@ -14,8 +14,6 @@ try:
     # check if PyOpenCL is present as it is optional
     import pyopencl as cl
     from HenonCalc2 import HenonCalc2
-    from HenonCalc2Orbit import HenonCalc2Orbit
-    from HenonUpdate2 import HenonUpdate2
     module_opencl_present = True
 except ImportError:
     module_opencl_present = False
@@ -247,11 +245,11 @@ class MainGui(QtWidgets.QMainWindow):
             if (not self.max_iter_orbit): # sanity check
                 self.max_iter_orbit = 1
         
-        #print("[MainGui] Window width: " + str(self.Henon_widget.window_width)) #DEBUG
-        #print("[MainGui] Window height: " + str(self.Henon_widget.window_height)) #DEBUG
-        #print("[MainGui] Thread count: " + str(self.thread_count)) #DEBUG            
-        #print("[MainGui] Maximum iterations: " + str(self.max_iter)) #DEBUG
-        #print("[MainGui] Plot interval for iterations: " + str(self.plot_interval)) #DEBUG
+        #print("[MainGui] Window width: " + str(self.Henon_widget.window_width))
+        #print("[MainGui] Window height: " + str(self.Henon_widget.window_height)) 
+        #print("[MainGui] Thread count: " + str(self.thread_count))
+        #print("[MainGui] Maximum iterations: " + str(self.max_iter))
+        #print("[MainGui] Plot interval for iterations: " + str(self.plot_interval)) 
         
         # set widget plot area
         self.Henon_widget.xleft = self.xleft
@@ -265,19 +263,13 @@ class MainGui(QtWidgets.QMainWindow):
         current_settings['animation_running'] = self.animation_running
 
         if not self.opencl_enabled: # for multiprocessing            
-            # Henon_calc will start workers and wait for stop signal
-            self.Henon_calc = HenonCalc(current_settings) 
-            # Henon_update will will wait for worker signals and then send screen update signals
-            self.Henon_update = HenonUpdate(current_settings,self.Henon_calc.interval_flags,\
-                self.Henon_calc.stop_signal, self.Henon_calc.mp_arr, self.Henon_widget.window_representation)
-        elif self.opencl_enabled and not self.orbit_mode: # for OpenCL            
+            self.Henon_calc = HenonCalc(current_settings) # Henon_calc will start workers and wait for stop signal
+        else: # for OpenCL            
             self.Henon_calc = HenonCalc2(current_settings, self.context, self.command_queue, self.mem_flags, self.program)
-            self.Henon_update = HenonUpdate2(current_settings, self.Henon_calc.interval_flag,\
-                self.Henon_calc.stop_signal, self.Henon_calc.cl_arr, self.Henon_widget.window_representation)
-        elif self.opencl_enabled and self.orbit_mode: # for orbit mode with OpenCL
-            self.Henon_calc = HenonCalc2Orbit(current_settings, self.context, self.command_queue, self.mem_flags, self.program)
-            self.Henon_update = HenonUpdate2(current_settings, self.Henon_calc.interval_flag,\
-                self.Henon_calc.stop_signal, self.Henon_calc.cl_arr, self.Henon_widget.window_representation)
+
+        # Henon_update will will wait for worker signals and then send screen update signals
+        self.Henon_update = HenonUpdate(current_settings,self.Henon_calc.interval_flags,\
+                self.Henon_calc.stop_signal, self.Henon_calc.array, self.Henon_widget.window_representation)
         
         self.stop_signal = StopSignal()
         self.stop_signal.sig.connect(self.Henon_calc.stop)
@@ -450,7 +442,7 @@ class MainGui(QtWidgets.QMainWindow):
 
         self.benchmark = False # make sure status bar can show a/b values
 
-        #print("[MainGui] Starting animation") #DEBUG
+        #print("[MainGui] Starting animation")
 
         self.stop_calculation()
 

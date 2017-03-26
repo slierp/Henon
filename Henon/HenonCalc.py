@@ -2,7 +2,7 @@
 from PyQt5 import QtCore
 from random import uniform
 import multiprocessing as mp
-#from datetime import datetime #DEBUG
+#from datetime import datetime
 import numpy as np
 import ctypes
 from time import sleep
@@ -30,7 +30,7 @@ class HenonCalc(QtCore.QThread):
         # content is a flattened array so it needs to be deflattened later on
         # RawArray implementation allows for copying local numpy array, which gives
         # speed-up, but may give stability issues as well
-        self.mp_arr = mp.RawArray(ctypes.c_byte, window_width*window_height)
+        self.array = mp.RawArray(ctypes.c_byte, window_width*window_height)
 
         self.interval_flags = mp.Array('b', self.thread_count) # Have worker tell us when a piece work is finished
         self.interval_flags[:] = [False]*self.thread_count
@@ -47,7 +47,7 @@ class HenonCalc(QtCore.QThread):
 
         #print("[" + self.name + "] Starting workers")
 
-        shared_tuple = self.mp_arr, self.interval_flags, self.stop_signal
+        shared_tuple = self.array, self.interval_flags, self.stop_signal
         self.worker_list = []
         for i in range(self.thread_count):
             if not self.orbit_mode:
@@ -83,7 +83,7 @@ class WorkerProcess(mp.Process):
         self.exit = mp.Event()        
         self.run_number = args[0]        
         self.settings = args[1]            
-        self.mp_arr, self.interval_flags, self.stop_signal = args[2]
+        self.array, self.interval_flags, self.stop_signal = args[2]
         #print("[" + self.name + "] Worker " + str(self.run_number) + " initialization")        
 
     def shutdown(self):
@@ -101,7 +101,7 @@ class WorkerProcess(mp.Process):
 
     def run(self):
         
-        #start_time = datetime.now() #DEBUG
+        #start_time = datetime.now()
         #print("[" + self.name + "] Worker " + str(self.run_number) + " has started")
         
         henx = uniform(-0.1,0.1) # generate random starting points
@@ -112,8 +112,8 @@ class WorkerProcess(mp.Process):
         # make local array for storing pixel during each iteration        
         # manipulating local array instead of multiprocessing array is a bit faster
         # subsequent data copying step takes almost no time
-        local_array = np.zeros(len(self.mp_arr),dtype=ctypes.c_byte)
-        empty_array = np.zeros(len(self.mp_arr),dtype=ctypes.c_byte)
+        local_array = np.zeros(len(self.array),dtype=ctypes.c_byte)
+        empty_array = np.zeros(len(self.array),dtype=ctypes.c_byte)
         
         # make local copies of variables to increase speed
         hena = self.settings['hena']
@@ -168,7 +168,7 @@ class WorkerProcess(mp.Process):
                         # in combination with array flattening such bugs give very distorted images                    
                         local_array[(window_height-y_draw)*(window_width+0) + x_draw] = True
                 except:
-                    #print("[WorkerProcess] Worker " + str(run_number) + " overflow") #DEBUG
+                    #print("[WorkerProcess] Worker " + str(run_number) + " overflow")
                     pass
                 
             iter_count += plot_interval
@@ -176,7 +176,7 @@ class WorkerProcess(mp.Process):
             # 'bitwise or' on local array and multiprocessing array when plot_interval is reached
             if not animation_running:
                 # add newly calculated pixels that this worker generatedy
-                np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
+                np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
                 # indicate to HenonUpdate that we have some new pixels to draw
                 self.interval_flags[run_number] = True                
             else:
@@ -187,11 +187,11 @@ class WorkerProcess(mp.Process):
                         break
 
                 if (run_number == 0): # empty current array
-                    ctypes.memmove(self.mp_arr, empty_array.data[:], len(empty_array.data))
+                    ctypes.memmove(self.array, empty_array.data[:], len(empty_array.data))
                 else: # allow some time for worker 0 to empty array
                     sleep(0.01)
                 
-                np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
+                np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
                 self.interval_flags[run_number] = True
                 
                 if iter_count >= max_iter:
@@ -217,8 +217,8 @@ class WorkerProcess(mp.Process):
         self.interval_flags[run_number] = True # send message to HenonUpdate to show end result 
         self.stop_signal[run_number] = True # sends message to HenonUpdate to stop because max_iter reached
         
-        #delta = datetime.now() - start_time #DEBUG
-        #print("[" + self.name + "] Worker " + str(run_number) + " has stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds") #DEBUG        
+        #delta = datetime.now() - start_time
+        #print("[" + self.name + "] Worker " + str(run_number) + " has stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds")        
         #print("[" + self.name + "] Worker " + str(run_number) + " has stopped")
         
 class WorkerProcessOrbit(WorkerProcess):    
@@ -235,7 +235,7 @@ class WorkerProcessOrbit(WorkerProcess):
         # make local array for storing pixel during each iteration        
         # manipulating local array instead of multiprocessing array is a bit faster
         # subsequent data copying step takes almost no time
-        local_array = np.zeros(len(self.mp_arr),dtype=ctypes.c_byte)
+        local_array = np.zeros(len(self.array),dtype=ctypes.c_byte)
         
         # make local copies of variables to increase speed
         hena = self.settings['hena']
@@ -309,7 +309,7 @@ class WorkerProcessOrbit(WorkerProcess):
                 break           
 
         # 'bitwise or' on local array and multiprocessing array
-        np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
+        np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
         
         self.interval_flags[run_number] = True # send message to HenonUpdate to show end result 
         self.stop_signal[run_number] = True # sends message to HenonUpdate to stop because max_iter reached        

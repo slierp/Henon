@@ -17,19 +17,21 @@ class HenonUpdate(QtCore.QThread):
     # waits for signals from worker threads; once all are received it copies the results into
     # window_representation and sends a signal to trigger a screen re-draw
 
-    def __init__(self, _settings, _interval_flags, _stop_signal, _mp_arr, _window_representation):
+    def __init__(self, _settings, _interval_flags, _stop_signal, _array, _window_representation):
         QtCore.QThread.__init__(self)
+        self.name = "HenonUpdate"
         
-        #print("[HenonUpdate] Initialization") #DEBUG
+        #print("[" + self.name + "] Initialization")
 
         self.signal = Signal()
         self.quit_signal = Signal()
-        self.benchmark_signal = StringSignal()        
+        self.benchmark_signal = StringSignal()
         
+        self.opencl_enabled = _settings['opencl_enabled']        
         self.interval_flags = _interval_flags
         self.stop_signal = _stop_signal
         self.thread_count = _settings['thread_count']
-        self.mp_arr = _mp_arr
+        self.array = _array
         self.window_representation = _window_representation
         self.window_width = _settings['window_width']
         self.window_height = _settings['window_height']
@@ -37,7 +39,7 @@ class HenonUpdate(QtCore.QThread):
         self.benchmark = _settings['benchmark']
         self.animation_running = _settings['animation_running']
         self.animation_delay = _settings['animation_delay']
-        #self.time_prev = datetime.now() #DEBUG
+        #self.time_prev = datetime.now()
 
         if self.benchmark:
             self.time_start = datetime.now()
@@ -49,21 +51,25 @@ class HenonUpdate(QtCore.QThread):
         if (self.updates_started): # fix strange problem where run command is started twice by QThread
             return
 
-        #print("[HenonUpdate] Ready to receive screen updates")
+        #print("[" + self.name + "] Ready to receive screen updates")
        
         self.updates_started = True
-        QtCore.QTimer.singleShot(100, self.check_for_update)
+        
+        if not self.opencl_enabled:
+            QtCore.QTimer.singleShot(100, self.check_for_update)
+        else:
+            QtCore.QTimer.singleShot(100, self.check_for_update2)
 
         self.exec_() # start thread        
 
-    def check_for_update(self):
+    def check_for_update(self): # for multiprocessing
         
         #for i in range(self.thread_count): # check incoming signals
-        #    print(self.interval_flags[i],end='')            
-        #print(" ")
+        #    #print(self.interval_flags[i],end='')            
+        ##print(" ")
         
         if all(i for i in self.stop_signal): # quit updates
-            #print("[HenonUpdate] Received stop signal")
+            #print("[" + self.name + "] Received stop signal")
             self.perform_update()            
             if self.benchmark:
                 delta = datetime.now() - self.time_start
@@ -76,7 +82,7 @@ class HenonUpdate(QtCore.QThread):
             return
         
         if all(i for i in self.interval_flags):
-            #print("[HenonUpdate] Received interval signal")
+            #print("[" + self.name + "] Received interval signal")
             self.perform_update()
             self.interval_flags[:] = [False]*self.thread_count # reset for new signal
         
@@ -89,12 +95,42 @@ class HenonUpdate(QtCore.QThread):
                 return
     
         QtCore.QTimer.singleShot(100, self.check_for_update)
+        
+    def check_for_update2(self): # for opencl
+        
+        if self.stop_signal.value: # quit updates
+            #print("[" + self.name + "] Received stop signal")
+            self.perform_update2()            
+            if self.benchmark:
+                delta = datetime.now() - self.time_start
+                self.benchmark_signal.sig.emit(str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds")
+            
+            if self.animation_running:
+                self.quit_signal.sig.emit() # stop animation
+                
+            self.quit() # stop thread
+            return
+        
+        if self.interval_flags.value:
+            #print("[" + self.name + "] Received interval signal")
+            self.perform_update2()
+            self.interval_flags.value = False # reset for new signal
+        
+            if not self.animation_running:                            
+                # call itself regularly
+                QtCore.QTimer.singleShot(100, self.check_for_update2)
+                return        
+            else:
+                QtCore.QTimer.singleShot(self.animation_delay, self.check_for_update2)
+                return
+    
+        QtCore.QTimer.singleShot(100, self.check_for_update2)        
 
-    def perform_update(self):
+    def perform_update(self): # for multiprocessing
 
-        #print("[HenonUpdate] Copying results and sending screen re-draw signal") #DEBUG
+        #print("[" + self.name + "] Copying results and sending screen re-draw signal")
        
-        arr = np.frombuffer(self.mp_arr, dtype=np.bool) # get calculation result
+        arr = np.frombuffer(self.array, dtype=np.bool) # get calculation result
         arr = arr.reshape((self.window_height,self.window_width)) # deflatten array
         
         if self.enlarge_rare_pixels:
@@ -108,10 +144,36 @@ class HenonUpdate(QtCore.QThread):
            
         self.window_representation[arr == True] = 255 # add newly calculated pixels
 
-        #print("[HenonUpdate] Pixels in screen window: " + str(self.window_width*self.window_height)) #DEBUG
-        #print("[HenonUpdate] Pixels in copied array: " + str(np.count_nonzero(arr))) #DEBUG 
-        #print("[HenonUpdate] Pixels in window array: " + str(np.count_nonzero(self.window_representation))) #DEBUG
+        ##print("[" + self.name + "] Pixels in screen window: " + str(self.window_width*self.window_height))
+        ##print("[" + self.name + "] Pixels in copied array: " + str(np.count_nonzero(arr))) 
+        ##print("[" + self.name + "] Pixels in window array: " + str(np.count_nonzero(self.window_representation)))
 
-        #delta = datetime.now() - self.time_prev #DEBUG
-        #print("[HenonUpdate] Sending signal after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds") #DEBUG
-        self.signal.sig.emit()       
+        #delta = datetime.now() - self.time_prev
+        ##print("[" + self.name + "] Sending signal after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds")
+        self.signal.sig.emit()
+        
+    def perform_update2(self): # for opencl
+        
+        #print("[" + self.name + "] Copying results and sending screen re-draw signal")
+        
+        arr = np.frombuffer(self.array, dtype=np.uint16) # get calculation result
+        arr = arr.reshape((self.window_height,self.window_width)) # deflatten array                         
+        
+        if self.enlarge_rare_pixels:
+            # enlarge pixels if there are very few of them
+            pixel_number = np.count_nonzero(arr)
+            if (pixel_number < 17) and (pixel_number > 0):
+                arr = arr + np.roll(arr,1,0) + np.roll(arr,-1,0) + np.roll(arr,1,1) + np.roll(arr,-1,1)
+ 
+        if self.animation_running:
+            self.window_representation[:] = 0
+           
+        self.window_representation[arr == 255] = 255 # add newly calculated pixels
+
+        ##print("[" + self.name + "] Pixels in screen window: " + str(self.window_width*self.window_height))
+        ##print("[" + self.name + "] Pixels in copied array: " + str(np.count_nonzero(arr))) 
+        ##print("[" + self.name + "] Pixels in window array: " + str(np.count_nonzero(self.window_representation)))
+
+        #delta = datetime.now() - self.time_prev
+        ##print("[" + self.name + "] Sending signal after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds")
+        self.signal.sig.emit()         
