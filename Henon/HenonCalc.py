@@ -8,44 +8,35 @@ import ctypes
 from time import sleep
 from itertools import repeat
 
-class Signal(QtCore.QObject):
-    sig = QtCore.pyqtSignal()
-    
-    def __init__(self):
-        QtCore.QObject.__init__(self)
-
-class HenonCalc(QtCore.QObject):
+class HenonCalc(QtCore.QThread):    
     # Starts up worker threads for Henon calculations and then waits for stop signal
+    # Not strictly necessary to make a separate thread, but it is required for HenonCalc2
+    # so for compatibility it is a separate thread
 
     def __init__(self, _settings):
-        QtCore.QObject.__init__(self)
+        QtCore.QThread.__init__(self)
+        self.name= "HenonCalc"
         
-        #print("[HenonCalc] Initialization") #DEBUG
+        #print("[" + self.name + "] Initialization")
         self.settings = _settings
-        self.signal = Signal()
-        self.quit_signal = Signal()
         
-        self.window_width = self.settings['window_width']
-        self.window_height = self.settings['window_height']
-        self.thread_count = self.settings['thread_count']
+        window_width = self.settings['window_width']
+        window_height = self.settings['window_height']
+        
+        self.thread_count = self.settings['thread_count']        
+        self.orbit_mode = self.settings['orbit_mode']
 
         # shared array containing booleans for each pixel
         # content is a flattened array so it needs to be deflattened later on
         # RawArray implementation allows for copying local numpy array, which gives
         # speed-up, but may give stability issues as well
-        self.mp_arr = mp.RawArray(ctypes.c_byte, self.window_width*self.window_height)
+        self.mp_arr = mp.RawArray(ctypes.c_byte, window_width*window_height)
 
         self.interval_flags = mp.Array('b', self.thread_count) # Have worker tell us when a piece work is finished
         self.interval_flags[:] = [False]*self.thread_count
 
         self.stop_signal = mp.Array('b', self.thread_count) # Booleans for sending stop signal
         self.stop_signal[:] = [False]*self.thread_count
-
-        shared_tuple = self.mp_arr, self.interval_flags, self.stop_signal
-
-        self.worker_list = []
-        for i in range(self.thread_count):
-            self.worker_list.append(WorkerProcess(args=([i, self.settings, shared_tuple]))) # independent process
             
         self.workers_started = False
                      
@@ -54,86 +45,64 @@ class HenonCalc(QtCore.QObject):
         if (self.workers_started): # fix strange problem where run command is started twice by QThread
             return
 
-        #print("[HenonCalc] Starting workers") #DEBUG
-        
-        for i in range(self.thread_count):            
-            self.worker_list[i].run()
-            
+        #print("[" + self.name + "] Starting workers")
+
+        shared_tuple = self.mp_arr, self.interval_flags, self.stop_signal
+        self.worker_list = []
+        for i in range(self.thread_count):
+            if not self.orbit_mode:
+                w = WorkerProcess(args=([i, self.settings, shared_tuple]))
+            else:
+                w = WorkerProcessOrbit(args=([i, self.settings, shared_tuple]))
+            self.worker_list.append(w)
+            w.start()
+           
         self.workers_started = True
-                    
+
+        self.exec_() # start thread
+    
+    @QtCore.pyqtSlot()              
     def stop(self):
                       
-        #print("[HenonCalc] Received stop signal") #DEBUG
-        self.stop_signal.value = [True]*self.thread_count
+        #print("[" + self.name + "] Received stop signal")
 
-        for i in range(self.thread_count):
-            # shut down workers if alive
-            if self.worker_list[i].is_alive():
-                self.worker_list[i].shutdown()
-            
-        self.quit_signal.sig.emit() # stop thread
+        [worker.shutdown() for worker in self.worker_list] # shut down workers
+
+        self.stop_signal.value = [True]*self.thread_count # stop updates
+        
+        self.quit() # stop thread
         
 class WorkerProcess(mp.Process):
     # Subclass Process instead of calling function allows for nice exiting
     # using mp.Event and exit.set(); having a separate worker and thread is also
     # less transparent
 
-    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
+    def __init__(self, args=()):
         mp.Process.__init__(self)
-        self.exit = mp.Event()
-        
-        self.run_number = args[0]           
-        
-        settings = args[1]
-        self.hena = settings['hena']
-        self.henb = settings['henb']
-        self.xleft = settings['xleft']
-        self.ytop = settings['ytop']
-        self.xright = settings['xright']
-        self.ybottom = settings['ybottom']
-        self.window_width = settings['window_width']
-        self.window_height = settings['window_height']
-        self.max_iter = settings['max_iter']
-        self.plot_interval = settings['plot_interval']
-        self.drop_iter = settings['drop_iter']
-        self.hena_mid = settings['hena_mid']
-        self.hena_range = settings['hena_range']        
-        self.hena_increment = settings['hena_increment']
-        self.hena_anim = settings['hena_anim']
-        self.henb_mid = settings['henb_mid']
-        self.henb_range = settings['henb_range']        
-        self.henb_increment = settings['henb_increment']
-        self.henb_anim = settings['henb_anim']
-        self.max_iter_anim = settings['max_iter_anim']
-        self.plot_interval_anim = settings['plot_interval_anim']        
-        self.animation_running = settings['animation_running']
-        self.thread_count = settings['thread_count']
-
-        self.xratio = self.window_width/(self.xright-self.xleft)
-        self.yratio = self.window_height/(self.ytop-self.ybottom)
-            
+        self.name= "WorkerProcess"
+        self.exit = mp.Event()        
+        self.run_number = args[0]        
+        self.settings = args[1]            
         self.mp_arr, self.interval_flags, self.stop_signal = args[2]
-        
-        #print("[HenonCalc] Worker " + str(self.run_number) + " initialization") #DEBUG        
+        #print("[" + self.name + "] Worker " + str(self.run_number) + " initialization")        
 
     def shutdown(self):
-        #print("[WorkerProcess] Worker " + str(self.run_number) + " shutdown initiated") #DEBUG
+        #print("[" + self.name + "] Worker " + str(self.run_number) + " shutdown initiated")
         self.exit.set()
 
-    def drop_iterations(self,hena,henb,henx,heny):        
+    def drop_iterations(self,drop_iter,hena,henb,henx,heny):        
         try:            
-            #for i in range(self.drop_iter): # prevent drawing first iterations
-            for _ in repeat(None, self.drop_iter):
+            for _ in repeat(None, drop_iter): # prevent drawing first iterations
                 henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
             return henx,heny
         except OverflowError: # if x,y results move towards infinity
-            #print("[WorkerProcess] Worker " + str(self.run_number) + " overflow") #DEBUG                
+            #print("[" + self.name + "] Worker " + str(self.run_number) + " overflow")                
             return uniform(-0.1,0.1),uniform(-0.1,0.1)
 
     def run(self):
         
         #start_time = datetime.now() #DEBUG
-        #print("[WorkerProcess] Worker " + str(self.run_number) + " has started") #DEBUG
+        #print("[" + self.name + "] Worker " + str(self.run_number) + " has started")
         
         henx = uniform(-0.1,0.1) # generate random starting points
         heny = uniform(-0.1,0.1)
@@ -147,39 +116,41 @@ class WorkerProcess(mp.Process):
         empty_array = np.zeros(len(self.mp_arr),dtype=ctypes.c_byte)
         
         # make local copies of variables to increase speed
-        hena = self.hena
-        henb = self.henb
-        xleft = self.xleft
-        xright = self.xright
-        xratio = self.xratio
-        ybottom = self.ybottom
-        ytop = self.ytop
-        yratio = self.yratio
-        plot_interval = self.plot_interval
-        max_iter = self.max_iter
-        window_width = self.window_width
-        window_height = self.window_height
+        hena = self.settings['hena']
+        henb = self.settings['henb']
+        xleft = self.settings['xleft']
+        xright = self.settings['xright']
+        ybottom = self.settings['ybottom']
+        ytop = self.settings['ytop']
+        plot_interval = self.settings['plot_interval']
+        max_iter = self.settings['max_iter']
+        window_width = self.settings['window_width']
+        window_height = self.settings['window_height']
+        drop_iter = self.settings['drop_iter']       
+
+        animation_running = self.settings['animation_running']
+        xratio = window_width/(xright-xleft)
+        yratio = window_height/(ytop-ybottom)
+
         run_number = self.run_number
-        animation_running = self.animation_running
 
         if animation_running:
-            hena_increment = self.hena_increment
-            hena_anim = self.hena_anim
-            henb_increment = self.henb_increment
-            henb_anim = self.henb_anim
+            hena_increment = self.settings['hena_increment']
+            hena_anim = self.settings['hena_anim']
+            henb_increment = self.settings['henb_increment']
+            henb_anim = self.settings['henb_anim']
             hena_max = round(self.hena_mid + 0.5*self.hena_range,3)
             henb_max = round(self.henb_mid + 0.5*self.henb_range,3)
-            plot_interval = self.plot_interval_anim
-            max_iter = self.max_iter_anim
+            plot_interval = self.settings['plot_interval_anim']
+            max_iter = self.settings['max_iter_anim']
 
-        henx,heny = self.drop_iterations(hena,henb,henx,heny)
+        henx,heny = self.drop_iterations(drop_iter,hena,henb,henx,heny)
 
         if not henx or not heny:
             return
 
         while not self.exit.is_set():
 
-            #for i in xrange(plot_interval):
             for _ in repeat(None, plot_interval):
                 try:
                     henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
@@ -247,5 +218,99 @@ class WorkerProcess(mp.Process):
         self.stop_signal[run_number] = True # sends message to HenonUpdate to stop because max_iter reached
         
         #delta = datetime.now() - start_time #DEBUG
-        #print("[WorkerProcess] Worker " + str(run_number) + " has stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds") #DEBUG        
-        #print("[WorkerProcess] Worker " + str(run_number) + " has stopped")
+        #print("[" + self.name + "] Worker " + str(run_number) + " has stopped after " + str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds") #DEBUG        
+        #print("[" + self.name + "] Worker " + str(run_number) + " has stopped")
+        
+class WorkerProcessOrbit(WorkerProcess):    
+
+    def run(self):
+        
+        self.name= "WorkerProcessOrbit"
+        
+        #print("[" + self.name + "] Worker " + str(self.run_number) + " has started")
+        
+        henx = uniform(-0.1,0.1) # generate random starting points
+        heny = uniform(-0.1,0.1)
+
+        # make local array for storing pixel during each iteration        
+        # manipulating local array instead of multiprocessing array is a bit faster
+        # subsequent data copying step takes almost no time
+        local_array = np.zeros(len(self.mp_arr),dtype=ctypes.c_byte)
+        
+        # make local copies of variables to increase speed
+        hena = self.settings['hena']
+        henb = self.settings['henb']
+        xleft = self.settings['xleft']
+        xright = self.settings['xright']
+        ybottom = self.settings['ybottom']
+        ytop = self.settings['ytop']
+        max_iter = self.settings['max_iter_orbit']
+        window_width = self.settings['window_width']
+        window_height = self.settings['window_height']
+        drop_iter = self.settings['drop_iter']
+        thread_count = self.settings['thread_count']
+        orbit_parameter = self.settings['orbit_parameter']
+        orbit_coordinate = self.settings['orbit_coordinate']
+        
+        xratio = window_width/(xright-xleft)
+        yratio = window_height/(ytop-ybottom)
+
+        run_number = self.run_number
+        x_draw = run_number
+
+        if orbit_parameter:
+            hena = xleft
+            hena += run_number/xratio           
+        else:
+            henb = xleft
+            henb += run_number/xratio
+
+        while not self.exit.is_set():
+
+            try:
+                for _ in repeat(None, drop_iter): # prevent drawing first iterations
+                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+            except OverflowError: # if x,y results move towards infinity
+                henx = uniform(-0.1,0.1)
+                heny = uniform(-0.1,0.1)
+                
+                x_draw += thread_count
+            
+                if orbit_parameter:
+                    hena += thread_count/xratio
+                else:
+                    henb += thread_count/xratio
+                
+                if (x_draw >= window_width):
+                    break
+            
+                continue
+            
+            # no plot interval as we only calculate #threads pixels at a time
+            # no try/except because we only allow working a,b ranges
+            for _ in repeat(None, max_iter):
+                henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
+                if orbit_coordinate:
+                    y_draw = int((heny-ybottom) * yratio)
+                else:
+                    y_draw = int((henx-ybottom) * yratio)
+                    
+                if (0 < y_draw < window_height):                  
+                    local_array[(window_height-y_draw)*window_width + x_draw] = True
+            
+            x_draw += thread_count
+            
+            if orbit_parameter:
+                hena += thread_count/xratio
+            else:
+                henb += thread_count/xratio
+            
+            if (x_draw >= window_width):
+                break           
+
+        # 'bitwise or' on local array and multiprocessing array
+        np.frombuffer(self.mp_arr, dtype=ctypes.c_byte)[local_array == True] = True
+        
+        self.interval_flags[run_number] = True # send message to HenonUpdate to show end result 
+        self.stop_signal[run_number] = True # sends message to HenonUpdate to stop because max_iter reached        
+        #print("[" + self.name + "] Worker " + str(run_number) + " has stopped")

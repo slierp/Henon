@@ -12,13 +12,13 @@ class Signal(QtCore.QObject):
 class StringSignal(QtCore.QObject):
     sig = QtCore.pyqtSignal(str)
 
-class HenonUpdate(QtCore.QObject):
+class HenonUpdate(QtCore.QThread):
     # HenonUpdate implementation for multiprocessing
     # waits for signals from worker threads; once all are received it copies the results into
     # window_representation and sends a signal to trigger a screen re-draw
 
-    def __init__(self, _settings, _interval_flags, _stop_signal, _mp_arr, _window_representation):       
-        QtCore.QObject.__init__(self)
+    def __init__(self, _settings, _interval_flags, _stop_signal, _mp_arr, _window_representation):
+        QtCore.QThread.__init__(self)
         
         #print("[HenonUpdate] Initialization") #DEBUG
 
@@ -49,37 +49,46 @@ class HenonUpdate(QtCore.QObject):
         if (self.updates_started): # fix strange problem where run command is started twice by QThread
             return
 
-        #print("[HenonUpdate] Ready for screen updates") #DEBUG
-        
+        #print("[HenonUpdate] Ready to receive screen updates")
+       
         self.updates_started = True
+        QtCore.QTimer.singleShot(100, self.check_for_update)
 
-        # timer for checking updates
-        # needs to be declared here and not in initialization
-        # because QTimer requires a QThread, which HenonUpdate is moved into after init
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.check_for_update)
-        
-        self.check_for_update()
+        self.exec_() # start thread        
 
     def check_for_update(self):
-       
-        if all(i for i in self.interval_flags): # perform update
-            self.perform_update()
-            self.interval_flags[:] = [False]*self.thread_count # reset for new signal
-            if self.animation_running:
-                self.timer.start(self.animation_delay)
-                return
-        elif all(i for i in self.stop_signal): # quit updates
-            self.perform_update()
+        
+        #for i in range(self.thread_count): # check incoming signals
+        #    print(self.interval_flags[i],end='')            
+        #print(" ")
+        
+        if all(i for i in self.stop_signal): # quit updates
+            #print("[HenonUpdate] Received stop signal")
+            self.perform_update()            
             if self.benchmark:
                 delta = datetime.now() - self.time_start
                 self.benchmark_signal.sig.emit(str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds")
             
-            self.quit_signal.sig.emit()            
+            if self.animation_running:
+                self.quit_signal.sig.emit() # stop animation
+                
+            self.quit() # stop thread
             return
-
-        # call itself again in some time
-        self.timer.start(10)
+        
+        if all(i for i in self.interval_flags):
+            #print("[HenonUpdate] Received interval signal")
+            self.perform_update()
+            self.interval_flags[:] = [False]*self.thread_count # reset for new signal
+        
+            if not self.animation_running:                            
+                # call itself regularly
+                QtCore.QTimer.singleShot(100, self.check_for_update)
+                return        
+            else:
+                QtCore.QTimer.singleShot(self.animation_delay, self.check_for_update)
+                return
+    
+        QtCore.QTimer.singleShot(100, self.check_for_update)
 
     def perform_update(self):
 

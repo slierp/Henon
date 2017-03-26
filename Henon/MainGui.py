@@ -4,7 +4,6 @@ import HenonResources
 from HenonWidget import HenonWidget # for PyQt-only Henon widget
 from HenonUpdate import HenonUpdate
 from HenonCalc import HenonCalc
-from HenonCalcOrbit import HenonCalcOrbit
 from HenonHelp import HenonHelp
 from HenonSettings import HenonSettings
 from multiprocessing import cpu_count
@@ -20,6 +19,12 @@ try:
     module_opencl_present = True
 except ImportError:
     module_opencl_present = False
+
+class StopSignal(QtCore.QObject):
+    sig = QtCore.pyqtSignal()
+
+    def __init__(self):
+        QtCore.QObject.__init__(self)
 
 class MainGui(QtWidgets.QMainWindow):
     # Main user interface; starts up main window and initiates a first Henon calculation
@@ -131,10 +136,6 @@ class MainGui(QtWidgets.QMainWindow):
         self.module_opencl_present = module_opencl_present
         self.hena_max = round(self.hena_mid + 0.5*self.hena_range,3)
         self.henb_max = round(self.henb_mid + 0.5*self.henb_range,3)
-        
-        # program flow controls        
-        self.qt_thread0 = QtCore.QThread(self) # Separate Qt thread for generating screen update signals        
-        self.qt_thread1 = QtCore.QThread(self) # Separate Qt thread for generating screen pixels
 
     def on_about(self):
         msg = self.tr("H\xe9non browser\nAuthor: Ronald Naber\nLicense: Public domain")
@@ -194,8 +195,10 @@ class MainGui(QtWidgets.QMainWindow):
         # stop any current calculation and make sure
         # threads have finished before proceeding
         self.stop_calculation()
-        self.wait_thread_end(self.qt_thread0)
-        self.wait_thread_end(self.qt_thread1)          
+        
+        if not self.first_run:
+            self.wait_thread_end(self.Henon_update)
+            self.wait_thread_end(self.Henon_calc)          
 
         self.Henon_widget.clear_screen()
         
@@ -261,7 +264,7 @@ class MainGui(QtWidgets.QMainWindow):
         current_settings['window_height'] = self.Henon_widget.window_height
         current_settings['animation_running'] = self.animation_running
 
-        if not self.opencl_enabled and not self.orbit_mode: # for multiprocessing
+        if not self.opencl_enabled: # for multiprocessing            
             # Henon_calc will start workers and wait for stop signal
             self.Henon_calc = HenonCalc(current_settings) 
             # Henon_update will will wait for worker signals and then send screen update signals
@@ -271,33 +274,22 @@ class MainGui(QtWidgets.QMainWindow):
             self.Henon_calc = HenonCalc2(current_settings, self.context, self.command_queue, self.mem_flags, self.program)
             self.Henon_update = HenonUpdate2(current_settings, self.Henon_calc.interval_flag,\
                 self.Henon_calc.stop_signal, self.Henon_calc.cl_arr, self.Henon_widget.window_representation)
-        elif not self.opencl_enabled and self.orbit_mode: # for orbit mode with multiprocessing
-            self.Henon_calc = HenonCalcOrbit(current_settings) 
-            self.Henon_update = HenonUpdate(current_settings,self.Henon_calc.interval_flags,\
-                self.Henon_calc.stop_signal, self.Henon_calc.mp_arr, self.Henon_widget.window_representation)
         elif self.opencl_enabled and self.orbit_mode: # for orbit mode with OpenCL
             self.Henon_calc = HenonCalc2Orbit(current_settings, self.context, self.command_queue, self.mem_flags, self.program)
             self.Henon_update = HenonUpdate2(current_settings, self.Henon_calc.interval_flag,\
                 self.Henon_calc.stop_signal, self.Henon_calc.cl_arr, self.Henon_widget.window_representation)
-                
-        self.Henon_update.moveToThread(self.qt_thread0) # Move updater to separate thread
-        self.Henon_calc.moveToThread(self.qt_thread1)
         
-        # connecting like this appears crucial to make the thread run independently
-        # and prevent GUI freeze
-        self.qt_thread0.started.connect(self.Henon_update.run)            
-        self.qt_thread1.started.connect(self.Henon_calc.run)
-
+        self.stop_signal = StopSignal()
+        self.stop_signal.sig.connect(self.Henon_calc.stop)
         self.Henon_update.signal.sig.connect(self.update_screen) # Get signal for screen updates
-        self.Henon_update.quit_signal.sig.connect(self.qt_thread0.quit) # Quit thread when finished
         self.Henon_update.quit_signal.sig.connect(self.animation_stopped) # Check if animation was running
-        self.Henon_calc.quit_signal.sig.connect(self.qt_thread1.quit) # Quit thread when finished
 
         if self.benchmark:        
             self.Henon_update.benchmark_signal.sig.connect(self.benchmark_result)
         
-        self.qt_thread0.start()        
-        self.qt_thread1.start()
+        #print("[MainGui] Starting calculations")
+        self.Henon_update.start()        
+        self.Henon_calc.start()
 
     def initialize_opencl(self):
 
@@ -532,8 +524,8 @@ class MainGui(QtWidgets.QMainWindow):
         self.initialize_calculation()
 
     def stop_calculation(self):
-        if (not self.first_run):
-            self.Henon_calc.stop()
+        if not self.first_run:
+            self.stop_signal.sig.emit()
 
     def stop_user_command(self):
         self.statusBar().showMessage(self.tr("Sending stop signal..."), 1000)

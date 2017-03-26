@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Warning: If you run the program in Spyder or some other interactive console then multiprocessing will not work
+
 from PyQt5 import QtWidgets, QtCore, QtGui
 from MainGui import MainGui
 import sys
