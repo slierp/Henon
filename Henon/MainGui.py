@@ -83,33 +83,33 @@ class MainGui(QtWidgets.QMainWindow):
         self.default_settings['drop_iter'] = self.drop_iter
         self.iter_auto_mode = True
         self.default_settings['iter_auto_mode'] = self.iter_auto_mode
-        self.enlarge_rare_pixels = False
+        self.enlarge_rare_pixels = True
         self.default_settings['enlarge_rare_pixels'] = self.enlarge_rare_pixels
         self.benchmark = False
         self.default_settings['benchmark'] = self.benchmark
         
         # animation settings
-        self.hena_mid = 0.8
-        self.default_settings['hena_mid'] = self.hena_mid
-        self.hena_range = 1.2
-        self.default_settings['hena_range'] = self.hena_range
-        self.hena_increment = 0.05
+        self.hena_start = 0.8
+        self.default_settings['hena_start'] = self.hena_start
+        self.hena_stop = 1.4
+        self.default_settings['hena_stop'] = self.hena_stop
+        self.hena_increment = 0.01
         self.default_settings['hena_increment'] = self.hena_increment
-        self.hena_anim = False
+        self.hena_anim = True
         self.default_settings['hena_anim'] = self.hena_anim
-        self.henb_mid = -0.05
-        self.default_settings['henb_mid'] = self.henb_mid
-        self.henb_range = 0.7
-        self.default_settings['henb_range'] = self.henb_range
-        self.henb_increment = 0.05
+        self.henb_start = 0
+        self.default_settings['henb_start'] = self.henb_start
+        self.henb_stop = 0.3
+        self.default_settings['henb_stop'] = self.henb_stop
+        self.henb_increment = 0.01
         self.default_settings['henb_increment'] = self.henb_increment
         self.henb_anim = False
         self.default_settings['henb_anim'] = self.henb_anim
-        self.max_iter_anim = 10000
+        self.max_iter_anim = 30000
         self.default_settings['max_iter_anim'] = self.max_iter_anim
-        self.plot_interval_anim = 10000
+        self.plot_interval_anim = 30000
         self.default_settings['plot_interval_anim'] = self.plot_interval_anim
-        self.animation_delay = 999
+        self.animation_delay = 100
         self.default_settings['animation_delay'] = self.animation_delay
 
         # orbit mode settings
@@ -132,8 +132,6 @@ class MainGui(QtWidgets.QMainWindow):
         self.prev_dir_path = ""
         self.animation_running = False
         self.module_opencl_present = module_opencl_present
-        self.hena_max = round(self.hena_mid + 0.5*self.hena_range,3)
-        self.henb_max = round(self.henb_mid + 0.5*self.henb_range,3)
 
     def on_about(self):
         msg = self.tr("H\xe9non browser\nAuthor: Ronald Naber\nLicense: Public domain")
@@ -150,22 +148,33 @@ class MainGui(QtWidgets.QMainWindow):
     @QtCore.pyqtSlot()
     def update_screen(self):
         #print("[MainGui] Updating screen")
-        #self.Henon_widget.updateGL() # for OpenGL Henon widget
         self.Henon_widget.showEvent(QtGui.QShowEvent()) # for PyQt-only Henon widget        
-        
+      
+    """
         if self.animation_running:
 
             self.statusBar().showMessage("a = " + str('%.3f' % self.hena) + "; b = " + str('%.3f' % self.henb))
             
             if (self.hena_anim):
-                new_hena = round(self.hena + self.hena_increment,3)
-                if new_hena <= self.hena_max:
-                    self.hena = new_hena                
+                if self.hena_stop >= self.hena_start:
+                    new_hena = round(self.hena + self.hena_increment,3)
+                    if new_hena <= self.hena_stop:
+                        self.hena = new_hena
+                else:
+                    new_hena = round(self.hena - self.hena_increment,3)
+                    if new_hena >= self.hena_stop:
+                        self.hena = new_hena                    
                 
             if (self.henb_anim):
-                new_henb = round(self.henb + self.henb_increment,3)
-                if new_henb <= self.henb_max:
-                    self.henb = new_henb         
+                if self.henb_stop >= self.henb_start:
+                    new_henb = round(self.henb + self.henb_increment,3)
+                    if new_henb <= self.henb_stop:
+                        self.henb = new_henb         
+                else:
+                    new_henb = round(self.henb - self.henb_increment,3)
+                    if new_henb >= self.henb_stop:
+                        self.henb = new_henb 
+    """                    
 
     def wait_thread_end(self, thread):
         
@@ -431,6 +440,9 @@ class MainGui(QtWidgets.QMainWindow):
         
         if self.first_run:
             return
+        
+        if self.animation_running:
+            return
             
         if self.orbit_mode:
             self.statusBar().showMessage(self.tr("Animation is not available in orbit map mode"),1000)
@@ -438,9 +450,10 @@ class MainGui(QtWidgets.QMainWindow):
         
         if (not self.hena_anim) and (not self.henb_anim):
             # cannot animate if no variables are selected for animation
+            self.statusBar().showMessage(self.tr("No parameter selected for animation"),1000)
             return
 
-        self.benchmark = False # make sure status bar can show a/b values
+        self.benchmark = False # do not allow benchmark screen updates for animations
 
         #print("[MainGui] Starting animation")
 
@@ -450,16 +463,12 @@ class MainGui(QtWidgets.QMainWindow):
         b_frames = 0
 
         if (self.hena_anim):
-            self.hena = self.hena_mid - 0.5*self.hena_range
-            a_frames = ceil(self.hena_range / self.hena_increment) + 1
+            a_frames = abs(ceil((self.hena_stop - self.hena_start) / self.hena_increment) + 1)
 
         if (self.henb_anim):
-            self.henb = self.henb_mid - 0.5*self.henb_range
-            b_frames = ceil(self.henb_range / self.henb_increment) + 1
+            b_frames = abs(ceil((self.henb_stop - self.henb_start) / self.henb_increment) + 1)
 
         self.max_iter_anim = max([a_frames,b_frames]) * self.plot_interval_anim
-        self.hena_max = round(self.hena_mid + 0.5*self.hena_range,3)
-        self.henb_max = round(self.henb_mid + 0.5*self.henb_range,3)
         
         self.animation_running = True
 
@@ -608,6 +617,8 @@ class MainGui(QtWidgets.QMainWindow):
             all_settings = pickle.load(f)
 
         self.implement_settings(all_settings)
+        
+        self.initialize_calculation()
             
         self.statusBar().showMessage(self.tr("New settings loaded"),1000)
     
@@ -656,12 +667,12 @@ class MainGui(QtWidgets.QMainWindow):
         settings['iter_auto_mode'] = self.iter_auto_mode
         settings['enlarge_rare_pixels'] = self.enlarge_rare_pixels
         settings['benchmark'] = self.benchmark
-        settings['hena_mid'] = self.hena_mid
-        settings['hena_range'] = self.hena_range
+        settings['hena_start'] = self.hena_start
+        settings['hena_stop'] = self.hena_stop
         settings['hena_increment'] = self.hena_increment
         settings['hena_anim'] = self.hena_anim
-        settings['henb_mid'] = self.henb_mid
-        settings['henb_range'] = self.henb_range
+        settings['henb_start'] = self.henb_start
+        settings['henb_stop'] = self.henb_stop
         settings['henb_increment'] = self.henb_increment
         settings['henb_anim'] = self.henb_anim
         settings['max_iter_anim'] = self.max_iter_anim
@@ -697,12 +708,12 @@ class MainGui(QtWidgets.QMainWindow):
         self.iter_auto_mode = settings['iter_auto_mode']
         self.enlarge_rare_pixels = settings['enlarge_rare_pixels']
         self.benchmark = settings['benchmark']
-        self.hena_mid = settings['hena_mid']
-        self.hena_range = settings['hena_range']
+        self.hena_start = settings['hena_start']
+        self.hena_stop = settings['hena_stop']
         self.hena_increment = settings['hena_increment']
         self.hena_anim = settings['hena_anim']
-        self.henb_mid = settings['henb_mid']
-        self.henb_range = settings['henb_range']
+        self.henb_start = settings['henb_start']
+        self.henb_stop = settings['henb_stop']
         self.henb_increment = settings['henb_increment']
         self.henb_anim = settings['henb_anim']
         self.max_iter_anim = settings['max_iter_anim']

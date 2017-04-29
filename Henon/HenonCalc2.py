@@ -4,6 +4,7 @@ import pyopencl as cl
 import multiprocessing as mp # for thread-safe memory sharing
 #from datetime import datetime
 import numpy as np
+import ctypes
 from time import sleep
 
 class HenonCalc2(QtCore.QThread):  
@@ -94,17 +95,7 @@ class WorkerProcess(QtCore.QThread):
         global_work_size = self.settings['global_work_size']
         max_iter = self.settings['max_iter']
         plot_interval = self.settings['plot_interval']
-        drop_iter = self.settings['drop_iter']
-        hena_mid = self.settings['hena_mid']
-        hena_range = self.settings['hena_range']        
-        hena_increment = self.settings['hena_increment']
-        hena_anim = self.settings['hena_anim']
-        henb_mid = self.settings['henb_mid']
-        henb_range = self.settings['henb_range']        
-        henb_increment = self.settings['henb_increment']
-        henb_anim = self.settings['henb_anim']
-        max_iter_anim = self.settings['max_iter_anim']
-        plot_interval_anim = self.settings['plot_interval_anim']        
+        drop_iter = self.settings['drop_iter']       
         animation_running = self.settings['animation_running']
         window_width = self.settings['window_width']
         window_height = self.settings['window_height']        
@@ -120,10 +111,23 @@ class WorkerProcess(QtCore.QThread):
         yratio = window_height/(ytop-ybottom)
 
         if animation_running:
-            hena_max = round(hena_mid + 0.5*hena_range,3)
-            henb_max = round(henb_mid + 0.5*henb_range,3)
-            plot_interval = plot_interval_anim
-            max_iter = max_iter_anim
+            hena_start = self.settings['hena_start']
+            hena_stop = self.settings['hena_stop']        
+            hena_increment = self.settings['hena_increment']
+            hena_anim = self.settings['hena_anim']
+            henb_start = self.settings['henb_start']
+            henb_stop = self.settings['henb_stop']        
+            henb_increment = self.settings['henb_increment']
+            henb_anim = self.settings['henb_anim']
+            max_iter = self.settings['max_iter_anim']
+            plot_interval = self.settings['plot_interval_anim']
+            empty_array = mp.RawArray('H', 2*window_width*window_height) # needed for emptying self.array
+            
+            if hena_anim:
+                hena = hena_start
+                
+            if henb_anim:
+                henb = henb_start                                     
             
         # random x,y values in (-0.1,0.1) range for each GPU thread
         # opencl-float2 does not exist in current pyopencl version, but complex does
@@ -176,18 +180,30 @@ class WorkerProcess(QtCore.QThread):
 
                 if (iter_count >= max_iter): # do not erase if last frame
                     break
-                    
-                self.array[:] = 0
-                
+
+                # erase image array for next animation frame
+                # needs twice as many pixels to erase whole picture; probably due to data type
+                ctypes.memmove(self.array, empty_array, 2*window_width*window_height)                             
+
                 if hena_anim:
-                    new_hena = round(hena + hena_increment,3)
-                    if new_hena <= hena_max:
-                        hena = new_hena
+                    if hena_stop >= hena_start:
+                        new_hena = round(hena + hena_increment,3)
+                        if new_hena <= hena_stop:
+                            hena = new_hena
+                    else:
+                        new_hena = round(hena - hena_increment,3)
+                        if new_hena >= hena_stop:
+                            hena = new_hena                        
 
                 if henb_anim:
-                    new_henb = round(henb + henb_increment,3)
-                    if new_henb <= henb_max:
-                       henb = new_henb                
+                    if henb_stop >= henb_start:
+                        new_henb = round(henb + henb_increment,3)
+                        if new_henb <= henb_stop:
+                            henb = new_henb
+                    else:
+                        new_henb = round(henb - henb_increment,3)
+                        if new_henb >= henb_stop:
+                            henb = new_henb 
                 
                 float_params = np.array([hena,henb,xleft,ybottom,xratio,yratio],dtype=np.float64)
 

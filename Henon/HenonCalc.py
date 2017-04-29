@@ -95,8 +95,8 @@ class WorkerProcess(mp.Process):
             for _ in repeat(None, drop_iter): # prevent drawing first iterations
                 henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
             return henx,heny
-        except OverflowError: # if x,y results move towards infinity
-            #print("[" + self.name + "] Worker " + str(self.run_number) + " overflow")                
+        except: # if x,y results move towards infinity
+            #print("[" + self.name + "] Worker " + str(self.run_number) + " overflow")
             return uniform(-0.1,0.1),uniform(-0.1,0.1)
 
     def run(self):
@@ -113,7 +113,6 @@ class WorkerProcess(mp.Process):
         # manipulating local array instead of multiprocessing array is a bit faster
         # subsequent data copying step takes almost no time
         local_array = np.zeros(len(self.array),dtype=ctypes.c_byte)
-        empty_array = np.zeros(len(self.array),dtype=ctypes.c_byte)
         
         # make local copies of variables to increase speed
         hena = self.settings['hena']
@@ -126,7 +125,7 @@ class WorkerProcess(mp.Process):
         max_iter = self.settings['max_iter']
         window_width = self.settings['window_width']
         window_height = self.settings['window_height']
-        drop_iter = self.settings['drop_iter']       
+        drop_iter = self.settings['drop_iter']
 
         animation_running = self.settings['animation_running']
         xratio = window_width/(xright-xleft)
@@ -135,19 +134,25 @@ class WorkerProcess(mp.Process):
         run_number = self.run_number
 
         if animation_running:
+            hena_start = self.settings['hena_start']            
+            hena_stop = self.settings['hena_stop']
             hena_increment = self.settings['hena_increment']
             hena_anim = self.settings['hena_anim']
+            henb_start = self.settings['henb_start']
+            henb_stop = self.settings['henb_stop']
             henb_increment = self.settings['henb_increment']
             henb_anim = self.settings['henb_anim']
-            hena_max = round(self.hena_mid + 0.5*self.hena_range,3)
-            henb_max = round(self.henb_mid + 0.5*self.henb_range,3)
             plot_interval = self.settings['plot_interval_anim']
             max_iter = self.settings['max_iter_anim']
+            empty_array = mp.RawArray(ctypes.c_byte, window_width*window_height) # needed for emptying self.array
+
+            if hena_anim:
+                hena = hena_start
+                
+            if henb_anim:
+                henb = henb_start
 
         henx,heny = self.drop_iterations(drop_iter,hena,henb,henx,heny)
-
-        if not henx or not heny:
-            return
 
         while not self.exit.is_set():
 
@@ -186,28 +191,33 @@ class WorkerProcess(mp.Process):
                     else:
                         break
 
-                if (run_number == 0): # empty current array
-                    ctypes.memmove(self.array, empty_array.data[:], len(empty_array.data))
-                else: # allow some time for worker 0 to empty array
-                    sleep(0.01)
-                
+                if (run_number == 0): # empty current array if you are worker 0
+                    ctypes.memmove(self.array, empty_array, window_width*window_height)
+
                 np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
-                self.interval_flags[run_number] = True
-                
-                if iter_count >= max_iter:
-                    pass
+                self.interval_flags[run_number] = True            
 
                 if hena_anim:
-                    new_hena = round(hena + hena_increment,3)
-                    if new_hena <= hena_max:
-                        hena = new_hena
+                    if hena_stop >= hena_start:
+                        new_hena = round(hena + hena_increment,3)
+                        if new_hena <= hena_stop:
+                            hena = new_hena
+                    else:
+                        new_hena = round(hena - hena_increment,3)
+                        if new_hena >= hena_stop:
+                            hena = new_hena                        
 
                 if henb_anim:
-                    new_henb = round(henb + henb_increment,3)
-                    if new_henb <= henb_max:
-                       henb = new_henb
+                    if henb_stop >= henb_start:
+                        new_henb = round(henb + henb_increment,3)
+                        if new_henb <= henb_stop:
+                            henb = new_henb
+                    else:
+                        new_henb = round(henb - henb_increment,3)
+                        if new_henb >= henb_stop:
+                            henb = new_henb                        
                 
-                henx,heny = self.drop_iterations(hena,henb,henx,heny)
+                henx,heny = self.drop_iterations(drop_iter,hena,henb,henx,heny)
                 
                 local_array = np.zeros(len(local_array),dtype=ctypes.c_byte)
             

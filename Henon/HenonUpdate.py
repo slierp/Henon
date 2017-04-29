@@ -2,6 +2,7 @@
 from PyQt5 import QtCore
 from datetime import datetime
 import numpy as np
+from time import sleep
 
 class Signal(QtCore.QObject):
     sig = QtCore.pyqtSignal()
@@ -84,13 +85,23 @@ class HenonUpdate(QtCore.QThread):
         if all(i for i in self.interval_flags):
             #print("[" + self.name + "] Received interval signal")
             self.perform_update()
-            self.interval_flags[:] = [False]*self.thread_count # reset for new signal
-        
+                    
             if not self.animation_running:                            
                 # call itself regularly
+                self.interval_flags[:] = [False]*self.thread_count # restart all workers
                 QtCore.QTimer.singleShot(100, self.check_for_update)
                 return        
-            else:
+            else:                
+                self.interval_flags[0] = False # give worker 0 a head-start            
+                while True: # wait until worker 0 emptied the array and copied new data
+                    if not self.interval_flags[0]:
+                        sleep(0.01)
+                    else:
+                        break
+                
+                if self.thread_count:
+                    self.interval_flags[1:] = [False]*(self.thread_count-1) # restart all other workers                
+                    
                 QtCore.QTimer.singleShot(self.animation_delay, self.check_for_update)
                 return
     
