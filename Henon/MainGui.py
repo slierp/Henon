@@ -430,16 +430,21 @@ class MainGui(QtWidgets.QMainWindow):
         
         if self.animation_running:
             return
-            
-        if self.orbit_mode:
-            self.statusBar().showMessage(self.tr("Animation is not available in orbit map mode"),1000)
-            return
-        
+
         if (not self.hena_anim) and (not self.henb_anim):
             # cannot animate if no variables are selected for animation
             self.statusBar().showMessage(self.tr("No parameter selected for animation"),1000)
             return
-
+            
+        if self.orbit_mode: # check that selected animation parameter is consistent with orbit map
+            if self.hena_anim and self.orbit_parameter:
+                self.statusBar().showMessage(self.tr("Set animation parameter is the same as orbit map parameter"),1000)
+                return
+        
+            if self.henb_anim and not self.orbit_parameter:
+                self.statusBar().showMessage(self.tr("Set animation parameter is the same as orbit map parameter"),1000)
+                return                
+        
         self.benchmark = False # do not allow benchmark screen updates for animations
 
         #print("[MainGui] Starting animation")
@@ -455,7 +460,10 @@ class MainGui(QtWidgets.QMainWindow):
         if (self.henb_anim):
             b_frames = abs(ceil((self.henb_stop - self.henb_start) / self.henb_increment) + 1)
 
-        self.max_iter_anim = max([a_frames,b_frames]) * self.plot_interval_anim
+        if not self.orbit_mode:
+            self.max_iter_anim = max([a_frames,b_frames]) * self.plot_interval_anim
+        else:
+            self.max_iter_anim = max([a_frames,b_frames]) * self.plot_interval_orbit
         
         self.animation_running = True
 
@@ -554,6 +562,9 @@ class MainGui(QtWidgets.QMainWindow):
         self.stop_calculation()       
 
     def toggle_benchmark(self):
+        if self.animation_running:
+            return
+        
         self.benchmark = not self.benchmark
         
         if self.benchmark:
@@ -564,7 +575,6 @@ class MainGui(QtWidgets.QMainWindow):
     def toggle_orbit_mode(self):
 
         if self.animation_running:
-            self.statusBar().showMessage(self.tr("Orbit mode is not available during animation"),1000)
             return
 
         self.previous_views = [] # empty previous zoom-in view list
@@ -585,12 +595,15 @@ class MainGui(QtWidgets.QMainWindow):
         self.statusBar().showMessage(self.tr("Press O to exit orbit map mode"),1000)
 
     def toggle_arrow_keys(self):
+        if self.animation_running:
+            return
+        
+        self.enable_arrow_keys = not self.enable_arrow_keys
+        
         if self.enable_arrow_keys:
-            self.enable_arrow_keys = False
-            self.statusBar().showMessage(self.tr("Arrow keys disabled"),1000)
-        else:
-            self.enable_arrow_keys = True
             self.statusBar().showMessage(self.tr("Arrow keys enabled"),1000)
+        else:
+            self.statusBar().showMessage(self.tr("Arrow keys disabled"),1000)
 
     def initialize_orbit_mode(self):
         if self.orbit_parameter: # parameter a

@@ -157,8 +157,9 @@ class WorkerProcess(mp.Process):
 
         while not self.exit.is_set():
 
-            for _ in repeat(None, plot_interval):
-                try:
+            try:
+                for _ in repeat(None, plot_interval):
+
                     henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
 
                     #if (0 < x_draw < window_width) and (0 < y_draw < window_height):
@@ -173,9 +174,9 @@ class WorkerProcess(mp.Process):
                         # +0 is there in case of common bug in drawing method that returns invalid window width;
                         # in combination with array flattening such bugs give very distorted images                    
                         local_array[(window_height-y_draw)*(window_width+0) + x_draw] = True
-                except:
-                    #print("[WorkerProcess] Worker " + str(run_number) + " overflow")
-                    pass
+            except: # OverFlowError
+                #print("[WorkerProcess] Worker " + str(run_number) + " overflow")
+                pass
                 
             iter_count += plot_interval
             
@@ -265,6 +266,7 @@ class WorkerProcessOrbit(WorkerProcess):
         thread_count = self.settings['thread_count']
         orbit_parameter = self.settings['orbit_parameter']
         orbit_coordinate = self.settings['orbit_coordinate']
+        animation_running = self.settings['animation_running']
         
         xratio = window_width/(xright-xleft)
         yratio = window_height/(ytop-ybottom)
@@ -279,22 +281,44 @@ class WorkerProcessOrbit(WorkerProcess):
             henb = xleft
             henb += run_number/xratio
 
+        if animation_running:
+            hena_start = self.settings['hena_start']            
+            hena_stop = self.settings['hena_stop']
+            hena_increment = self.settings['hena_increment']
+            hena_anim = self.settings['hena_anim']
+            henb_start = self.settings['henb_start']
+            henb_stop = self.settings['henb_stop']
+            henb_increment = self.settings['henb_increment']
+            henb_anim = self.settings['henb_anim']
+            max_iter = self.settings['max_iter_anim']
+            empty_array = mp.RawArray(ctypes.c_byte, window_width*window_height) # needed for emptying self.array
+
+            if hena_anim:
+                hena = hena_start
+                
+            if henb_anim:
+                henb = henb_start
+
         while not self.exit.is_set():
 
-            # no try/except because only ranges with finite results are allowed
-            for _ in repeat(None, drop_iter): # prevent drawing first iterations
-                henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+            try:
+                for _ in repeat(None, drop_iter): # prevent drawing first iterations
+                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+            except: # OverFlowError
+                henx,heny = 100,100 # return some number that will not be drawn on screen
             
-            # no try/except because only ranges with finite results are allowed
-            for _ in repeat(None, plot_interval):                
-                henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
-                if orbit_coordinate:
-                    y_draw = int((heny-ybottom) * yratio)
-                else:
-                    y_draw = int((henx-ybottom) * yratio)
-                    
-                if (0 < y_draw < window_height):                  
-                    local_array[(window_height-y_draw)*window_width + x_draw] = True                            
+            try:
+                for _ in repeat(None, plot_interval):                
+                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
+                    if orbit_coordinate:
+                        y_draw = int((heny-ybottom) * yratio)
+                    else:
+                        y_draw = int((henx-ybottom) * yratio)
+                        
+                    if (0 < y_draw < window_height):                  
+                        local_array[(window_height-y_draw)*window_width + x_draw] = True                            
+            except: # OverFlowError
+                pass
             
             x_draw += thread_count
             
@@ -304,20 +328,68 @@ class WorkerProcessOrbit(WorkerProcess):
                 henb += thread_count/xratio
             
             if (x_draw >= window_width):
-                # 'bitwise or' on local array and multiprocessing array
-                np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True                
-                # indicate to HenonUpdate that we have some new pixels to draw
-                self.interval_flags[run_number] = True
-                iter_count += plot_interval
-                x_draw = run_number
-                henx = uniform(-0.1,0.1)
-                heny = uniform(-0.1,0.1) 
-                if orbit_parameter:
-                    hena = xleft
-                    hena += run_number/xratio           
+                
+                if not animation_running:
+                    # 'bitwise or' on local array and multiprocessing array
+                    np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True                
+                    # indicate to HenonUpdate that we have some new pixels to draw
+                    self.interval_flags[run_number] = True
+                    iter_count += plot_interval
+                    x_draw = run_number
+                    henx = uniform(-0.1,0.1)
+                    heny = uniform(-0.1,0.1)
+                    
+                    if orbit_parameter:
+                        hena = xleft
+                        hena += run_number/xratio           
+                    else:
+                        henb = xleft
+                        henb += run_number/xratio                
+
                 else:
-                    henb = xleft
-                    henb += run_number/xratio                
+                    while not self.exit.is_set(): # wait until previous data was updated
+                        if self.interval_flags[run_number]:
+                            sleep(0.01)
+                        else:
+                            break
+    
+                    if (run_number == 0): # empty current array if you are worker 0
+                        ctypes.memmove(self.array, empty_array, window_width*window_height)
+    
+                    np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
+                    self.interval_flags[run_number] = True            
+                                       
+                    iter_count += plot_interval
+                    x_draw = run_number
+                    henx = uniform(-0.1,0.1)
+                    heny = uniform(-0.1,0.1)                                        
+
+                    if orbit_parameter:
+                        hena = xleft
+                        hena += run_number/xratio
+
+                        if henb_stop >= henb_start:
+                            new_henb = round(henb + henb_increment,3)
+                            if new_henb <= henb_stop:
+                                henb = new_henb
+                        else:
+                            new_henb = round(henb - henb_increment,3)
+                            if new_henb >= henb_stop:
+                                henb = new_henb                        
+                    else:
+                        henb = xleft
+                        henb += run_number/xratio
+                        
+                        if hena_stop >= hena_start:
+                            new_hena = round(hena + hena_increment,3)
+                            if new_hena <= hena_stop:
+                                hena = new_hena
+                        else:
+                            new_hena = round(hena - hena_increment,3)
+                            if new_hena >= hena_stop:
+                                hena = new_hena
+                    
+                    local_array = np.zeros(len(local_array),dtype=ctypes.c_byte)
             
             if (iter_count >= max_iter):
                 break
