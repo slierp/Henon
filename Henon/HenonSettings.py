@@ -547,5 +547,5 @@ class HenonSettings(QtWidgets.QDialog):
             if self.opencl_enabled.isChecked():
                 self.parent.initialize_opencl()
         
-        self.parent.statusBar().showMessage(self.tr("Parameter settings updated; press R to re-draw"), 3000)
+        self.parent.statusBar().showMessage(self.tr("Parameter settings updated; press R to re-draw"), 1000)
         self.accept()

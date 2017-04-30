@@ -121,7 +121,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.default_settings['orbit_coordinate'] = self.orbit_coordinate
         self.max_iter_orbit = 500
         self.default_settings['max_iter_orbit'] = self.max_iter_orbit
-        self.plot_interval_orbit = 500
+        self.plot_interval_orbit = 100
         self.default_settings['plot_interval_orbit'] = self.plot_interval_orbit
         self.iter_auto_mode_orbit = True
         self.default_settings['iter_auto_mode_orbit'] = self.iter_auto_mode_orbit
@@ -132,6 +132,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.prev_dir_path = ""
         self.animation_running = False
         self.module_opencl_present = module_opencl_present
+        self.enable_arrow_keys = False
 
     def on_about(self):
         msg = self.tr("H\xe9non browser\nAuthor: Ronald Naber\nLicense: Public domain")
@@ -143,38 +144,24 @@ class MainGui(QtWidgets.QMainWindow):
             if (self.full_screen):                
                 self.toggle_full_screen()
             else:
-                self.stop_user_command()             
+                self.stop_user_command()
+        elif (e.key() == QtCore.Qt.Key_Up):
+            if self.enable_arrow_keys:
+                self.increase_hena()
+        elif (e.key() == QtCore.Qt.Key_Down):
+            if self.enable_arrow_keys:
+                self.decrease_hena()
+        elif (e.key() == QtCore.Qt.Key_Left):
+            if self.enable_arrow_keys:
+                self.decrease_henb()
+        elif (e.key() == QtCore.Qt.Key_Right):
+            if self.enable_arrow_keys:
+                self.increase_henb()        
 
     @QtCore.pyqtSlot()
     def update_screen(self):
         #print("[MainGui] Updating screen")
-        self.Henon_widget.showEvent(QtGui.QShowEvent()) # for PyQt-only Henon widget        
-      
-    """
-        if self.animation_running:
-
-            self.statusBar().showMessage("a = " + str('%.3f' % self.hena) + "; b = " + str('%.3f' % self.henb))
-            
-            if (self.hena_anim):
-                if self.hena_stop >= self.hena_start:
-                    new_hena = round(self.hena + self.hena_increment,3)
-                    if new_hena <= self.hena_stop:
-                        self.hena = new_hena
-                else:
-                    new_hena = round(self.hena - self.hena_increment,3)
-                    if new_hena >= self.hena_stop:
-                        self.hena = new_hena                    
-                
-            if (self.henb_anim):
-                if self.henb_stop >= self.henb_start:
-                    new_henb = round(self.henb + self.henb_increment,3)
-                    if new_henb <= self.henb_stop:
-                        self.henb = new_henb         
-                else:
-                    new_henb = round(self.henb - self.henb_increment,3)
-                    if new_henb >= self.henb_stop:
-                        self.henb = new_henb 
-    """                    
+        self.Henon_widget.showEvent(QtGui.QShowEvent()) # for PyQt-only Henon widget                  
 
     def wait_thread_end(self, thread):
         
@@ -474,9 +461,7 @@ class MainGui(QtWidgets.QMainWindow):
 
         self.initialize_calculation()
     
-    def reset_view(self):       
-        self.statusBar().showMessage(self.tr("Resetting view..."), 1000)
-        
+    def reset_view(self):        
         self.previous_views = [] # empty previous zoom-in view list
 
         if self.animation_running:
@@ -491,6 +476,38 @@ class MainGui(QtWidgets.QMainWindow):
             self.initialize_orbit_mode()
             
         self.initialize_calculation()
+
+    def increase_hena(self):        
+
+        if not round(self.hena+0.05,3) > 2:
+            self.hena = round(self.hena+0.05,3)        
+            self.initialize_calculation()
+        
+        self.statusBar().showMessage("a = " + str(self.hena), 1000)
+
+    def decrease_hena(self):        
+
+        if not round(self.hena-0.05,3) < 0:
+            self.hena = round(self.hena-0.05,3)        
+            self.initialize_calculation()
+        
+        self.statusBar().showMessage("a = " + str(self.hena), 1000)
+
+    def increase_henb(self):        
+
+        if not round(self.henb+0.05,3) > 1:
+            self.henb = round(self.henb+0.05,3)        
+            self.initialize_calculation()
+        
+        self.statusBar().showMessage("b = " + str(self.henb), 1000)
+
+    def decrease_henb(self):        
+
+        if not round(self.henb-0.05,3) < -1:
+            self.henb = round(self.henb-0.05,3)        
+            self.initialize_calculation()
+        
+        self.statusBar().showMessage("b = " + str(self.henb), 1000)
 
     def previous_view(self):
         if not len(self.previous_views):
@@ -566,6 +583,14 @@ class MainGui(QtWidgets.QMainWindow):
 
         self.initialize_calculation()
         self.statusBar().showMessage(self.tr("Press O to exit orbit map mode"),1000)
+
+    def toggle_arrow_keys(self):
+        if self.enable_arrow_keys:
+            self.enable_arrow_keys = False
+            self.statusBar().showMessage(self.tr("Arrow keys disabled"),1000)
+        else:
+            self.enable_arrow_keys = True
+            self.statusBar().showMessage(self.tr("Arrow keys enabled"),1000)
 
     def initialize_orbit_mode(self):
         if self.orbit_parameter: # parameter a
@@ -829,8 +854,17 @@ class MainGui(QtWidgets.QMainWindow):
         benchmark_action.setStatusTip(tip)
         benchmark_action.setShortcut('B')
 
+        tip = self.tr("Arrow keys")        
+        arrow_keys_action = QtWidgets.QAction(self.tr("Arrow keys"), self)
+        arrow_keys_action.setIcon(QtGui.QIcon(":arrows.png"))
+        arrow_keys_action.triggered.connect(self.toggle_arrow_keys)        
+        arrow_keys_action.setToolTip(tip)
+        arrow_keys_action.setStatusTip(tip)
+        arrow_keys_action.setShortcut('K')
+
         self.run_menu.addAction(start_action)
         self.run_menu.addAction(stop_action)        
+        self.run_menu.addAction(arrow_keys_action)        
         self.run_menu.addAction(animate_action)
         self.run_menu.addAction(benchmark_action)
 
@@ -883,3 +917,8 @@ class MainGui(QtWidgets.QMainWindow):
 
         self.help_menu.addAction(help_action)
         self.help_menu.addAction(about_action)
+        
+        QtCore.QTimer.singleShot(3000, self.set_menu_style) # hide menu after a delay
+
+    def set_menu_style(self):        
+        self.menuBar().setStyleSheet("QMenuBar { color: black; } QMenuBar::item:selected { color: white; }")        

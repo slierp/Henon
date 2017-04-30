@@ -17,7 +17,7 @@ if __name__ == "__main__":
     app.setStyle("Fusion")
     
     palette = QtGui.QPalette()
-    palette.setColor(QtGui.QPalette.Window, QtGui.QColor(0,0,0)) #53,53,53))
+    palette.setColor(QtGui.QPalette.Window, QtGui.QColor(0,0,0))
     palette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
     palette.setColor(QtGui.QPalette.Base, QtGui.QColor(53,53,53))
     palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(0,0,0))

@@ -15,6 +15,7 @@ class HenonWidget(QtWidgets.QLabel):
         self.first_run = True
         self.second_run = False
         self.do_not_draw = False # prevent re-draw during area selection
+        self.select_begin = None
 
         # For selecting areas 
         self.rubberBand = QtWidgets.QRubberBand(QtWidgets.QRubberBand.Rectangle, self)
@@ -90,10 +91,10 @@ class HenonWidget(QtWidgets.QLabel):
      
     def mouseMoveEvent(self, event):
 
-        # Draw selection area    
-     
-        if not self.select_begin.isNull():
-            self.rubberBand.setGeometry(QtCore.QRect(self.select_begin, event.pos()).normalized())
+        # Draw selection area     
+        if self.select_begin:
+            if not self.select_begin.isNull():
+                self.rubberBand.setGeometry(QtCore.QRect(self.select_begin, event.pos()).normalized())
      
     def mouseReleaseEvent(self, event):
 

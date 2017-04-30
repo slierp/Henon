@@ -66,7 +66,8 @@ class HenonCalc(QtCore.QThread):
                       
         #print("[" + self.name + "] Received stop signal")
 
-        [worker.shutdown() for worker in self.worker_list] # shut down workers
+        if self.workers_started:
+            [worker.shutdown() for worker in self.worker_list] # shut down workers
 
         self.stop_signal.value = [True]*self.thread_count # stop updates
         
@@ -97,7 +98,7 @@ class WorkerProcess(mp.Process):
             return henx,heny
         except: # if x,y results move towards infinity
             #print("[" + self.name + "] Worker " + str(self.run_number) + " overflow")
-            return uniform(-0.1,0.1),uniform(-0.1,0.1)
+            return 100,100 # return some number that will not be drawn on screen
 
     def run(self):
         
@@ -242,6 +243,8 @@ class WorkerProcessOrbit(WorkerProcess):
         henx = uniform(-0.1,0.1) # generate random starting points
         heny = uniform(-0.1,0.1)
 
+        iter_count = 0
+
         # make local array for storing pixel during each iteration        
         # manipulating local array instead of multiprocessing array is a bit faster
         # subsequent data copying step takes almost no time
@@ -254,6 +257,7 @@ class WorkerProcessOrbit(WorkerProcess):
         xright = self.settings['xright']
         ybottom = self.settings['ybottom']
         ytop = self.settings['ytop']
+        plot_interval = self.settings['plot_interval_orbit']
         max_iter = self.settings['max_iter_orbit']
         window_width = self.settings['window_width']
         window_height = self.settings['window_height']
@@ -277,28 +281,12 @@ class WorkerProcessOrbit(WorkerProcess):
 
         while not self.exit.is_set():
 
-            try:
-                for _ in repeat(None, drop_iter): # prevent drawing first iterations
-                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
-            except OverflowError: # if x,y results move towards infinity
-                henx = uniform(-0.1,0.1)
-                heny = uniform(-0.1,0.1)
-                
-                x_draw += thread_count
+            # no try/except because only ranges with finite results are allowed
+            for _ in repeat(None, drop_iter): # prevent drawing first iterations
+                henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
             
-                if orbit_parameter:
-                    hena += thread_count/xratio
-                else:
-                    henb += thread_count/xratio
-                
-                if (x_draw >= window_width):
-                    break
-            
-                continue
-            
-            # no plot interval as we only calculate #threads pixels at a time
-            # no try/except because we only allow working a,b ranges
-            for _ in repeat(None, max_iter):
+            # no try/except because only ranges with finite results are allowed
+            for _ in repeat(None, plot_interval):                
                 henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
                 if orbit_coordinate:
                     y_draw = int((heny-ybottom) * yratio)
@@ -306,7 +294,7 @@ class WorkerProcessOrbit(WorkerProcess):
                     y_draw = int((henx-ybottom) * yratio)
                     
                 if (0 < y_draw < window_height):                  
-                    local_array[(window_height-y_draw)*window_width + x_draw] = True
+                    local_array[(window_height-y_draw)*window_width + x_draw] = True                            
             
             x_draw += thread_count
             
@@ -316,10 +304,23 @@ class WorkerProcessOrbit(WorkerProcess):
                 henb += thread_count/xratio
             
             if (x_draw >= window_width):
-                break           
-
-        # 'bitwise or' on local array and multiprocessing array
-        np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
+                # 'bitwise or' on local array and multiprocessing array
+                np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True                
+                # indicate to HenonUpdate that we have some new pixels to draw
+                self.interval_flags[run_number] = True
+                iter_count += plot_interval
+                x_draw = run_number
+                henx = uniform(-0.1,0.1)
+                heny = uniform(-0.1,0.1) 
+                if orbit_parameter:
+                    hena = xleft
+                    hena += run_number/xratio           
+                else:
+                    henb = xleft
+                    henb += run_number/xratio                
+            
+            if (iter_count >= max_iter):
+                break
         
         self.interval_flags[run_number] = True # send message to HenonUpdate to show end result 
         self.stop_signal[run_number] = True # sends message to HenonUpdate to stop because max_iter reached        

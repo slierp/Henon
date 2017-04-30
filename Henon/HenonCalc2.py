@@ -41,8 +41,6 @@ class HenonCalc2(QtCore.QThread):
         if (self.workers_started): # fix strange problem where run command is started twice by QThread
             return
 
-        self.workers_started = True
-
         #print("[" + self.name + "] Starting workers")
 
         shared_tuple = self.context, self.command_queue, self.mem_flags, self.program, self.array, self.interval_flags, self.stop_signal
@@ -51,7 +49,10 @@ class HenonCalc2(QtCore.QThread):
             self.worker = WorkerProcess(args=([self.settings, shared_tuple]))
         else:
             self.worker = WorkerProcessOrbit(args=([self.settings, shared_tuple]))
+
         self.worker.start()
+
+        self.workers_started = True
 
         self.exec_() # start thread
 
@@ -59,7 +60,8 @@ class HenonCalc2(QtCore.QThread):
     def stop(self):                      
         #print("[" + self.name + "] Received stop signal")
         self.received_stop_signal = True
-        self.worker.shutdown()
+        if self.workers_started:
+            self.worker.shutdown()
         self.quit() # stop thread
 
 
