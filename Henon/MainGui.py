@@ -64,6 +64,10 @@ class MainGui(QtWidgets.QMainWindow):
         self.default_settings['xright'] = self.xright
         self.ybottom = -0.4
         self.default_settings['ybottom'] = self.ybottom
+        self.color = 0
+        self.default_settings['color'] = self.color
+        self.color_options = ['white','blue','red','green','orange','purple','light blue']
+        self.color_options_rgb = [[200,200,200],[79,129,189],[192,80,77],[155,187,89],[247,150,70],[128,100,162],[75,172,198]]
         
         # calculation settings        
         self.opencl_enabled = False
@@ -161,7 +165,11 @@ class MainGui(QtWidgets.QMainWindow):
     @QtCore.pyqtSlot()
     def update_screen(self):
         #print("[MainGui] Updating screen")
-        self.Henon_widget.showEvent(QtGui.QShowEvent()) # for PyQt-only Henon widget                  
+        
+        if not self.color:
+            self.Henon_widget.showEvent(QtGui.QShowEvent()) # for PyQt-only Henon widget
+        else:
+            self.Henon_widget.showEvent_color(QtGui.QShowEvent(),self.color)
 
     def wait_thread_end(self, thread):
         
@@ -695,6 +703,7 @@ class MainGui(QtWidgets.QMainWindow):
         settings['ytop'] = self.ytop
         settings['xright'] = self.xright
         settings['ybottom'] = self.ybottom
+        settings['color'] = self.color
         settings['opencl_enabled'] = self.opencl_enabled
         settings['device_selection'] = self.device_selection
         settings['thread_count'] = self.thread_count
@@ -733,6 +742,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.ytop = settings['ytop']
         self.xright = settings['xright']
         self.ybottom = settings['ybottom']
+        self.color = settings['color']
         if self.module_opencl_present:
             self.opencl_enabled = settings['opencl_enabled']
         else:

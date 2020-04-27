@@ -153,7 +153,7 @@ class HenonUpdate(QtCore.QThread):
         if self.animation_running:
             self.window_representation[:] = 0
            
-        self.window_representation[arr == True] = 255 # add newly calculated pixels
+        self.window_representation[arr == True] = 200 # add newly calculated pixels
 
         ##print("[" + self.name + "] Pixels in screen window: " + str(self.window_width*self.window_height))
         ##print("[" + self.name + "] Pixels in copied array: " + str(np.count_nonzero(arr))) 
@@ -179,7 +179,7 @@ class HenonUpdate(QtCore.QThread):
         if self.animation_running:
             self.window_representation[:] = 0
            
-        self.window_representation[arr == 255] = 255 # add newly calculated pixels
+        self.window_representation[arr == 255] = 200 # add newly calculated pixels
 
         ##print("[" + self.name + "] Pixels in screen window: " + str(self.window_width*self.window_height))
         ##print("[" + self.name + "] Pixels in copied array: " + str(np.count_nonzero(arr))) 

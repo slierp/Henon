@@ -102,6 +102,17 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addStretch(1)                
         vbox_tab_general.addLayout(hbox)         
 
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Pixel color")        
+        self.color_combobox = QtWidgets.QComboBox(self)
+        for i in self.parent.color_options:
+            self.color_combobox.addItem(i)               
+        self.color_combobox.setCurrentIndex(self.parent.color)
+        hbox.addWidget(self.color_combobox) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox_tab_general.addLayout(hbox)
+
         vbox_tab_general.addStretch(1)
         generic_widget_general = QtWidgets.QWidget()
         generic_widget_general.setLayout(vbox_tab_general)
@@ -494,6 +505,7 @@ class HenonSettings(QtWidgets.QDialog):
             self.parent.plot_interval = self.plot_interval.value()
 
         self.parent.iter_auto_mode = self.iter_auto_mode.isChecked()
+        self.parent.color = self.color_combobox.currentIndex()
         
         ### Animation settings ###
         self.parent.hena_start = self.hena_start.value()
@@ -547,5 +559,6 @@ class HenonSettings(QtWidgets.QDialog):
             if self.opencl_enabled.isChecked():
                 self.parent.initialize_opencl()
         
-        self.parent.statusBar().showMessage(self.tr("Parameter settings updated; press R to re-draw"), 1000)
+        self.parent.reset_view()
+        self.parent.statusBar().showMessage(self.tr("Parameter settings updated"), 1000)
         self.accept()
