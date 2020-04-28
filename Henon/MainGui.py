@@ -67,7 +67,9 @@ class MainGui(QtWidgets.QMainWindow):
         self.color = 0
         self.default_settings['color'] = self.color
         self.color_options = ['white','blue','red','green','orange','purple','light blue']
-        self.color_options_rgb = [[200,200,200],[79,129,189],[192,80,77],[155,187,89],[247,150,70],[128,100,162],[75,172,198]]
+        self.super_sampling = 0
+        self.default_settings['super_sampling'] = self.super_sampling
+        self.super_sampling_options = ['1x','2x','4x','8x','16x']
         
         # calculation settings        
         self.opencl_enabled = False
@@ -704,6 +706,7 @@ class MainGui(QtWidgets.QMainWindow):
         settings['xright'] = self.xright
         settings['ybottom'] = self.ybottom
         settings['color'] = self.color
+        settings['super_sampling'] = self.super_sampling        
         settings['opencl_enabled'] = self.opencl_enabled
         settings['device_selection'] = self.device_selection
         settings['thread_count'] = self.thread_count
@@ -743,6 +746,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.xright = settings['xright']
         self.ybottom = settings['ybottom']
         self.color = settings['color']
+        self.super_sampling = settings['super_sampling']        
         if self.module_opencl_present:
             self.opencl_enabled = settings['opencl_enabled']
         else:

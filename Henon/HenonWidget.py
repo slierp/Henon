@@ -50,9 +50,10 @@ class HenonWidget(QtWidgets.QLabel):
         if self.do_not_draw:
             return
 
-        r = self.parent.color_options_rgb[color][0]
-        g = self.parent.color_options_rgb[color][1]
-        b = self.parent.color_options_rgb[color][2]
+        color_options = [[200,200,200],[79,129,189],[192,80,77],[155,187,89],[247,150,70],[128,100,162],[75,172,198]]
+        r = color_options[color][0]
+        g = color_options[color][1]
+        b = color_options[color][2]
         
         # second window_width is bytes per line; needed to avoid image distortion when resizing the window
         image=QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)
@@ -63,8 +64,9 @@ class HenonWidget(QtWidgets.QLabel):
     
         #print("[HenonWidget] Resize event") #DEBUG
 
-        self.window_width = self.geometry().width()
-        self.window_height = self.geometry().height()
+        sampling = pow(2,self.parent.super_sampling)
+        self.window_width = sampling*self.geometry().width()
+        self.window_height = sampling*self.geometry().height()
         
         # make new window representation
         self.window_representation = np.zeros((self.window_height,self.window_width), dtype=np.byte)
@@ -131,6 +133,12 @@ class HenonWidget(QtWidgets.QLabel):
         previous_view = [self.parent.xleft,self.parent.xright,self.parent.ybottom,self.parent.ytop]
         self.parent.previous_views.append(previous_view)
 
+        # calculate real window dimensions without super sampling
+        
+        sampling = pow(2,self.parent.super_sampling)
+        width = self.window_width/sampling
+        height = self.window_height/sampling
+
         # calculate new coordinate system and re-draw
         # in opengl (0,0) is in the bottom_left, but in PyQt it is in the top_left
 
@@ -139,30 +147,30 @@ class HenonWidget(QtWidgets.QLabel):
         
         if (self.select_begin.x() < self.select_end.x()): # if the first point is more to the left
             
-            if (self.window_width > self.select_begin.x() > 0): # if inside the screen
+            if (width > self.select_begin.x() > 0): # if inside the screen
                 left_edge = self.select_begin.x()
             else:
                 left_edge = 0
             
-            if (self.window_width > self.select_end.x() > 0):
+            if (width > self.select_end.x() > 0):
                 right_edge = self.select_end.x()
             else:                
-                right_edge = self.window_width
+                right_edge = width
                 
         else:
             
-            if (self.window_width > self.select_end.x() > 0):
+            if (width > self.select_end.x() > 0):
                 left_edge = self.select_end.x()
             else:                
                 left_edge = 0
             
-            if (self.window_width > self.select_begin.x() > 0):
+            if (width > self.select_begin.x() > 0):
                 right_edge = self.select_begin.x()
             else:                
-                right_edge = self.window_width                
+                right_edge = width                
         
-        temp_xleft = self.parent.xleft + (self.parent.xright - self.parent.xleft)*(left_edge/self.window_width)
-        self.parent.xright = self.parent.xleft + (self.parent.xright - self.parent.xleft)*(right_edge/self.window_width)        
+        temp_xleft = self.parent.xleft + (self.parent.xright - self.parent.xleft)*(left_edge/width)
+        self.parent.xright = self.parent.xleft + (self.parent.xright - self.parent.xleft)*(right_edge/width)        
         self.parent.xleft = temp_xleft
 
         top_edge = 0
@@ -171,34 +179,34 @@ class HenonWidget(QtWidgets.QLabel):
         if (self.select_begin.y() < self.select_end.y()):
             # image is reversed; towards the top is towards zero and negative
             
-            if (self.window_height > self.select_begin.y() > 0): # if inside the screen
+            if (height > self.select_begin.y() > 0): # if inside the screen
                 top_edge = self.select_begin.y()
             else:
                 top_edge = 0
             
-            if (self.window_height > self.select_end.y() > 0):
+            if (height > self.select_end.y() > 0):
                 bottom_edge = self.select_end.y()
             else:                
-                bottom_edge = self.window_height
+                bottom_edge = height
             
         else:
             
-            if (self.window_height > self.select_end.y() > 0): # if inside the screen
+            if (height > self.select_end.y() > 0): # if inside the screen
                 top_edge = self.select_end.y()
             else:
                 top_edge = 0
             
-            if (self.window_height > self.select_begin.y() > 0):
+            if (height > self.select_begin.y() > 0):
                 bottom_edge = self.select_begin.y()
             else:                
-                bottom_edge = self.window_height            
+                bottom_edge = height            
 
         # invert the result
-        bottom_edge = self.window_height - bottom_edge
-        top_edge = self.window_height - top_edge
+        bottom_edge = height - bottom_edge
+        top_edge = height - top_edge
         
-        temp_ybottom = self.parent.ybottom + (self.parent.ytop - self.parent.ybottom)*(bottom_edge/self.window_height)
-        self.parent.ytop = self.parent.ybottom + (self.parent.ytop - self.parent.ybottom)*(top_edge/self.window_height)
+        temp_ybottom = self.parent.ybottom + (self.parent.ytop - self.parent.ybottom)*(bottom_edge/height)
+        self.parent.ytop = self.parent.ybottom + (self.parent.ytop - self.parent.ybottom)*(top_edge/height)
         self.parent.ybottom = temp_ybottom
       
         self.clear_screen()

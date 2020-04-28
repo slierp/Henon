@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore, QtGui
 from sys import platform as _platform
 from multiprocessing import cpu_count
 
@@ -109,6 +109,17 @@ class HenonSettings(QtWidgets.QDialog):
             self.color_combobox.addItem(i)               
         self.color_combobox.setCurrentIndex(self.parent.color)
         hbox.addWidget(self.color_combobox) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox_tab_general.addLayout(hbox)
+
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Super sampling")        
+        self.sampling_combobox = QtWidgets.QComboBox(self)
+        for i in self.parent.super_sampling_options:
+            self.sampling_combobox.addItem(i)               
+        self.sampling_combobox.setCurrentIndex(self.parent.super_sampling)
+        hbox.addWidget(self.sampling_combobox) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
         vbox_tab_general.addLayout(hbox)
@@ -506,6 +517,7 @@ class HenonSettings(QtWidgets.QDialog):
 
         self.parent.iter_auto_mode = self.iter_auto_mode.isChecked()
         self.parent.color = self.color_combobox.currentIndex()
+        self.parent.super_sampling = self.sampling_combobox.currentIndex()
         
         ### Animation settings ###
         self.parent.hena_start = self.hena_start.value()
@@ -559,6 +571,11 @@ class HenonSettings(QtWidgets.QDialog):
             if self.opencl_enabled.isChecked():
                 self.parent.initialize_opencl()
         
-        self.parent.reset_view()
+        # trigger resize event to force implementation of super-sampling setting
+        old_size = QtCore.QSize(self.parent.Henon_widget.geometry().width(), self.parent.Henon_widget.geometry().height())
+        size = QtCore.QSize(self.parent.Henon_widget.geometry().width(), self.parent.Henon_widget.geometry().height())
+        resize = QtGui.QResizeEvent(size, old_size)
+        self.parent.Henon_widget.resizeEvent(resize)
+
         self.parent.statusBar().showMessage(self.tr("Parameter settings updated"), 1000)
         self.accept()
