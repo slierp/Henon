@@ -697,6 +697,16 @@ class MainGui(QtWidgets.QMainWindow):
         self.implement_settings(self.default_settings)
         self.statusBar().showMessage(self.tr("Default settings loaded"),1000)
 
+    def save_image(self):
+        save_path = QtWidgets.QFileDialog.getSaveFileName(self,self.tr("Save file"), "", "PNG File (*.png)")
+                
+        if save_path[0] == "":
+            return
+        
+        self.Henon_widget.save_image(save_path,self.color)
+        
+        self.statusBar().showMessage(self.tr("File saved"),1000)
+
     def get_settings(self):
         settings = {}
         settings['hena'] = self.hena
@@ -807,7 +817,6 @@ class MainGui(QtWidgets.QMainWindow):
         load_action.triggered.connect(self.load_settings)        
         load_action.setToolTip(tip)
         load_action.setStatusTip(tip)
-        load_action.setShortcut('CTRL+L')
 
         tip = self.tr("Save settings")        
         save_action = QtWidgets.QAction(self.tr("Save settings"), self)
@@ -815,7 +824,6 @@ class MainGui(QtWidgets.QMainWindow):
         save_action.triggered.connect(self.save_settings)        
         save_action.setToolTip(tip)
         save_action.setStatusTip(tip)
-        save_action.setShortcut('CTRL+S')
 
         tip = self.tr("Change settings")        
         settings_action = QtWidgets.QAction(self.tr("Change settings"), self)
@@ -831,7 +839,14 @@ class MainGui(QtWidgets.QMainWindow):
         default_action.triggered.connect(self.load_default_settings)        
         default_action.setToolTip(tip)
         default_action.setStatusTip(tip)
-        default_action.setShortcut('D')
+
+        tip = self.tr("Save image")        
+        img_action = QtWidgets.QAction(self.tr("Save image"), self)
+        img_action.setIcon(QtGui.QIcon(":save.png"))
+        img_action.triggered.connect(self.save_image)        
+        img_action.setToolTip(tip)
+        img_action.setStatusTip(tip)
+        img_action.setShortcut('CTRL+S')
 
         tip = self.tr("Quit")        
         quit_action = QtWidgets.QAction(self.tr("Quit"), self)
@@ -845,6 +860,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.file_menu.addAction(save_action)
         self.file_menu.addAction(settings_action)
         self.file_menu.addAction(default_action)        
+        self.file_menu.addAction(img_action)         
         self.file_menu.addAction(quit_action)
         
         self.run_menu = self.menuBar().addMenu(self.tr("Run"))      

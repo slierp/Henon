@@ -36,6 +36,8 @@ class HenonWidget(QtWidgets.QLabel):
         # without resize the window attains the size of the full-screen pixmap
         self.setMinimumSize(1,1)
 
+        self.color_options = [[200,200,200],[79,129,189],[192,80,77],[155,187,89],[247,150,70],[128,100,162],[75,172,198]]
+
     def showEvent(self,event):
 
         if self.do_not_draw:
@@ -49,11 +51,10 @@ class HenonWidget(QtWidgets.QLabel):
 
         if self.do_not_draw:
             return
-
-        color_options = [[200,200,200],[79,129,189],[192,80,77],[155,187,89],[247,150,70],[128,100,162],[75,172,198]]
-        r = color_options[color][0]
-        g = color_options[color][1]
-        b = color_options[color][2]
+        
+        r = self.color_options[color][0]
+        g = self.color_options[color][1]
+        b = self.color_options[color][2]
         
         # second window_width is bytes per line; needed to avoid image distortion when resizing the window
         image=QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)
@@ -215,3 +216,18 @@ class HenonWidget(QtWidgets.QLabel):
         
     def clear_screen(self):     
         self.window_representation[:] = 0
+
+    def trigger_resizeEvent(self):
+        old_size = QtCore.QSize(self.geometry().width(), self.geometry().height())
+        size = QtCore.QSize(self.geometry().width(), self.geometry().height())
+        resize = QtGui.QResizeEvent(size, old_size)
+        self.resizeEvent(resize)
+        
+    def save_image(self,save_path,color):
+        r = self.color_options[color][0]
+        g = self.color_options[color][1]
+        b = self.color_options[color][2]        
+        
+        image = QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)
+        image.setColor(200,QtGui.qRgb(r,g,b)) 
+        image.save(save_path[0])

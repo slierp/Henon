@@ -572,10 +572,7 @@ class HenonSettings(QtWidgets.QDialog):
                 self.parent.initialize_opencl()
         
         # trigger resize event to force implementation of super-sampling setting
-        old_size = QtCore.QSize(self.parent.Henon_widget.geometry().width(), self.parent.Henon_widget.geometry().height())
-        size = QtCore.QSize(self.parent.Henon_widget.geometry().width(), self.parent.Henon_widget.geometry().height())
-        resize = QtGui.QResizeEvent(size, old_size)
-        self.parent.Henon_widget.resizeEvent(resize)
+        self.parent.Henon_widget.trigger_resizeEvent()
 
         self.parent.statusBar().showMessage(self.tr("Parameter settings updated"), 1000)
         self.accept()
