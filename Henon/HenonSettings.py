@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtWidgets
 from sys import platform as _platform
 from multiprocessing import cpu_count
 
@@ -401,23 +401,21 @@ class HenonSettings(QtWidgets.QDialog):
         self.thread_count.setMaximum(cpu_count())
         self.thread_count.setMinimum(1)
         self.thread_count.setValue(self.parent.thread_count)
-        self.thread_count.setSingleStep(1)
-        self.thread_count.setDisabled(self.parent.opencl_enabled)            
+        self.thread_count.setSingleStep(1)           
         hbox.addWidget(self.thread_count) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
         vbox_tab_calculation.addLayout(hbox)
 
-        hbox = QtWidgets.QHBoxLayout()
-        self.opencl_enabled = QtWidgets.QCheckBox("Enable OpenCL")
-        self.opencl_enabled.setDisabled(not self.parent.module_opencl_present)
-        self.opencl_enabled.setChecked(self.parent.opencl_enabled)
-        self.opencl_enabled.mouseReleaseEvent = self.switch_opencl_enabled
-        hbox.addWidget(self.opencl_enabled)
-        hbox.addStretch(1)                
-        vbox_tab_calculation.addLayout(hbox)
+
 
         if self.parent.module_opencl_present:
+            hbox = QtWidgets.QHBoxLayout()
+            self.opencl_enabled = QtWidgets.QCheckBox("Enable OpenCL")
+            self.opencl_enabled.setChecked(self.parent.opencl_enabled)
+            hbox.addWidget(self.opencl_enabled)
+            hbox.addStretch(1)                
+            vbox_tab_calculation.addLayout(hbox)             
 
             hbox = QtWidgets.QHBoxLayout()
             description = QtWidgets.QLabel("Global work size")
@@ -426,14 +424,12 @@ class HenonSettings(QtWidgets.QDialog):
             self.global_work_size.setMaximum(9999)
             self.global_work_size.setMinimum(1)
             self.global_work_size.setValue(self.parent.global_work_size)           
-            self.global_work_size.setDisabled(not self.parent.opencl_enabled)
             hbox.addWidget(self.global_work_size) 
             hbox.addWidget(description)
             hbox.addStretch(1)                
             vbox_tab_calculation.addLayout(hbox)
 
             self.scroll_area = QtWidgets.QScrollArea()
-            self.scroll_area.setDisabled(not self.opencl_enabled.isChecked())
             checkbox_widget = QtWidgets.QWidget()
             checkbox_vbox = QtWidgets.QVBoxLayout()
             
@@ -454,6 +450,13 @@ class HenonSettings(QtWidgets.QDialog):
             checkbox_widget.setLayout(checkbox_vbox)
             self.scroll_area.setWidget(checkbox_widget)
             vbox_tab_calculation.addWidget(self.scroll_area)
+        
+        else:
+            hbox = QtWidgets.QHBoxLayout()
+            description = QtWidgets.QLabel("OpenCL driver not detected. OpenCL function was disabled.")
+            hbox.addWidget(description)
+            hbox.addStretch(1)                
+            vbox_tab_calculation.addLayout(hbox)
 
         vbox_tab_calculation.addStretch(1)
         generic_widget_calculation = QtWidgets.QWidget()
@@ -476,13 +479,6 @@ class HenonSettings(QtWidgets.QDialog):
     def switch_enlarge_rare_pixels(self, event):
         # function for making QLabel near checkbox clickable
         self.enlarge_rare_pixels.setChecked(not self.enlarge_rare_pixels.isChecked())
-
-    def switch_opencl_enabled(self, event):
-        # function for making QLabel near checkbox clickable
-        self.opencl_enabled.setChecked(not self.opencl_enabled.isChecked())
-        self.scroll_area.setDisabled(not self.opencl_enabled.isChecked())
-        self.thread_count.setDisabled(self.opencl_enabled.isChecked())
-        self.global_work_size.setDisabled(not self.opencl_enabled.isChecked())
 
     def switch_iter_auto_mode(self, event):
         # function for making QLabel near checkbox clickable
@@ -554,14 +550,12 @@ class HenonSettings(QtWidgets.QDialog):
 
         ### Calculation settings ###
         self.parent.drop_iter = self.drop_iter.value()
-        
-        if not self.parent.module_opencl_present and not self.opencl_enabled.isChecked():
-            self.parent.thread_count = self.thread_count.value()            
+        self.parent.thread_count = self.thread_count.value()            
 
         if self.parent.module_opencl_present:
             self.parent.opencl_enabled = self.opencl_enabled.isChecked()            
             
-            self.parent.global_work_size = self.global_work_size.value()            
+            self.parent.global_work_size = self.global_work_size.value()
             
             self.parent.device_selection = []
             for i in range(len(self.devices_cb)):

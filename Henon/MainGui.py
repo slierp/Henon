@@ -646,6 +646,9 @@ class MainGui(QtWidgets.QMainWindow):
         settings_dialog.show() 
 
     def load_settings(self):
+        if self.animation_running:
+            self.stop_user_command()
+        
         filename = QtWidgets.QFileDialog.getOpenFileName(self,self.tr("Open file"), self.prev_dir_path, "Settings Files (*.conf)")
         filename = filename[0]
         
@@ -671,6 +674,9 @@ class MainGui(QtWidgets.QMainWindow):
         self.statusBar().showMessage(self.tr("New settings loaded"),1000)
     
     def save_settings(self):
+        if self.animation_running:
+            self.stop_user_command()        
+        
         filename = QtWidgets.QFileDialog.getSaveFileName(self,self.tr("Save file"), self.prev_dir_path, "Settings Files (*.conf)")
         filename = filename[0]
         
@@ -698,9 +704,13 @@ class MainGui(QtWidgets.QMainWindow):
         self.statusBar().showMessage(self.tr("Default settings loaded"),1000)
 
     def save_image(self):
+        if self.animation_running:
+            self.stop_user_command()
+        
         save_path = QtWidgets.QFileDialog.getSaveFileName(self,self.tr("Save file"), "", "PNG File (*.png)")
+        save_path = save_path[0]
                 
-        if save_path[0] == "":
+        if not save_path:
             return
         
         self.Henon_widget.save_image(save_path,self.color)
