@@ -69,7 +69,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.color_options = ['white','blue','red','green','orange','purple','light blue']
         self.super_sampling = 0
         self.default_settings['super_sampling'] = self.super_sampling
-        self.super_sampling_options = ['1x','2x','4x','8x','16x']
+        self.super_sampling_options = ['1x','2x','4x','8x']
         
         # calculation settings        
         self.opencl_enabled = False
