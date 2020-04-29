@@ -214,6 +214,8 @@ class MainGui(QtWidgets.QMainWindow):
         else:
             threads = self.thread_count
 
+        #print("[MainGui] Thread count: " + str(threads))
+
         if not self.orbit_mode:
             if self.iter_auto_mode: 
                 # set default maximum number of iterations
@@ -232,6 +234,9 @@ class MainGui(QtWidgets.QMainWindow):
             
             if (not self.max_iter): # sanity check
                 self.max_iter = 1
+                
+            #print("[MainGui] Maximum iterations: " + str(self.max_iter))
+            #print("[MainGui] Plot interval for iterations: " + str(self.plot_interval))                 
         else:
             if self.iter_auto_mode_orbit:
                 if self.orbit_coordinate:
@@ -250,12 +255,12 @@ class MainGui(QtWidgets.QMainWindow):
             
             if (not self.max_iter_orbit): # sanity check
                 self.max_iter_orbit = 1
+                
+            #print("[MainGui] Maximum iterations: " + str(self.max_iter_orbit))
+            #print("[MainGui] Plot interval for iterations: " + str(self.plot_interval_orbit))   
         
         #print("[MainGui] Window width: " + str(self.Henon_widget.window_width))
-        #print("[MainGui] Window height: " + str(self.Henon_widget.window_height)) 
-        #print("[MainGui] Thread count: " + str(self.thread_count))
-        #print("[MainGui] Maximum iterations: " + str(self.max_iter))
-        #print("[MainGui] Plot interval for iterations: " + str(self.plot_interval)) 
+        #print("[MainGui] Window height: " + str(self.Henon_widget.window_height))
         
         # set widget plot area
         self.Henon_widget.xleft = self.xleft
@@ -630,6 +635,25 @@ class MainGui(QtWidgets.QMainWindow):
             self.ytop = 1.5
             self.ybottom = -1.5        
 
+    def zoom_out(self):
+        if self.animation_running:
+            return
+        
+        if not self.orbit_mode:
+            self.xleft = -3
+            self.ytop = 0.8
+            self.xright = 3
+            self.ybottom = -0.8
+        else:
+            if self.orbit_coordinate: # y-coordinate
+                self.ytop = 0.8
+                self.ybottom = -0.8
+            else: # x-coordinate
+                self.ytop = 3
+                self.ybottom = -3        
+        
+        self.restart_calculation()
+
     def closeEvent(self, event):
         # call stop function in order to terminate calculation processes
         # processes will continue after window close otherwise
@@ -945,10 +969,18 @@ class MainGui(QtWidgets.QMainWindow):
         fullscreen_action.setToolTip(tip)
         fullscreen_action.setStatusTip(tip)
         fullscreen_action.setShortcut('F')
+        
+        tip = self.tr("Zoom out")        
+        zoomout_action = QtWidgets.QAction(self.tr("Zoom out"), self)
+        zoomout_action.triggered.connect(self.zoom_out)         
+        zoomout_action.setToolTip(tip)
+        zoomout_action.setStatusTip(tip)
+        zoomout_action.setShortcut('Z')        
 
         self.view_menu.addAction(reset_action)
         self.view_menu.addAction(orbit_action)
         self.view_menu.addAction(fullscreen_action)
+        self.view_menu.addAction(zoomout_action)
            
         self.help_menu = self.menuBar().addMenu(self.tr("Help"))
 
