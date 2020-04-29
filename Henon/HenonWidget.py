@@ -230,4 +230,4 @@ class HenonWidget(QtWidgets.QLabel):
         
         image = QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)
         image.setColor(200,QtGui.qRgb(r,g,b)) 
-        image.save(save_path[0])
+        image.save(save_path)
