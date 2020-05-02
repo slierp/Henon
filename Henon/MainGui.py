@@ -828,6 +828,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.orbit_coordinate = settings['orbit_coordinate']
         self.max_iter_orbit = settings['max_iter_orbit']
         self.plot_interval_orbit = settings['plot_interval_orbit']
+        self.iter_auto_mode_orbit = settings['iter_auto_mode_orbit']       
 
         if self.module_opencl_present:
             if self.opencl_enabled:

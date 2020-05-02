@@ -51,20 +51,23 @@ class HenonWidget(QtWidgets.QLabel):
         sampling = pow(2,self.parent.super_sampling)
         width = int(self.window_width/sampling)
         height = int(self.window_height/sampling)
-        array = self.window_representation.astype('uint8')*200
+        
+        #array = self.window_representation.astype('uint8')*200 
+        #img = Image.fromarray(array, mode= "L").resize((width,height),resample=Image.BILINEAR)
+        array = np.copy(self.window_representation).astype('uint8')
+        array *= 200 # separate command executes a bit faster
+        
+        # 1-mode would be preferable because no astype needed, but PIL has bugs that make it unusable
+        #img = Image.fromarray(self.window_representation, mode= "1").resize((width,height),resample=Image.BILINEAR)
         img = Image.fromarray(array, mode= "L").resize((width,height),resample=Image.BILINEAR)
         image = ImageQt.ImageQt(img)
 
-        self.setPixmap(QtGui.QPixmap.fromImage(image))
+        self.setPixmap(QtGui.QPixmap.fromImage(image,flags=QtCore.Qt.MonoOnly))
         
-    def showEvent_color(self,event,color):
+    def showEvent_color(self,event,color): # separate function since it is slower than monochrome
 
         if self.do_not_draw:
             return
-        
-        r = self.color_options[color][0]
-        g = self.color_options[color][1]
-        b = self.color_options[color][2]
         
         # second window_width is bytes per line; needed to avoid image distortion when resizing the window
         #image=QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)
@@ -74,14 +77,16 @@ class HenonWidget(QtWidgets.QLabel):
         sampling = pow(2,self.parent.super_sampling)
         width = int(self.window_width/sampling)
         height = int(self.window_height/sampling)
-        array = np.copy(self.window_representation).astype('uint8')*200        
-        img = Image.fromarray(array, mode='L')
-        #resize with PIL-SIMD would be faster but not able to get it to work
-        #PIL does not accept large numpy np.zeros arrays it seems
-        #img.resize((width,height),resample=Image.BILINEAR)
-        image = ImageQt.ImageQt(img)        
-        image.setColor(200,QtGui.qRgb(r,g,b))      
-        self.setPixmap(QtGui.QPixmap.fromImage(image))
+
+        array = np.zeros([self.window_height,self.window_width,3],dtype='uint8')
+        array[self.window_representation == True] = self.color_options[color]
+        img = Image.fromarray(array, mode= "RGB").resize((width,height),resample=Image.BILINEAR)
+        image = ImageQt.ImageQt(img)
+
+        image.invertPixels() # needed to prevent QPixmap from crashing; weird bug
+        image.invertPixels()
+ 
+        self.setPixmap(QtGui.QPixmap.fromImage(image,flags=QtCore.Qt.ColorOnly))
 
     def resizeEvent(self,event):
     
