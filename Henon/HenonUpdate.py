@@ -150,10 +150,17 @@ class HenonUpdate(QtCore.QThread):
             if (pixel_number < 17) and (pixel_number > 0):
                 arr = arr + np.roll(arr,1,0) + np.roll(arr,-1,0) + np.roll(arr,1,1) + np.roll(arr,-1,1)
  
-        if self.animation_running:
-            self.window_representation[:] = 0
+        #if self.animation_running:
+        #    self.window_representation[:] = 0
            
-        self.window_representation[arr == True] = 200 # add newly calculated pixels
+        #self.window_representation[arr == True] = True # 200 # add newly calculated pixels
+
+        if self.animation_running:
+            np.copyto(self.window_representation,arr)
+        else:
+            #self.window_representation += arr # add newly calculated pixels        
+            #self.window_representation[arr == True] = True # 200 # add newly calculated pixels   
+            np.logical_or(self.window_representation,arr,self.window_representation)
 
         ##print("[" + self.name + "] Pixels in screen window: " + str(self.window_width*self.window_height))
         ##print("[" + self.name + "] Pixels in copied array: " + str(np.count_nonzero(arr))) 
@@ -166,8 +173,9 @@ class HenonUpdate(QtCore.QThread):
     def perform_update2(self): # for opencl
         
         #print("[" + self.name + "] Copying results and sending screen re-draw signal")
-        
-        arr = np.frombuffer(self.array, dtype=np.uint16) # get calculation result
+
+        #arr = np.frombuffer(self.array, dtype=np.uint16) # get calculation result        
+        arr = np.frombuffer(self.array, dtype=np.bool) # get calculation result
         arr = arr.reshape((self.window_height,self.window_width)) # deflatten array                         
         
         if self.enlarge_rare_pixels:
@@ -177,9 +185,11 @@ class HenonUpdate(QtCore.QThread):
                 arr = arr + np.roll(arr,1,0) + np.roll(arr,-1,0) + np.roll(arr,1,1) + np.roll(arr,-1,1)
  
         if self.animation_running:
-            self.window_representation[:] = 0
-           
-        self.window_representation[arr == 255] = 200 # add newly calculated pixels
+            np.copyto(self.window_representation,arr)
+        else:
+            #self.window_representation += arr # add newly calculated pixels        
+            #self.window_representation[arr == True] = True # 200 # add newly calculated pixels        
+            np.logical_or(self.window_representation,arr,self.window_representation)
 
         ##print("[" + self.name + "] Pixels in screen window: " + str(self.window_width*self.window_height))
         ##print("[" + self.name + "] Pixels in copied array: " + str(np.count_nonzero(arr))) 

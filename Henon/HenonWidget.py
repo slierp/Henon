@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtGui, QtCore, QtWidgets
 import numpy as np
+from PIL import Image, ImageQt
 
 class HenonWidget(QtWidgets.QLabel):
     # Shows Henon map and enables zoom-in selection
@@ -44,9 +45,18 @@ class HenonWidget(QtWidgets.QLabel):
             return
         
         # second window_width is bytes per line; needed to avoid image distortion when resizing the window
-        image=QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)            
-        self.setPixmap(QtGui.QPixmap.fromImage(image))
+        #image=QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)             
 
+        # alternative resize method; faster with PIL-SIMD
+        sampling = pow(2,self.parent.super_sampling)
+        width = int(self.window_width/sampling)
+        height = int(self.window_height/sampling)
+        array = self.window_representation.astype('uint8')*200
+        img = Image.fromarray(array, mode= "L").resize((width,height),resample=Image.BILINEAR)
+        image = ImageQt.ImageQt(img)
+
+        self.setPixmap(QtGui.QPixmap.fromImage(image))
+        
     def showEvent_color(self,event,color):
 
         if self.do_not_draw:
@@ -57,8 +67,20 @@ class HenonWidget(QtWidgets.QLabel):
         b = self.color_options[color][2]
         
         # second window_width is bytes per line; needed to avoid image distortion when resizing the window
-        image=QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)
-        image.setColor(200,QtGui.qRgb(r,g,b))            
+        #image=QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)
+        #image.setColor(200,QtGui.qRgb(r,g,b))
+
+        # alternative resize method; faster with PIL-SIMD
+        sampling = pow(2,self.parent.super_sampling)
+        width = int(self.window_width/sampling)
+        height = int(self.window_height/sampling)
+        array = np.copy(self.window_representation).astype('uint8')*200        
+        img = Image.fromarray(array, mode='L')
+        #resize with PIL-SIMD would be faster but not able to get it to work
+        #PIL does not accept large numpy np.zeros arrays it seems
+        #img.resize((width,height),resample=Image.BILINEAR)
+        image = ImageQt.ImageQt(img)        
+        image.setColor(200,QtGui.qRgb(r,g,b))      
         self.setPixmap(QtGui.QPixmap.fromImage(image))
 
     def resizeEvent(self,event):
@@ -70,7 +92,7 @@ class HenonWidget(QtWidgets.QLabel):
         self.window_height = sampling*self.geometry().height()
         
         # make new window representation
-        self.window_representation = np.zeros((self.window_height,self.window_width), dtype=np.byte)
+        self.window_representation = np.zeros((self.window_height,self.window_width), dtype=np.bool) #np.byte)
         
         self.do_not_draw = False # resume drawing texture
 
@@ -137,8 +159,8 @@ class HenonWidget(QtWidgets.QLabel):
         # calculate real window dimensions without super sampling
         
         sampling = pow(2,self.parent.super_sampling)
-        width = self.window_width/sampling
-        height = self.window_height/sampling
+        width = int(self.window_width/sampling)
+        height = int(self.window_height/sampling)
 
         # calculate new coordinate system and re-draw
         # in opengl (0,0) is in the bottom_left, but in PyQt it is in the top_left

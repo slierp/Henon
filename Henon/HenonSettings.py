@@ -418,10 +418,10 @@ class HenonSettings(QtWidgets.QDialog):
             vbox_tab_calculation.addLayout(hbox)             
 
             hbox = QtWidgets.QHBoxLayout()
-            description = QtWidgets.QLabel("Global work size")
+            description = QtWidgets.QLabel("Global work size (2^n)")
             self.global_work_size = QtWidgets.QSpinBox()
             self.global_work_size.setAccelerated(True)
-            self.global_work_size.setMaximum(9999)
+            self.global_work_size.setMaximum(20)
             self.global_work_size.setMinimum(1)
             self.global_work_size.setValue(self.parent.global_work_size)           
             hbox.addWidget(self.global_work_size) 

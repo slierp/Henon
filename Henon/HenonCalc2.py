@@ -32,7 +32,8 @@ class HenonCalc2(QtCore.QThread):
 
         # empty array that will be copied to OpenCL kernel for processing
         #self.array = np.zeros((self.window_height*self.window_width), dtype=np.uint16)
-        self.array = mp.RawArray('H', window_width*window_height)
+        #self.array = mp.RawArray('H', window_width*window_height)
+        self.array = mp.RawArray(ctypes.c_bool, window_width*window_height)
                    
         self.workers_started = False     
 
@@ -76,6 +77,7 @@ class WorkerProcess(QtCore.QThread):
         self.exit = mp.Event()       
         self.settings = args[0]            
         self.context, self.command_queue, self.mem_flags, self.program, self.array, self.interval_flags, self.stop_signal = args[1]
+        self.randomizer = np.random.default_rng()        
         #print("[" + self.name + "] Worker " + str(self.run_number) + " initialization")
 
     def shutdown(self):
@@ -94,7 +96,7 @@ class WorkerProcess(QtCore.QThread):
         ytop = self.settings['ytop']
         xright = self.settings['xright']
         ybottom = self.settings['ybottom']
-        global_work_size = self.settings['global_work_size']
+        global_work_size = pow(2,self.settings['global_work_size'])
         max_iter = self.settings['max_iter']
         plot_interval = self.settings['plot_interval']
         drop_iter = self.settings['drop_iter']       
@@ -130,12 +132,20 @@ class WorkerProcess(QtCore.QThread):
                 
             if henb_anim:
                 henb = henb_start                                     
+                
+            if hena_stop < hena_start:
+                hena_increment = - hena_increment
+
+            if henb_stop < henb_start:
+                henb_increment = - henb_increment                
             
         # random x,y values in (-0.1,0.1) range for each GPU thread
         # opencl-float2 does not exist in current pyopencl version, but complex does
         # so we'll use that for now to pass along x,y values
-        xx = ((np.random.random_sample(global_work_size)-0.5)/5)
-        yy = ((np.random.random_sample(global_work_size)-0.5)/5) * 1j
+        #xx = ((np.random.random_sample(global_work_size)-0.5)/5)
+        xx = ((self.randomizer.random(global_work_size)-0.5)/5)
+        #yy = ((np.random.random_sample(global_work_size)-0.5)/5) * 1j
+        yy = ((self.randomizer.random(global_work_size)-0.5)/5) * 1j
         queue = xx+yy
         first_run = True
 
@@ -185,27 +195,13 @@ class WorkerProcess(QtCore.QThread):
 
                 # erase image array for next animation frame
                 # needs twice as many pixels to erase whole picture; probably due to data type
-                ctypes.memmove(self.array, empty_array, 2*window_width*window_height)                             
+                ctypes.memmove(self.array, empty_array, window_width*window_height)                             
 
                 if hena_anim:
-                    if hena_stop >= hena_start:
-                        new_hena = round(hena + hena_increment,3)
-                        if new_hena <= hena_stop:
-                            hena = new_hena
-                    else:
-                        new_hena = round(hena - hena_increment,3)
-                        if new_hena >= hena_stop:
-                            hena = new_hena                        
+                    hena = np.round(hena + hena_increment,3)              
 
                 if henb_anim:
-                    if henb_stop >= henb_start:
-                        new_henb = round(henb + henb_increment,3)
-                        if new_henb <= henb_stop:
-                            henb = new_henb
-                    else:
-                        new_henb = round(henb - henb_increment,3)
-                        if new_henb >= henb_stop:
-                            henb = new_henb 
+                    henb = np.round(henb + henb_increment,3)
                 
                 float_params = np.array([hena,henb,xleft,ybottom,xratio,yratio],dtype=np.float64)
 
@@ -267,11 +263,24 @@ class WorkerProcessOrbit(WorkerProcess):
                 
             if henb_anim:
                 henb = henb_start
+
+            if orbit_parameter:
+                hena = xleft
+            else:
+                henb = xleft
+                
+            if hena_stop < hena_start:
+                hena_increment = - hena_increment
+
+            if henb_stop < henb_start:
+                henb_increment = - henb_increment
             
         # random x,y values in (-0.1,0.1) range for each thread
         # one thread per pixel along screen width
-        xx = ((np.random.random_sample(window_width)-0.5)/5)
-        yy = ((np.random.random_sample(window_width)-0.5)/5) * 1j
+        xx = ((self.randomizer.random(window_width)-0.5)/5)        
+        #xx = np.full(window_width,0.01)
+        yy = ((self.randomizer.random(window_width)-0.5)/5) * 1j           
+        #yy = np.full(window_width,0.01j)
         queue = xx+yy
 
         int_params = np.array([plot_interval_orbit,drop_iter,window_height,window_width,orbit_parameter,orbit_coordinate],dtype=np.uint32)
@@ -315,31 +324,13 @@ class WorkerProcessOrbit(WorkerProcess):
 
                 # erase image array for next animation frame
                 # needs twice as many pixels to erase whole picture; probably due to data type
-                ctypes.memmove(self.array, empty_array, 2*window_width*window_height)                             
+                ctypes.memmove(self.array, empty_array, window_width*window_height)                             
 
                 if orbit_parameter:
-                    hena = xleft
-
-                    if henb_stop >= henb_start:
-                        new_henb = round(henb + henb_increment,3)
-                        if new_henb <= henb_stop:
-                            henb = new_henb
-                    else:
-                        new_henb = round(henb - henb_increment,3)
-                        if new_henb >= henb_stop:
-                            henb = new_henb                        
-                else:
-                    henb = xleft
+                    henb = np.round(henb + henb_increment,3)                  
+                else:                    
+                    hena = np.round(hena + hena_increment,3) 
                     
-                    if hena_stop >= hena_start:
-                        new_hena = round(hena + hena_increment,3)
-                        if new_hena <= hena_stop:
-                            hena = new_hena
-                    else:
-                        new_hena = round(hena - hena_increment,3)
-                        if new_hena >= hena_stop:
-                            hena = new_hena
-                
                 float_params = np.array([hena,henb,xleft,ybottom,xratio,yratio],dtype=np.float64)
 
             # copy x,y values from buffer memory to re-use as queue

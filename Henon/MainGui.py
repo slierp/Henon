@@ -79,7 +79,7 @@ class MainGui(QtWidgets.QMainWindow):
         
         self.thread_count = cpu_count()
         self.default_settings['thread_count'] = self.thread_count
-        self.global_work_size = 256
+        self.global_work_size = 8
         self.default_settings['global_work_size'] = self.global_work_size
         self.plot_interval = 1
         self.default_settings['plot_interval'] = self.plot_interval
@@ -210,7 +210,7 @@ class MainGui(QtWidgets.QMainWindow):
             self.first_run = False
 
         if self.opencl_enabled:
-            threads = self.global_work_size
+            threads = pow(2,self.global_work_size)
         else:
             threads = self.thread_count
 
@@ -301,7 +301,7 @@ class MainGui(QtWidgets.QMainWindow):
             msg = self.tr("No OpenCL devices selected. OpenCL function has been turned off automatically.")
             QtWidgets.QMessageBox.about(self, self.tr("Warning"), msg)
             return
-
+        
         num = 0
         included_devices = []
         for platform in cl.get_platforms():
@@ -309,7 +309,7 @@ class MainGui(QtWidgets.QMainWindow):
                 if num in self.device_selection:
                     included_devices.append(device)
                 num += 1
-        
+                
         try:
             self.context = cl.Context(devices=included_devices)
         except:
@@ -320,12 +320,15 @@ class MainGui(QtWidgets.QMainWindow):
 
         self.command_queue = cl.CommandQueue(self.context)    
         self.mem_flags = cl.mem_flags
-    
+
+                #__kernel void henon(__global double2 *q, __global ushort *window_representation,
+                #                    __global uint const *int_params, __global double const *float_params)
+
         if not self.orbit_mode: # kernel for normal Henon calculations
             try: #uint for 32-bit (ulong for 64-bit not recommended due to much longer execution time)
                 self.program = cl.Program(self.context, """
                 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable    
-                __kernel void henon(__global double2 *q, __global ushort *window_representation,
+                __kernel void henon(__global double2 *q, __global bool *window_representation,
                                     __global uint const *int_params, __global double const *float_params)
                 {
                     int gid = get_global_id(0);
@@ -358,7 +361,7 @@ class MainGui(QtWidgets.QMainWindow):
                         if ((0 < x_draw) && (x_draw < int_params[3]) && (0 < y_draw) && (y_draw < int_params[2])) {
                             int location = convert_int(((int_params[2]-y_draw)*int_params[3]) + x_draw); // for top-left origin
                             //int location = convert_int((y_draw*int_params[3]) + x_draw); // for bottom-left origin
-                            window_representation[location] = 255;
+                            window_representation[location] = 1;
                         }
                     }
                     
@@ -373,9 +376,12 @@ class MainGui(QtWidgets.QMainWindow):
                 return
         else: # kernel for orbit map calculations
             try:
+                #__kernel void henon(__global double2 *q, __global ushort *window_representation,
+                #                    __global uint const *int_params, __global double const *float_params)                
+                
                 self.program = cl.Program(self.context, """
                 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable    
-                __kernel void henon(__global double2 *q, __global ushort *window_representation,
+                __kernel void henon(__global double2 *q, __global bool *window_representation,
                                     __global uint const *int_params, __global double const *float_params)
                 {
                     int gid = get_global_id(0);
@@ -424,7 +430,7 @@ class MainGui(QtWidgets.QMainWindow):
                         
                         if ((0 < y_draw) && (y_draw < int_params[2])) {
                             int location = convert_int(((int_params[2]-y_draw)*int_params[3]) + gid);
-                            window_representation[location] = 255;
+                            window_representation[location] = 1;
                         }
                     }
                     
@@ -692,8 +698,10 @@ class MainGui(QtWidgets.QMainWindow):
             all_settings = pickle.load(f)
 
         self.implement_settings(all_settings)
-        
-        self.initialize_calculation()
+
+        # trigger resize event to force implementation of super-sampling setting
+        self.Henon_widget.trigger_resizeEvent()    
+        #self.initialize_calculation()
             
         self.statusBar().showMessage(self.tr("New settings loaded"),1000)
     

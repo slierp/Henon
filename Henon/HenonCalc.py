@@ -30,7 +30,8 @@ class HenonCalc(QtCore.QThread):
         # content is a flattened array so it needs to be deflattened later on
         # RawArray implementation allows for copying local numpy array, which gives
         # speed-up, but may give stability issues as well
-        self.array = mp.RawArray(ctypes.c_byte, window_width*window_height)
+        #self.array = mp.RawArray(ctypes.c_byte, window_width*window_height)
+        self.array = mp.RawArray(ctypes.c_bool, window_width*window_height)
 
         self.interval_flags = mp.Array('b', self.thread_count) # Have worker tell us when a piece work is finished
         self.interval_flags[:] = [False]*self.thread_count
@@ -113,7 +114,7 @@ class WorkerProcess(mp.Process):
         # make local array for storing pixel during each iteration        
         # manipulating local array instead of multiprocessing array is a bit faster
         # subsequent data copying step takes almost no time
-        local_array = np.zeros(len(self.array),dtype=ctypes.c_byte)
+        local_array = np.zeros(len(self.array),dtype=ctypes.c_bool) #c_byte)
         
         # make local copies of variables to increase speed
         hena = self.settings['hena']
@@ -145,7 +146,8 @@ class WorkerProcess(mp.Process):
             henb_anim = self.settings['henb_anim']
             plot_interval = self.settings['plot_interval_anim']
             max_iter = self.settings['max_iter_anim']
-            empty_array = mp.RawArray(ctypes.c_byte, window_width*window_height) # needed for emptying self.array
+            #empty_array = mp.RawArray(ctypes.c_byte, window_width*window_height) # needed for emptying self.array
+            empty_array = mp.RawArray(ctypes.c_bool, window_width*window_height) # needed for emptying self.array
 
             if hena_anim:
                 hena = hena_start
@@ -183,7 +185,8 @@ class WorkerProcess(mp.Process):
             # 'bitwise or' on local array and multiprocessing array when plot_interval is reached
             if not animation_running:
                 # add newly calculated pixels that this worker generatedy
-                np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
+                #np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True                
+                np.frombuffer(self.array, dtype=ctypes.c_bool)[local_array == True] = True
                 # indicate to HenonUpdate that we have some new pixels to draw
                 self.interval_flags[run_number] = True                
             else:
@@ -196,7 +199,8 @@ class WorkerProcess(mp.Process):
                 if (run_number == 0): # empty current array if you are worker 0
                     ctypes.memmove(self.array, empty_array, window_width*window_height)
 
-                np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
+                #np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
+                np.frombuffer(self.array, dtype=ctypes.c_bool)[local_array == True] = True
                 self.interval_flags[run_number] = True            
 
                 if hena_anim:
@@ -221,7 +225,7 @@ class WorkerProcess(mp.Process):
                 
                 henx,heny = self.drop_iterations(drop_iter,hena,henb,henx,heny)
                 
-                local_array = np.zeros(len(local_array),dtype=ctypes.c_byte)
+                local_array = np.zeros(len(local_array),dtype=ctypes.c_bool) #_byte)
             
             if (iter_count >= max_iter):
                 break
@@ -249,7 +253,7 @@ class WorkerProcessOrbit(WorkerProcess):
         # make local array for storing pixel during each iteration        
         # manipulating local array instead of multiprocessing array is a bit faster
         # subsequent data copying step takes almost no time
-        local_array = np.zeros(len(self.array),dtype=ctypes.c_byte)
+        local_array = np.zeros(len(self.array),dtype=ctypes.c_bool) #c_byte)
         
         # make local copies of variables to increase speed
         hena = self.settings['hena']
@@ -291,7 +295,8 @@ class WorkerProcessOrbit(WorkerProcess):
             henb_increment = self.settings['henb_increment']
             henb_anim = self.settings['henb_anim']
             max_iter = self.settings['max_iter_anim']
-            empty_array = mp.RawArray(ctypes.c_byte, window_width*window_height) # needed for emptying self.array
+            #empty_array = mp.RawArray(ctypes.c_byte, window_width*window_height) # needed for emptying self.array
+            empty_array = mp.RawArray(ctypes.c_bool, window_width*window_height) # needed for emptying self.array
 
             if hena_anim:
                 hena = hena_start
@@ -331,7 +336,8 @@ class WorkerProcessOrbit(WorkerProcess):
                 
                 if not animation_running:
                     # 'bitwise or' on local array and multiprocessing array
-                    np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True                
+                    #np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
+                    np.frombuffer(self.array, dtype=ctypes.c_bool)[local_array == True] = True                
                     # indicate to HenonUpdate that we have some new pixels to draw
                     self.interval_flags[run_number] = True
                     iter_count += plot_interval
@@ -356,7 +362,8 @@ class WorkerProcessOrbit(WorkerProcess):
                     if (run_number == 0): # empty current array if you are worker 0
                         ctypes.memmove(self.array, empty_array, window_width*window_height)
     
-                    np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
+                    #np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
+                    np.frombuffer(self.array, dtype=ctypes.c_bool)[local_array == True] = True
                     self.interval_flags[run_number] = True            
                                        
                     iter_count += plot_interval
@@ -389,7 +396,7 @@ class WorkerProcessOrbit(WorkerProcess):
                             if new_hena >= hena_stop:
                                 hena = new_hena
                     
-                    local_array = np.zeros(len(local_array),dtype=ctypes.c_byte)
+                    local_array = np.zeros(len(local_array),dtype=ctypes.c_bool) #c_byte)
             
             if (iter_count >= max_iter):
                 break
