@@ -125,7 +125,8 @@ class WorkerProcess(QtCore.QThread):
             henb_anim = self.settings['henb_anim']
             max_iter = self.settings['max_iter_anim']
             plot_interval = self.settings['plot_interval_anim']
-            empty_array = mp.RawArray('H', 2*window_width*window_height) # needed for emptying self.array
+            #empty_array = mp.RawArray('H', 2*window_width*window_height) # needed for emptying self.array
+            empty_array = mp.RawArray(ctypes.c_bool, window_width*window_height) # needed for emptying self.array
             
             if hena_anim:
                 hena = hena_start
@@ -149,6 +150,7 @@ class WorkerProcess(QtCore.QThread):
         queue = xx+yy
         first_run = True
 
+        local_array = mp.RawArray(ctypes.c_bool, window_width*window_height)
         int_params = np.array([plot_interval,drop_iter,window_height,window_width],dtype=np.uint32)
         float_params = np.array([hena,henb,xleft,ybottom,xratio,yratio],dtype=np.float64)
 
@@ -158,7 +160,7 @@ class WorkerProcess(QtCore.QThread):
             int_params_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=int_params)    
             float_params_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=float_params)
             queue_buffer = cl.Buffer(self.context, self.mem_flags.READ_WRITE | self.mem_flags.COPY_HOST_PTR, hostbuf=queue)
-            array_buffer = cl.Buffer(self.context, self.mem_flags.WRITE_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=self.array)
+            array_buffer = cl.Buffer(self.context, self.mem_flags.WRITE_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=local_array) #self.array)
 
             # run calculations
             self.program.henon(self.command_queue, queue.shape, None, queue_buffer, array_buffer,\
@@ -177,31 +179,33 @@ class WorkerProcess(QtCore.QThread):
                     int_params = np.array([plot_interval,0,window_height,window_width],dtype=np.uint32)            
                     first_run = False
             else:
+                if not first_run:
+                    first_run = False
+                    while not self.exit.is_set(): # wait until previous data was updated on screen
+                        if self.interval_flags.value:
+                            #print("[" + self.name + "] Waiting for signal from HenonUpdate")
+                            sleep(0.01)
+                        else:
+                            break                
+                
                 # copy calculation results from buffer memory
                 cl.enqueue_copy(self.command_queue, self.array, array_buffer).wait()
 
                 self.interval_flags.value = True
                 #print("[" + self.name + "] Sent signal to HenonUpdate")
-                
-                while not self.exit.is_set(): # wait until previous data was updated on screen
-                    if self.interval_flags.value:
-                        #print("[" + self.name + "] Waiting for signal from HenonUpdate")
-                        sleep(0.01)
-                    else:
-                        break
 
                 if (iter_count >= max_iter): # do not erase if last frame
                     break
 
                 # erase image array for next animation frame
-                # needs twice as many pixels to erase whole picture; probably due to data type
-                ctypes.memmove(self.array, empty_array, window_width*window_height)                             
+                #ctypes.memmove(self.array, empty_array, window_width*window_height)                             
+                ctypes.memmove(local_array, empty_array, window_width*window_height)                 
 
                 if hena_anim:
-                    hena = np.round(hena + hena_increment,3)              
+                    hena = np.round(hena + hena_increment,4)              
 
                 if henb_anim:
-                    henb = np.round(henb + henb_increment,3)
+                    henb = np.round(henb + henb_increment,4)
                 
                 float_params = np.array([hena,henb,xleft,ybottom,xratio,yratio],dtype=np.float64)
 
@@ -239,7 +243,8 @@ class WorkerProcessOrbit(WorkerProcess):
         max_iter_orbit = self.settings['max_iter_orbit']
         animation_running = self.settings['animation_running']
         window_width = self.settings['window_width']
-        window_height = self.settings['window_height']   
+        window_height = self.settings['window_height']
+        orbit_multiplier = pow(2,self.settings['orbit_multiplier'])      
     
         iter_count = 0
 
@@ -256,7 +261,9 @@ class WorkerProcessOrbit(WorkerProcess):
             henb_increment = self.settings['henb_increment']
             henb_anim = self.settings['henb_anim']
             max_iter_orbit = self.settings['max_iter_anim']
-            empty_array = mp.RawArray('H', 2*window_width*window_height) # needed for emptying self.array
+            #empty_array = mp.RawArray('H', 2*window_width*window_height) # needed for emptying self.array
+            empty_array = mp.RawArray(ctypes.c_bool, window_width*window_height) # needed for emptying self.array
+            first_run = True
             
             if hena_anim:
                 hena = hena_start
@@ -277,13 +284,15 @@ class WorkerProcessOrbit(WorkerProcess):
             
         # random x,y values in (-0.1,0.1) range for each thread
         # one thread per pixel along screen width
-        xx = ((self.randomizer.random(window_width)-0.5)/5)        
+        xx = ((self.randomizer.random(window_width*orbit_multiplier)-0.5)/5)     
         #xx = np.full(window_width,0.01)
-        yy = ((self.randomizer.random(window_width)-0.5)/5) * 1j           
+        yy = ((self.randomizer.random(window_width*orbit_multiplier)-0.5)/5) * 1j           
         #yy = np.full(window_width,0.01j)
         queue = xx+yy
-
-        int_params = np.array([plot_interval_orbit,drop_iter,window_height,window_width,orbit_parameter,orbit_coordinate],dtype=np.uint32)
+        
+        local_array = mp.RawArray(ctypes.c_bool, window_width*window_height)
+        #int_params = np.array([plot_interval_orbit,drop_iter,window_height,window_width,orbit_parameter,orbit_coordinate],dtype=np.uint32)
+        int_params = np.array([plot_interval_orbit,drop_iter,window_height,window_width,orbit_parameter,orbit_coordinate,orbit_multiplier],dtype=np.uint32)        
         float_params = np.array([hena,henb,xleft,ybottom,xratio,yratio],dtype=np.float64)
 
         while not self.exit.is_set():
@@ -292,7 +301,7 @@ class WorkerProcessOrbit(WorkerProcess):
             int_params_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=int_params)    
             float_params_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=float_params)
             queue_buffer = cl.Buffer(self.context, self.mem_flags.READ_WRITE | self.mem_flags.COPY_HOST_PTR, hostbuf=queue)
-            array_buffer = cl.Buffer(self.context, self.mem_flags.WRITE_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=self.array)
+            array_buffer = cl.Buffer(self.context, self.mem_flags.WRITE_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=local_array) #self.array)
 
             # run calculations
             self.program.henon(self.command_queue, queue.shape, None, queue_buffer, array_buffer,\
@@ -306,30 +315,32 @@ class WorkerProcessOrbit(WorkerProcess):
                 
                 self.interval_flags.value = True
             else:
+                if not first_run:
+                    first_run = False
+                    while not self.exit.is_set(): # wait until previous data was updated on screen
+                        if self.interval_flags.value:
+                            #print("[" + self.name + "] Waiting for signal from HenonUpdate")
+                            sleep(0.01)
+                        else:
+                            break
+                    
                 # copy calculation results from buffer memory
                 cl.enqueue_copy(self.command_queue, self.array, array_buffer).wait()
 
                 self.interval_flags.value = True
                 #print("[" + self.name + "] Sent signal to HenonUpdate")
                 
-                while not self.exit.is_set(): # wait until previous data was updated on screen
-                    if self.interval_flags.value:
-                        #print("[" + self.name + "] Waiting for signal from HenonUpdate")
-                        sleep(0.01)
-                    else:
-                        break
-
                 if (iter_count >= max_iter_orbit): # do not erase if last frame
                     break
 
                 # erase image array for next animation frame
-                # needs twice as many pixels to erase whole picture; probably due to data type
-                ctypes.memmove(self.array, empty_array, window_width*window_height)                             
+                #ctypes.memmove(self.array, empty_array, window_width*window_height)                
+                ctypes.memmove(local_array, empty_array, window_width*window_height)                             
 
                 if orbit_parameter:
-                    henb = np.round(henb + henb_increment,3)                  
+                    henb = np.round(henb + henb_increment,4)                  
                 else:                    
-                    hena = np.round(hena + hena_increment,3) 
+                    hena = np.round(hena + hena_increment,4) 
                     
                 float_params = np.array([hena,henb,xleft,ybottom,xratio,yratio],dtype=np.float64)
 

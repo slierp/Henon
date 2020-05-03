@@ -205,21 +205,21 @@ class WorkerProcess(mp.Process):
 
                 if hena_anim:
                     if hena_stop >= hena_start:
-                        new_hena = round(hena + hena_increment,3)
+                        new_hena = np.round(hena + hena_increment,4)
                         if new_hena <= hena_stop:
                             hena = new_hena
                     else:
-                        new_hena = round(hena - hena_increment,3)
+                        new_hena = np.round(hena - hena_increment,4)
                         if new_hena >= hena_stop:
                             hena = new_hena                        
 
                 if henb_anim:
                     if henb_stop >= henb_start:
-                        new_henb = round(henb + henb_increment,3)
+                        new_henb = np.round(henb + henb_increment,4)
                         if new_henb <= henb_stop:
                             henb = new_henb
                     else:
-                        new_henb = round(henb - henb_increment,3)
+                        new_henb = np.round(henb - henb_increment,4)
                         if new_henb >= henb_stop:
                             henb = new_henb                        
                 
@@ -376,11 +376,11 @@ class WorkerProcessOrbit(WorkerProcess):
                         hena += run_number/xratio
 
                         if henb_stop >= henb_start:
-                            new_henb = round(henb + henb_increment,3)
+                            new_henb = np.round(henb + henb_increment,4)
                             if new_henb <= henb_stop:
                                 henb = new_henb
                         else:
-                            new_henb = round(henb - henb_increment,3)
+                            new_henb = np.round(henb - henb_increment,4)
                             if new_henb >= henb_stop:
                                 henb = new_henb                        
                     else:
@@ -388,11 +388,11 @@ class WorkerProcessOrbit(WorkerProcess):
                         henb += run_number/xratio
                         
                         if hena_stop >= hena_start:
-                            new_hena = round(hena + hena_increment,3)
+                            new_hena = np.round(hena + hena_increment,4)
                             if new_hena <= hena_stop:
                                 hena = new_hena
                         else:
-                            new_hena = round(hena - hena_increment,3)
+                            new_hena = np.round(hena - hena_increment,4)
                             if new_hena >= hena_stop:
                                 hena = new_hena
                     

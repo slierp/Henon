@@ -3,6 +3,12 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 import numpy as np
 from PIL import Image, ImageQt
 
+class Signal(QtCore.QObject):
+    sig = QtCore.pyqtSignal()
+
+    def __init__(self):
+        QtCore.QObject.__init__(self)
+
 class HenonWidget(QtWidgets.QLabel):
     # Shows Henon map and enables zoom-in selection
     # Implementation done with PyQt only
@@ -39,6 +45,8 @@ class HenonWidget(QtWidgets.QLabel):
 
         self.color_options = [[200,200,200],[79,129,189],[192,80,77],[155,187,89],[247,150,70],[128,100,162],[75,172,198]]
 
+        self.signal = Signal()
+
     def showEvent(self,event):
 
         if self.do_not_draw:
@@ -55,7 +63,7 @@ class HenonWidget(QtWidgets.QLabel):
         #array = self.window_representation.astype('uint8')*200 
         #img = Image.fromarray(array, mode= "L").resize((width,height),resample=Image.BILINEAR)
         array = np.copy(self.window_representation).astype('uint8')
-        array *= 200 # separate command executes a bit faster
+        array *= 255 # separate command executes a bit faster
         
         # 1-mode would be preferable because no astype needed, but PIL has bugs that make it unusable
         #img = Image.fromarray(self.window_representation, mode= "1").resize((width,height),resample=Image.BILINEAR)
@@ -63,6 +71,10 @@ class HenonWidget(QtWidgets.QLabel):
         image = ImageQt.ImageQt(img)
 
         self.setPixmap(QtGui.QPixmap.fromImage(image,flags=QtCore.Qt.MonoOnly))
+                
+        if not self.first_run:
+            #print("[HenonWidget] Sending screen update signal")              
+            self.signal.sig.emit()
         
     def showEvent_color(self,event,color): # separate function since it is slower than monochrome
 
@@ -87,6 +99,10 @@ class HenonWidget(QtWidgets.QLabel):
         image.invertPixels()
  
         self.setPixmap(QtGui.QPixmap.fromImage(image,flags=QtCore.Qt.ColorOnly))
+        
+        if not self.first_run:
+            #print("[HenonWidget] Sending screen update signal")              
+            self.signal.sig.emit()      
 
     def resizeEvent(self,event):
     
@@ -105,7 +121,7 @@ class HenonWidget(QtWidgets.QLabel):
             # resize is called twice during start-up for some reason
             # so skip the first run
             self.first_run = False
-            self.second_run = True
+            self.second_run = True        
         elif self.second_run:
             # second run can start calculation immediately
             self.parent.initialize_calculation()
@@ -237,12 +253,9 @@ class HenonWidget(QtWidgets.QLabel):
         self.parent.ytop = self.parent.ybottom + (self.parent.ytop - self.parent.ybottom)*(top_edge/height)
         self.parent.ybottom = temp_ybottom
       
-        self.clear_screen()
+        self.window_representation[:] = 0 
         self.parent.stop_calculation()
         self.parent.initialize_calculation()
-        
-    def clear_screen(self):     
-        self.window_representation[:] = 0
 
     def trigger_resizeEvent(self):
         old_size = QtCore.QSize(self.geometry().width(), self.geometry().height())
@@ -250,11 +263,8 @@ class HenonWidget(QtWidgets.QLabel):
         resize = QtGui.QResizeEvent(size, old_size)
         self.resizeEvent(resize)
         
-    def save_image(self,save_path,color):
-        r = self.color_options[color][0]
-        g = self.color_options[color][1]
-        b = self.color_options[color][2]        
-        
-        image = QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)
-        image.setColor(200,QtGui.qRgb(r,g,b)) 
-        image.save(save_path)
+    def save_image(self,save_path,color):        
+        array = np.zeros([self.window_height,self.window_width,3],dtype='uint8')
+        array[self.window_representation == True] = self.color_options[color]
+        img = Image.fromarray(array, mode= "RGB")        
+        img.save(save_path)

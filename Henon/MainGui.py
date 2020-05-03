@@ -44,9 +44,6 @@ class MainGui(QtWidgets.QMainWindow):
         
         ### Set default font size ###
         self.setStyleSheet('font-size: 12pt;')         
-        
-        self.create_menu()
-        self.create_main_frame()        
 
         self.default_settings = {} # put parameters in dict for easy saving/loading
         self.previous_views = [] # previous zoom-in view settings
@@ -93,6 +90,8 @@ class MainGui(QtWidgets.QMainWindow):
         self.default_settings['enlarge_rare_pixels'] = self.enlarge_rare_pixels
         self.benchmark = False
         self.default_settings['benchmark'] = self.benchmark
+        self.orbit_multiplier = 1
+        self.default_settings['orbit_multiplier'] = self.orbit_multiplier
         
         # animation settings
         self.hena_start = 0.8
@@ -139,6 +138,9 @@ class MainGui(QtWidgets.QMainWindow):
         self.animation_running = False
         self.module_opencl_present = module_opencl_present
         self.enable_arrow_keys = False
+        
+        self.create_menu()
+        self.create_main_frame()
 
     def on_about(self):
         msg = self.tr("H\xe9non browser\nAuthor: Ronald Naber\nLicense: Public domain")
@@ -203,13 +205,13 @@ class MainGui(QtWidgets.QMainWindow):
         if not self.first_run:
             self.wait_thread_end(self.Henon_update)
             self.wait_thread_end(self.Henon_calc)          
-
-        self.Henon_widget.clear_screen()
         
         if self.first_run:
             self.first_run = False
 
-        if self.opencl_enabled:
+        if self.opencl_enabled and self.orbit_mode:
+            threads = self.Henon_widget.window_width*pow(2,self.orbit_multiplier)
+        elif self.opencl_enabled:
             threads = pow(2,self.global_work_size)
         else:
             threads = self.thread_count
@@ -244,11 +246,9 @@ class MainGui(QtWidgets.QMainWindow):
                 else:
                     range_factor = (self.ytop - self.ybottom) / 3.0
                     
-                self.max_iter_orbit = int(self.Henon_widget.window_height/(range_factor**0.5))
+                #self.max_iter_orbit = int(self.Henon_widget.window_height/(range_factor**0.5))
+                self.max_iter_orbit = int(self.Henon_widget.window_height/(pow(2,self.orbit_multiplier)*(range_factor**0.5)))
                 self.plot_interval_orbit = self.max_iter_orbit
-                
-                if self.plot_interval_orbit > 1000:
-                    self.plot_interval_orbit = 1000
 
             if self.plot_interval_orbit > self.max_iter_orbit: # sanity check
                 self.plot_interval_orbit = self.max_iter_orbit
@@ -267,6 +267,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.Henon_widget.ytop = self.ytop
         self.Henon_widget.xright = self.xright
         self.Henon_widget.ybottom = self.ybottom
+        self.Henon_widget.window_representation[:] = 0  
         
         current_settings = self.get_settings()
         current_settings['window_width'] = self.Henon_widget.window_width
@@ -278,7 +279,7 @@ class MainGui(QtWidgets.QMainWindow):
         else: # for OpenCL            
             self.Henon_calc = HenonCalc2(current_settings, self.context, self.command_queue, self.mem_flags, self.program)
 
-        # Henon_update will will wait for worker signals and then send screen update signals
+        # Henon_update will wait for worker signals and then send screen update signals
         self.Henon_update = HenonUpdate(current_settings,self.Henon_calc.interval_flags,\
                 self.Henon_calc.stop_signal, self.Henon_calc.array, self.Henon_widget.window_representation)
         
@@ -286,13 +287,14 @@ class MainGui(QtWidgets.QMainWindow):
         self.stop_signal.sig.connect(self.Henon_calc.stop)
         self.Henon_update.signal.sig.connect(self.update_screen) # Get signal for screen updates
         self.Henon_update.quit_signal.sig.connect(self.animation_stopped) # Check if animation was running
+        self.Henon_widget.signal.sig.connect(self.Henon_update.screen_update_finished) # Screen update is finished        
 
         if self.benchmark:        
             self.Henon_update.benchmark_signal.sig.connect(self.benchmark_result)
         
         #print("[MainGui] Starting calculations")
-        self.Henon_update.start()        
-        self.Henon_calc.start()
+        self.Henon_calc.start()        
+        self.Henon_update.start()
 
     def initialize_opencl(self):
 
@@ -389,20 +391,22 @@ class MainGui(QtWidgets.QMainWindow):
                     x = q[gid].x;
                     y = q[gid].y;
     
-                    int orbit_parameter,orbit_coordinate;
+                    int orbit_parameter,orbit_coordinate,orbit_multiplier,pos;
                     orbit_parameter = int_params[4];
                     orbit_coordinate = int_params[5];
+                    orbit_multiplier = int_params[6];
+                    pos = gid/orbit_multiplier;
             
                     double a, b;
                     if (orbit_parameter > 0) {
                         a = float_params[2];
-                        a = a + gid/float_params[4];
+                        a = a + pos/float_params[4];
                         b = float_params[1];
                     }
                     else {
                         a = float_params[0];
                         b = float_params[2];
-                        b = b + gid/float_params[4];
+                        b = b + pos/float_params[4];
                     }
         
                     // drop first set of iterations
@@ -429,13 +433,13 @@ class MainGui(QtWidgets.QMainWindow):
                         }
                         
                         if ((0 < y_draw) && (y_draw < int_params[2])) {
-                            int location = convert_int(((int_params[2]-y_draw)*int_params[3]) + gid);
+                            int location = convert_int(((int_params[2]-y_draw)*int_params[3]) + pos);
                             window_representation[location] = 1;
                         }
                     }
                     
-                    q[gid].x = x;
-                    q[gid].y = y;
+                    q[pos].x = x;
+                    q[pos].y = y;
                 }
                 """).build()
             except:
@@ -786,6 +790,7 @@ class MainGui(QtWidgets.QMainWindow):
         settings['max_iter_orbit'] = self.max_iter_orbit
         settings['plot_interval_orbit'] = self.plot_interval_orbit
         settings['iter_auto_mode_orbit'] = self.iter_auto_mode_orbit
+        settings['orbit_multiplier'] = self.orbit_multiplier
         return settings
     
     def implement_settings(self,settings):
@@ -829,7 +834,8 @@ class MainGui(QtWidgets.QMainWindow):
         self.max_iter_orbit = settings['max_iter_orbit']
         self.plot_interval_orbit = settings['plot_interval_orbit']
         self.iter_auto_mode_orbit = settings['iter_auto_mode_orbit']       
-
+        self.orbit_multiplier = settings['orbit_multiplier']
+        
         if self.module_opencl_present:
             if self.opencl_enabled:
                 self.initialize_opencl()
