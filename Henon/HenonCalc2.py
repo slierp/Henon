@@ -179,14 +179,12 @@ class WorkerProcess(QtCore.QThread):
                     int_params = np.array([plot_interval,0,window_height,window_width],dtype=np.uint32)            
                     first_run = False
             else:
-                if not first_run:
-                    first_run = False
-                    while not self.exit.is_set(): # wait until previous data was updated on screen
-                        if self.interval_flags.value:
-                            #print("[" + self.name + "] Waiting for signal from HenonUpdate")
-                            sleep(0.01)
-                        else:
-                            break                
+                while not self.exit.is_set(): # wait until previous data was updated on screen
+                    if self.interval_flags.value:
+                        #print("[" + self.name + "] Waiting for signal from HenonUpdate")
+                        sleep(0.01)
+                    else:
+                        break                
                 
                 # copy calculation results from buffer memory
                 cl.enqueue_copy(self.command_queue, self.array, array_buffer).wait()
@@ -263,7 +261,6 @@ class WorkerProcessOrbit(WorkerProcess):
             max_iter_orbit = self.settings['max_iter_anim']
             #empty_array = mp.RawArray('H', 2*window_width*window_height) # needed for emptying self.array
             empty_array = mp.RawArray(ctypes.c_bool, window_width*window_height) # needed for emptying self.array
-            first_run = True
             
             if hena_anim:
                 hena = hena_start
@@ -315,14 +312,12 @@ class WorkerProcessOrbit(WorkerProcess):
                 
                 self.interval_flags.value = True
             else:
-                if not first_run:
-                    first_run = False
-                    while not self.exit.is_set(): # wait until previous data was updated on screen
-                        if self.interval_flags.value:
-                            #print("[" + self.name + "] Waiting for signal from HenonUpdate")
-                            sleep(0.01)
-                        else:
-                            break
+                while not self.exit.is_set(): # wait until previous data was updated on screen
+                    if self.interval_flags.value:
+                        #print("[" + self.name + "] Waiting for signal from HenonUpdate")
+                        sleep(0.01)
+                    else:
+                        break
                     
                 # copy calculation results from buffer memory
                 cl.enqueue_copy(self.command_queue, self.array, array_buffer).wait()

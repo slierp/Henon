@@ -46,6 +46,8 @@ class HenonWidget(QtWidgets.QLabel):
         self.color_options = [[200,200,200],[79,129,189],[192,80,77],[155,187,89],[247,150,70],[128,100,162],[75,172,198]]
 
         self.signal = Signal()
+        
+        self.count = 0
 
     def showEvent(self,event):
 
@@ -63,7 +65,7 @@ class HenonWidget(QtWidgets.QLabel):
         #array = self.window_representation.astype('uint8')*200 
         #img = Image.fromarray(array, mode= "L").resize((width,height),resample=Image.BILINEAR)
         array = np.copy(self.window_representation).astype('uint8')
-        array *= 255 # separate command executes a bit faster
+        array *= 200 # separate command executes a bit faster
         
         # 1-mode would be preferable because no astype needed, but PIL has bugs that make it unusable
         #img = Image.fromarray(self.window_representation, mode= "1").resize((width,height),resample=Image.BILINEAR)
@@ -73,7 +75,8 @@ class HenonWidget(QtWidgets.QLabel):
         self.setPixmap(QtGui.QPixmap.fromImage(image,flags=QtCore.Qt.MonoOnly))
                 
         if not self.first_run:
-            #print("[HenonWidget] Sending screen update signal")              
+            #self.count += 1
+            #print("[HenonWidget] Sending screen update signal: " + str(self.count))             
             self.signal.sig.emit()
         
     def showEvent_color(self,event,color): # separate function since it is slower than monochrome

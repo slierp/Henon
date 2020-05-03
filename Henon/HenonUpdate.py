@@ -47,6 +47,7 @@ class HenonUpdate(QtCore.QThread):
         
         self.updates_started = False        
         self.screen_update = False
+        self.stop = False
                 
     def run(self):
 
@@ -72,13 +73,15 @@ class HenonUpdate(QtCore.QThread):
         
         if all(i for i in self.stop_signal): # quit updates
             #print("[" + self.name + "] Received stop signal")
-            self.perform_update(True)
+            self.stop = True
+            self.perform_update()
             
             if self.benchmark:
                 delta = datetime.now() - self.time_start
                 self.benchmark_signal.sig.emit(str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds")
             
             if self.animation_running:
+                self.animation_running = False
                 self.quit_signal.sig.emit() # stop animation
                 
             self.quit() # stop thread
@@ -86,27 +89,29 @@ class HenonUpdate(QtCore.QThread):
         
         if all(i for i in self.interval_flags):
             #print("[" + self.name + "] Received interval signal")
-            self.perform_update(False)
-                    
-            if self.animation_running:                                          
+            self.perform_update()
+                   
+            if self.animation_running:                                  
                 QtCore.QTimer.singleShot(self.animation_delay, self.check_for_update)
             
             return
-            
-        QtCore.QTimer.singleShot(100, self.check_for_update)
+        
+        if not self.stop:
+            QtCore.QTimer.singleShot(100, self.check_for_update)
         
     def check_for_update2(self): # wait for opencl workers
         
         if self.stop_signal.value: # quit updates
             #print("[" + self.name + "] Received stop signal")
-
-            self.perform_update2(True)            
+            self.stop = True
+            self.perform_update2()            
 
             if self.benchmark:
                 delta = datetime.now() - self.time_start
                 self.benchmark_signal.sig.emit(str(round(delta.seconds + delta.microseconds/1e6,2)) + " seconds")
             
             if self.animation_running:
+                self.animation_running = False                
                 self.quit_signal.sig.emit() # stop animation
                 
             self.quit() # stop thread
@@ -114,38 +119,24 @@ class HenonUpdate(QtCore.QThread):
         
         if self.interval_flags.value:
             #print("[" + self.name + "] Received interval signal")
-            self.perform_update2(False)
+            self.perform_update2()
         
-            if not self.animation_running:                                  
+            if self.animation_running:                                  
                 QtCore.QTimer.singleShot(self.animation_delay, self.check_for_update2)
                 
             return
 
-        QtCore.QTimer.singleShot(100, self.check_for_update2)        
+        if not self.stop:            
+            QtCore.QTimer.singleShot(100, self.check_for_update2)        
 
-    def perform_update(self,stop): # for multiprocessing
+    def perform_update(self): # for multiprocessing
 
         #print("[" + self.name + "] Copying results and sending screen re-draw signal")
        
         arr = np.frombuffer(self.array, dtype=np.bool) # get calculation result
         
-        if not stop:
+        if not self.stop:
             self.interval_flags[:] = [False]*self.thread_count # restart all workers 
-        
-        '''
-        if not self.animation_running:                            
-            self.interval_flags[:] = [False]*self.thread_count # restart all workers      
-        else:                
-            self.interval_flags[0] = False # give worker 0 a head-start            
-            while True: # wait until worker 0 emptied the array and copied new data
-                if not self.interval_flags[0]:
-                    sleep(0.01)
-                else:
-                    break
-                
-            if self.thread_count:
-                self.interval_flags[1:] = [False]*(self.thread_count-1) # restart all other workers     
-        '''
         
         arr = arr.reshape((self.window_height,self.window_width)) # deflatten array
         
@@ -177,17 +168,17 @@ class HenonUpdate(QtCore.QThread):
         self.screen_update = False
         self.signal.sig.emit()        
         
-        if not stop:
-            QtCore.QTimer.singleShot(100, self.wait_for_screen_update)       
+        if not self.stop:
+            self.wait_for_screen_update
         
-    def perform_update2(self,stop): # for opencl
+    def perform_update2(self): # for opencl
         
         #print("[" + self.name + "] Copying results and sending screen re-draw signal")
 
         #arr = np.frombuffer(self.array, dtype=np.uint16) # get calculation result        
         arr = np.frombuffer(self.array, dtype=np.bool) # get calculation result
         
-        if not stop:
+        if not self.stop:
             self.interval_flags.value = False # reset for new signal        
             
         arr = arr.reshape((self.window_height,self.window_width)) # deflatten array                         
@@ -215,8 +206,8 @@ class HenonUpdate(QtCore.QThread):
         self.screen_update = False
         self.signal.sig.emit()
         
-        if not stop:
-            QtCore.QTimer.singleShot(100, self.wait_for_screen_update)
+        if not self.stop:
+            self.wait_for_screen_update
 
     @QtCore.pyqtSlot()        
     def screen_update_finished(self):
@@ -226,10 +217,10 @@ class HenonUpdate(QtCore.QThread):
     def wait_for_screen_update(self):
         
             if self.screen_update:
-                if not self.opencl_enabled:
-                    QtCore.QTimer.singleShot(0, self.check_for_update)
+                if not self.opencl_enabled:                   
+                    self.check_for_update
                 else:
-                    QtCore.QTimer.singleShot(0, self.check_for_update2) 
+                    self.check_for_update2
                 return
                 
             QtCore.QTimer.singleShot(100, self.wait_for_screen_update)
