@@ -32,7 +32,7 @@ class HenonCalc(QtCore.QThread):
         # speed-up, but may give stability issues as well
         #self.array = mp.RawArray(ctypes.c_byte, window_width*window_height)
         self.array = mp.RawArray(ctypes.c_bool, window_width*window_height)
-
+        
         self.interval_flags = mp.Array('b', self.thread_count) # Have worker tell us when a piece work is finished
         self.interval_flags[:] = [False]*self.thread_count
 

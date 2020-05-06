@@ -67,6 +67,9 @@ class MainGui(QtWidgets.QMainWindow):
         self.super_sampling = 0
         self.default_settings['super_sampling'] = self.super_sampling
         self.super_sampling_options = ['1x','2x','4x','8x']
+        self.resize_method = 0
+        self.default_settings['resize_method'] = self.resize_method
+        self.resize_method_options = ['Nearest neighbour','Bilinear','Bicubic','Lanczos']
         
         # calculation settings        
         self.opencl_enabled = False
@@ -86,11 +89,11 @@ class MainGui(QtWidgets.QMainWindow):
         self.default_settings['drop_iter'] = self.drop_iter
         self.iter_auto_mode = True
         self.default_settings['iter_auto_mode'] = self.iter_auto_mode
-        self.enlarge_rare_pixels = True
+        self.enlarge_rare_pixels = False
         self.default_settings['enlarge_rare_pixels'] = self.enlarge_rare_pixels
         self.benchmark = False
         self.default_settings['benchmark'] = self.benchmark
-        self.orbit_multiplier = 1
+        self.orbit_multiplier = 0
         self.default_settings['orbit_multiplier'] = self.orbit_multiplier
         
         # animation settings
@@ -173,7 +176,7 @@ class MainGui(QtWidgets.QMainWindow):
         if not self.color:
             self.Henon_widget.showEvent(QtGui.QShowEvent()) # for PyQt-only Henon widget
         else:
-            self.Henon_widget.showEvent_color(QtGui.QShowEvent(),self.color)
+            self.Henon_widget.showEvent_color(QtGui.QShowEvent())
 
     def wait_thread_end(self, thread):
         
@@ -183,16 +186,16 @@ class MainGui(QtWidgets.QMainWindow):
             else:
                 return
 
-    @QtCore.pyqtSlot()
-    def animation_stopped(self):
-        if self.animation_running:            
-            self.animation_running = False
-                
-            self.statusBar().showMessage("Animation finished",1000)
-    
     @QtCore.pyqtSlot(str)
-    def benchmark_result(self,result):
-        self.statusBar().showMessage(result,1000)
+    def updates_stopped(self,result):          
+        
+        message = "Computation finished"
+        
+        if self.benchmark:
+            message = "Computation finished in " + str(result)
+        
+        self.statusBar().showMessage(message,1000)
+        self.animation_running = False            
 
     def initialize_calculation(self):
         
@@ -267,7 +270,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.Henon_widget.ytop = self.ytop
         self.Henon_widget.xright = self.xright
         self.Henon_widget.ybottom = self.ybottom
-        self.Henon_widget.window_representation[:] = 0  
+        self.Henon_widget.window_representation[:] = 0
         
         current_settings = self.get_settings()
         current_settings['window_width'] = self.Henon_widget.window_width
@@ -286,11 +289,8 @@ class MainGui(QtWidgets.QMainWindow):
         self.stop_signal = StopSignal()
         self.stop_signal.sig.connect(self.Henon_calc.stop)
         self.Henon_update.signal.sig.connect(self.update_screen) # Get signal for screen updates
-        self.Henon_update.quit_signal.sig.connect(self.animation_stopped) # Check if animation was running
+        self.Henon_update.updates_stopped.sig.connect(self.updates_stopped) # Check if animation was running
         self.Henon_widget.signal.sig.connect(self.Henon_update.screen_update_finished) # Screen update is finished        
-
-        if self.benchmark:        
-            self.Henon_update.benchmark_signal.sig.connect(self.benchmark_result)
         
         #print("[MainGui] Starting calculations")
         self.Henon_calc.start()        
@@ -322,15 +322,16 @@ class MainGui(QtWidgets.QMainWindow):
 
         self.command_queue = cl.CommandQueue(self.context)    
         self.mem_flags = cl.mem_flags
+        '''
 
-                #__kernel void henon(__global double2 *q, __global ushort *window_representation,
-                #                    __global uint const *int_params, __global double const *float_params)
-
+                __kernel void henon(__global double2 *q, __global ushort *local_array,
+                                    __global uint const *int_params, __global double const *float_params)
+        '''
         if not self.orbit_mode: # kernel for normal Henon calculations
             try: #uint for 32-bit (ulong for 64-bit not recommended due to much longer execution time)
                 self.program = cl.Program(self.context, """
                 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable    
-                __kernel void henon(__global double2 *q, __global bool *window_representation,
+                __kernel void henon(__global double2 *q, __global bool *local_array,
                                     __global uint const *int_params, __global double const *float_params)
                 {
                     int gid = get_global_id(0);
@@ -363,7 +364,7 @@ class MainGui(QtWidgets.QMainWindow):
                         if ((0 < x_draw) && (x_draw < int_params[3]) && (0 < y_draw) && (y_draw < int_params[2])) {
                             int location = convert_int(((int_params[2]-y_draw)*int_params[3]) + x_draw); // for top-left origin
                             //int location = convert_int((y_draw*int_params[3]) + x_draw); // for bottom-left origin
-                            window_representation[location] = 1;
+                            local_array[location] = 1;
                         }
                     }
                     
@@ -383,7 +384,7 @@ class MainGui(QtWidgets.QMainWindow):
                 
                 self.program = cl.Program(self.context, """
                 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable    
-                __kernel void henon(__global double2 *q, __global bool *window_representation,
+                __kernel void henon(__global double2 *q, __global bool *local_array,
                                     __global uint const *int_params, __global double const *float_params)
                 {
                     int gid = get_global_id(0);
@@ -434,7 +435,7 @@ class MainGui(QtWidgets.QMainWindow):
                         
                         if ((0 < y_draw) && (y_draw < int_params[2])) {
                             int location = convert_int(((int_params[2]-y_draw)*int_params[3]) + pos);
-                            window_representation[location] = 1;
+                            local_array[location] = 1;
                         }
                     }
                     
@@ -469,8 +470,6 @@ class MainGui(QtWidgets.QMainWindow):
             if self.henb_anim and not self.orbit_parameter:
                 self.statusBar().showMessage(self.tr("Set animation parameter is the same as orbit map parameter"),1000)
                 return                
-        
-        self.benchmark = False # do not allow benchmark screen updates for animations
 
         #print("[MainGui] Starting animation")
 
@@ -754,91 +753,104 @@ class MainGui(QtWidgets.QMainWindow):
         self.statusBar().showMessage(self.tr("File saved"),1000)
 
     def get_settings(self):
+
         settings = {}
-        settings['hena'] = self.hena
-        settings['henb'] = self.henb
-        settings['xleft'] = self.xleft
-        settings['ytop'] = self.ytop
-        settings['xright'] = self.xright
-        settings['ybottom'] = self.ybottom
-        settings['color'] = self.color
-        settings['super_sampling'] = self.super_sampling        
-        settings['opencl_enabled'] = self.opencl_enabled
-        settings['device_selection'] = self.device_selection
-        settings['thread_count'] = self.thread_count
-        settings['global_work_size'] = self.global_work_size
-        settings['plot_interval'] = self.plot_interval
-        settings['max_iter'] = self.max_iter
-        settings['drop_iter'] = self.drop_iter
-        settings['iter_auto_mode'] = self.iter_auto_mode
-        settings['enlarge_rare_pixels'] = self.enlarge_rare_pixels
-        settings['benchmark'] = self.benchmark
-        settings['hena_start'] = self.hena_start
-        settings['hena_stop'] = self.hena_stop
-        settings['hena_increment'] = self.hena_increment
-        settings['hena_anim'] = self.hena_anim
-        settings['henb_start'] = self.henb_start
-        settings['henb_stop'] = self.henb_stop
-        settings['henb_increment'] = self.henb_increment
-        settings['henb_anim'] = self.henb_anim
-        settings['max_iter_anim'] = self.max_iter_anim
-        settings['plot_interval_anim'] = self.plot_interval_anim 
-        settings['animation_delay'] = self.animation_delay
-        settings['orbit_mode'] = self.orbit_mode
-        settings['orbit_parameter'] = self.orbit_parameter
-        settings['orbit_coordinate'] = self.orbit_coordinate
-        settings['max_iter_orbit'] = self.max_iter_orbit
-        settings['plot_interval_orbit'] = self.plot_interval_orbit
-        settings['iter_auto_mode_orbit'] = self.iter_auto_mode_orbit
-        settings['orbit_multiplier'] = self.orbit_multiplier
+        
+        try:
+            settings['hena'] = self.hena
+            settings['henb'] = self.henb
+            settings['xleft'] = self.xleft
+            settings['ytop'] = self.ytop
+            settings['xright'] = self.xright
+            settings['ybottom'] = self.ybottom
+            settings['color'] = self.color
+            settings['super_sampling'] = self.super_sampling        
+            settings['opencl_enabled'] = self.opencl_enabled
+            settings['device_selection'] = self.device_selection
+            settings['thread_count'] = self.thread_count
+            settings['global_work_size'] = self.global_work_size
+            settings['plot_interval'] = self.plot_interval
+            settings['max_iter'] = self.max_iter
+            settings['drop_iter'] = self.drop_iter
+            settings['iter_auto_mode'] = self.iter_auto_mode
+            settings['enlarge_rare_pixels'] = self.enlarge_rare_pixels
+            settings['benchmark'] = self.benchmark
+            settings['hena_start'] = self.hena_start
+            settings['hena_stop'] = self.hena_stop
+            settings['hena_increment'] = self.hena_increment
+            settings['hena_anim'] = self.hena_anim
+            settings['henb_start'] = self.henb_start
+            settings['henb_stop'] = self.henb_stop
+            settings['henb_increment'] = self.henb_increment
+            settings['henb_anim'] = self.henb_anim
+            settings['max_iter_anim'] = self.max_iter_anim
+            settings['plot_interval_anim'] = self.plot_interval_anim 
+            settings['animation_delay'] = self.animation_delay
+            settings['orbit_mode'] = self.orbit_mode
+            settings['orbit_parameter'] = self.orbit_parameter
+            settings['orbit_coordinate'] = self.orbit_coordinate
+            settings['max_iter_orbit'] = self.max_iter_orbit
+            settings['plot_interval_orbit'] = self.plot_interval_orbit
+            settings['iter_auto_mode_orbit'] = self.iter_auto_mode_orbit
+            settings['orbit_multiplier'] = self.orbit_multiplier
+            settings['resize_method'] = self.resize_method
+        except:
+            msg = self.tr("An error occurred while retrieving settings.")
+            QtWidgets.QMessageBox.about(self, self.tr("Warning"), msg)
+        
         return settings
     
     def implement_settings(self,settings):
         self.stop_calculation()
         
-        self.hena = settings['hena']
-        self.henb = settings['henb']
-        self.xleft = settings['xleft']
-        self.ytop = settings['ytop']
-        self.xright = settings['xright']
-        self.ybottom = settings['ybottom']
-        self.color = settings['color']
-        self.super_sampling = settings['super_sampling']        
-        if self.module_opencl_present:
-            self.opencl_enabled = settings['opencl_enabled']
-        else:
-            self.opencl_enabled = False
-        self.device_selection = settings['device_selection']
-        self.thread_count = settings['thread_count']
-        self.global_work_size = settings['global_work_size']
-        self.plot_interval = settings['plot_interval']
-        self.max_iter = settings['max_iter']
-        self.drop_iter = settings['drop_iter']
-        self.iter_auto_mode = settings['iter_auto_mode']
-        self.enlarge_rare_pixels = settings['enlarge_rare_pixels']
-        self.benchmark = settings['benchmark']
-        self.hena_start = settings['hena_start']
-        self.hena_stop = settings['hena_stop']
-        self.hena_increment = settings['hena_increment']
-        self.hena_anim = settings['hena_anim']
-        self.henb_start = settings['henb_start']
-        self.henb_stop = settings['henb_stop']
-        self.henb_increment = settings['henb_increment']
-        self.henb_anim = settings['henb_anim']
-        self.max_iter_anim = settings['max_iter_anim']
-        self.plot_interval_anim = settings['plot_interval_anim']
-        self.animation_delay = settings['animation_delay']
-        self.orbit_mode = settings['orbit_mode']
-        self.orbit_parameter = settings['orbit_parameter']
-        self.orbit_coordinate = settings['orbit_coordinate']
-        self.max_iter_orbit = settings['max_iter_orbit']
-        self.plot_interval_orbit = settings['plot_interval_orbit']
-        self.iter_auto_mode_orbit = settings['iter_auto_mode_orbit']       
-        self.orbit_multiplier = settings['orbit_multiplier']
-        
+        try:
+            self.hena = settings['hena']
+            self.henb = settings['henb']
+            self.xleft = settings['xleft']
+            self.ytop = settings['ytop']
+            self.xright = settings['xright']
+            self.ybottom = settings['ybottom']
+            self.color = settings['color']
+            self.super_sampling = settings['super_sampling']        
+            if self.module_opencl_present:
+                self.opencl_enabled = settings['opencl_enabled']
+            else:
+                self.opencl_enabled = False
+            self.device_selection = settings['device_selection']
+            self.thread_count = settings['thread_count']
+            self.global_work_size = settings['global_work_size']
+            self.plot_interval = settings['plot_interval']
+            self.max_iter = settings['max_iter']
+            self.drop_iter = settings['drop_iter']
+            self.iter_auto_mode = settings['iter_auto_mode']
+            self.enlarge_rare_pixels = settings['enlarge_rare_pixels']
+            self.benchmark = settings['benchmark']
+            self.hena_start = settings['hena_start']
+            self.hena_stop = settings['hena_stop']
+            self.hena_increment = settings['hena_increment']
+            self.hena_anim = settings['hena_anim']
+            self.henb_start = settings['henb_start']
+            self.henb_stop = settings['henb_stop']
+            self.henb_increment = settings['henb_increment']
+            self.henb_anim = settings['henb_anim']
+            self.max_iter_anim = settings['max_iter_anim']
+            self.plot_interval_anim = settings['plot_interval_anim']
+            self.animation_delay = settings['animation_delay']
+            self.orbit_mode = settings['orbit_mode']
+            self.orbit_parameter = settings['orbit_parameter']
+            self.orbit_coordinate = settings['orbit_coordinate']
+            self.max_iter_orbit = settings['max_iter_orbit']
+            self.plot_interval_orbit = settings['plot_interval_orbit']
+            self.iter_auto_mode_orbit = settings['iter_auto_mode_orbit']       
+            self.orbit_multiplier = settings['orbit_multiplier']
+            self.resize_method = settings['resize_method']
+        except:
+            msg = self.tr("An error occurred while implementing settings.")
+            QtWidgets.QMessageBox.about(self, self.tr("Warning"), msg)                
+
         if self.module_opencl_present:
             if self.opencl_enabled:
-                self.initialize_opencl()
+                self.initialize_opencl() 
 
     def create_main_frame(self):
         

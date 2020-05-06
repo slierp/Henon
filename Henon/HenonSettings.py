@@ -124,6 +124,17 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addStretch(1)                
         vbox_tab_general.addLayout(hbox)
 
+        #hbox = QtWidgets.QHBoxLayout()
+        #description = QtWidgets.QLabel("Image resize method")        
+        #self.resize_method_combobox = QtWidgets.QComboBox(self)
+        #for i in self.parent.resize_method_options:
+        #    self.resize_method_combobox.addItem(i)               
+        #self.resize_method_combobox.setCurrentIndex(self.parent.resize_method)
+        #hbox.addWidget(self.resize_method_combobox) 
+        #hbox.addWidget(description)
+        #hbox.addStretch(1)                
+        #vbox_tab_general.addLayout(hbox)
+
         vbox_tab_general.addStretch(1)
         generic_widget_general = QtWidgets.QWidget()
         generic_widget_general.setLayout(vbox_tab_general)
@@ -422,7 +433,7 @@ class HenonSettings(QtWidgets.QDialog):
             self.global_work_size = QtWidgets.QSpinBox()
             self.global_work_size.setAccelerated(True)
             self.global_work_size.setMaximum(16)
-            self.global_work_size.setMinimum(1)
+            self.global_work_size.setMinimum(0)
             self.global_work_size.setValue(self.parent.global_work_size)           
             hbox.addWidget(self.global_work_size) 
             hbox.addWidget(description)
@@ -434,7 +445,7 @@ class HenonSettings(QtWidgets.QDialog):
             self.orbit_multiplier = QtWidgets.QSpinBox()
             self.orbit_multiplier.setAccelerated(True)
             self.orbit_multiplier.setMaximum(16)  # max allowed n is 32 due to uint32
-            self.orbit_multiplier.setMinimum(1)
+            self.orbit_multiplier.setMinimum(0)
             self.orbit_multiplier.setValue(self.parent.orbit_multiplier)           
             hbox.addWidget(self.orbit_multiplier) 
             hbox.addWidget(description)
@@ -526,6 +537,7 @@ class HenonSettings(QtWidgets.QDialog):
         self.parent.iter_auto_mode = self.iter_auto_mode.isChecked()
         self.parent.color = self.color_combobox.currentIndex()
         self.parent.super_sampling = self.sampling_combobox.currentIndex()
+        #self.parent.resize_method = self.resize_method_combobox.currentIndex()
         
         ### Animation settings ###
         self.parent.hena_start = self.hena_start.value()
