@@ -339,7 +339,9 @@ class WorkerProcessOrbit(WorkerProcess):
                 # erase image array for next animation frame               
                 ctypes.memmove(local_array, empty_array, window_width*window_height)                             
 
-                if orbit_parameter:
+                if orbit_parameter:                    
+                    new_henb = np.round(henb + henb_increment,4)
+                    
                     if henb_stop >= henb_start and new_henb <= henb_stop:
                         henb = new_henb
                     elif henb_stop <= henb_start and new_henb >= henb_stop:
