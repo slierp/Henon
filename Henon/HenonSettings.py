@@ -285,7 +285,7 @@ class HenonSettings(QtWidgets.QDialog):
         self.animation_delay = QtWidgets.QSpinBox()
         self.animation_delay.setAccelerated(True)
         self.animation_delay.setMaximum(999)
-        self.animation_delay.setMinimum(50)
+        self.animation_delay.setMinimum(20)
         self.animation_delay.setValue(self.parent.animation_delay)
         self.animation_delay.setSingleStep(10)
         hbox.addWidget(self.animation_delay) 

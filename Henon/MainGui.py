@@ -116,7 +116,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.default_settings['max_iter_anim'] = self.max_iter_anim
         self.plot_interval_anim = 30000
         self.default_settings['plot_interval_anim'] = self.plot_interval_anim
-        self.animation_delay = 100
+        self.animation_delay = 20
         self.default_settings['animation_delay'] = self.animation_delay
 
         # orbit mode settings

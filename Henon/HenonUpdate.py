@@ -58,7 +58,7 @@ class HenonUpdate(QtCore.QThread):
        
         self.updates_started = True
         
-        QtCore.QTimer.singleShot(100, self.check_for_update)
+        QtCore.QTimer.singleShot(20, self.check_for_update)
 
         self.exec_() # start thread                  
 
@@ -100,7 +100,7 @@ class HenonUpdate(QtCore.QThread):
             return
         
         if not self.stop:
-            QtCore.QTimer.singleShot(100, self.check_for_update)
+            QtCore.QTimer.singleShot(20, self.check_for_update)
 
     def perform_update(self):
 
@@ -152,5 +152,5 @@ class HenonUpdate(QtCore.QThread):
             if self.screen_update:                 
                 self.check_for_update
                 
-            QtCore.QTimer.singleShot(100, self.wait_for_screen_update)
+            QtCore.QTimer.singleShot(20, self.wait_for_screen_update)
      

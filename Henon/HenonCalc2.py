@@ -125,20 +125,19 @@ class WorkerProcess(QtCore.QThread):
             henb_anim = self.settings['henb_anim']
             max_iter = self.settings['max_iter_anim']
             plot_interval = self.settings['plot_interval_anim']
-            #empty_array = mp.RawArray('H', 2*window_width*window_height) # needed for emptying self.array
             empty_array = mp.RawArray(ctypes.c_bool, window_width*window_height) # needed for emptying self.array
             
             if hena_anim:
                 hena = hena_start
                 
             if henb_anim:
-                henb = henb_start                                     
-                
+                henb = henb_start
+
             if hena_stop < hena_start:
                 hena_increment = - hena_increment
 
             if henb_stop < henb_start:
-                henb_increment = - henb_increment                
+                henb_increment = - henb_increment
             
         # random x,y values in (-0.1,0.1) range for each GPU thread
         # opencl-float2 does not exist in current pyopencl version, but complex does
@@ -199,11 +198,21 @@ class WorkerProcess(QtCore.QThread):
                 #ctypes.memmove(self.array, empty_array, window_width*window_height)                             
                 ctypes.memmove(local_array, empty_array, window_width*window_height)                 
 
-                if hena_anim:
-                    hena = np.round(hena + hena_increment,4)              
+                if hena_anim:                    
+                    new_hena = np.round(hena + hena_increment,4)
+                    
+                    if hena_stop >= hena_start and new_hena <= hena_stop:
+                        hena = new_hena
+                    elif hena_stop <= hena_start and new_hena >= hena_stop:
+                        hena = new_hena                        
 
                 if henb_anim:
-                    henb = np.round(henb + henb_increment,4)
+                    new_henb = np.round(henb + henb_increment,4)
+                    
+                    if henb_stop >= henb_start and new_henb <= henb_stop:
+                        henb = new_henb
+                    elif henb_stop <= henb_start and new_henb >= henb_stop:
+                        henb = new_henb
                 
                 float_params = np.array([hena,henb,xleft,ybottom,xratio,yratio],dtype=np.float64)
 
@@ -259,7 +268,6 @@ class WorkerProcessOrbit(WorkerProcess):
             henb_increment = self.settings['henb_increment']
             henb_anim = self.settings['henb_anim']
             max_iter_orbit = self.settings['max_iter_anim']
-            #empty_array = mp.RawArray('H', 2*window_width*window_height) # needed for emptying self.array
             empty_array = mp.RawArray(ctypes.c_bool, window_width*window_height) # needed for emptying self.array
             
             if hena_anim:
@@ -328,14 +336,21 @@ class WorkerProcessOrbit(WorkerProcess):
                 if (iter_count >= max_iter_orbit): # do not erase if last frame
                     break
 
-                # erase image array for next animation frame
-                #ctypes.memmove(self.array, empty_array, window_width*window_height)                
+                # erase image array for next animation frame               
                 ctypes.memmove(local_array, empty_array, window_width*window_height)                             
 
                 if orbit_parameter:
-                    henb = np.round(henb + henb_increment,4)                  
+                    if henb_stop >= henb_start and new_henb <= henb_stop:
+                        henb = new_henb
+                    elif henb_stop <= henb_start and new_henb >= henb_stop:
+                        henb = new_henb                  
                 else:                    
-                    hena = np.round(hena + hena_increment,4) 
+                    new_hena = np.round(hena + hena_increment,4)
+                    
+                    if hena_stop >= hena_start and new_hena <= hena_stop:
+                        hena = new_hena
+                    elif hena_stop <= hena_start and new_hena >= hena_stop:
+                        hena = new_hena
                     
                 float_params = np.array([hena,henb,xleft,ybottom,xratio,yratio],dtype=np.float64)
 
