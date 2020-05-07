@@ -53,34 +53,18 @@ class HenonWidget(QtWidgets.QLabel):
         if self.do_not_draw:
             return
         
+        r,g,b = self.color_options[self.parent.color][0], self.color_options[self.parent.color][1],self.color_options[self.parent.color][2]
+        
         # second window_width is bytes per line; needed to avoid image distortion when resizing the window
         image=QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)
-
+        image.setColor(1,QtGui.qRgb(r,g,b))
+        
         self.setPixmap(QtGui.QPixmap.fromImage(image))
                 
         if not self.first_run:
             #self.count += 1
             #print("[HenonWidget] Sending screen update signal: " + str(self.count))             
             self.signal.sig.emit()
-        
-    def showEvent_color(self,event): # separate function since it is slower than monochrome
-
-        if self.do_not_draw:
-            return
-        
-        r = self.color_options[self.parent.color][0]
-        g = self.color_options[self.parent.color][1]
-        b = self.color_options[self.parent.color][2]
-        
-        # second window_width is bytes per line; needed to avoid image distortion when resizing the window
-        image=QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)
-        image.setColor(255,QtGui.qRgb(r,g,b))
- 
-        self.setPixmap(QtGui.QPixmap.fromImage(image))
-        
-        if not self.first_run:
-            #print("[HenonWidget] Sending screen update signal")              
-            self.signal.sig.emit()      
 
     def resizeEvent(self,event):
     

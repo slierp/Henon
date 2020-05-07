@@ -69,7 +69,6 @@ class MainGui(QtWidgets.QMainWindow):
         self.super_sampling_options = ['1x','2x','4x','8x']
         self.resize_method = 0
         self.default_settings['resize_method'] = self.resize_method
-        self.resize_method_options = ['Nearest neighbour','Bilinear','Bicubic','Lanczos']
         
         # calculation settings        
         self.opencl_enabled = False
@@ -173,10 +172,7 @@ class MainGui(QtWidgets.QMainWindow):
     def update_screen(self):
         #print("[MainGui] Updating screen")
         
-        if not self.color:
-            self.Henon_widget.showEvent(QtGui.QShowEvent()) # for PyQt-only Henon widget
-        else:
-            self.Henon_widget.showEvent_color(QtGui.QShowEvent())
+        self.Henon_widget.showEvent(QtGui.QShowEvent()) # for PyQt-only Henon widget
 
     def wait_thread_end(self, thread):
         

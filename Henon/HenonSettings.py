@@ -293,15 +293,15 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addStretch(1)                
         vbox_tab_animation.addLayout(hbox)
 
-        hbox = QtWidgets.QHBoxLayout()
-        description = QtWidgets.QLabel("Enlarge rare pixels")
-        self.enlarge_rare_pixels = QtWidgets.QCheckBox()
-        self.enlarge_rare_pixels.setChecked(self.parent.enlarge_rare_pixels)
-        description.mouseReleaseEvent = self.switch_enlarge_rare_pixels
-        hbox.addWidget(self.enlarge_rare_pixels)
-        hbox.addWidget(description)
-        hbox.addStretch(1)                
-        vbox_tab_animation.addLayout(hbox)
+        #hbox = QtWidgets.QHBoxLayout()
+        #description = QtWidgets.QLabel("Enlarge rare pixels")
+        #self.enlarge_rare_pixels = QtWidgets.QCheckBox()
+        #self.enlarge_rare_pixels.setChecked(self.parent.enlarge_rare_pixels)
+        #description.mouseReleaseEvent = self.switch_enlarge_rare_pixels
+        #hbox.addWidget(self.enlarge_rare_pixels)
+        #hbox.addWidget(description)
+        #hbox.addStretch(1)                
+        #vbox_tab_animation.addLayout(hbox)
         
         vbox_tab_animation.addStretch(1)
         generic_widget_animation = QtWidgets.QWidget()
@@ -552,7 +552,7 @@ class HenonSettings(QtWidgets.QDialog):
 
         self.parent.plot_interval_anim = self.plot_interval_anim.value()        
         self.parent.animation_delay = self.animation_delay.value()
-        self.parent.enlarge_rare_pixels = self.enlarge_rare_pixels.isChecked()
+        #self.parent.enlarge_rare_pixels = self.enlarge_rare_pixels.isChecked()
 
         ### Orbit map settings ###
         self.parent.max_iter_orbit = self.max_iter_orbit.value()

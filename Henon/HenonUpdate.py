@@ -2,6 +2,8 @@
 from PyQt5 import QtCore
 from datetime import datetime
 import numpy as np
+import multiprocessing as mp
+import ctypes
 
 class Signal(QtCore.QObject):
     sig = QtCore.pyqtSignal()
@@ -46,7 +48,7 @@ class HenonUpdate(QtCore.QThread):
         self.updates_started = False        
         self.screen_update = False
         self.stop = False
-                
+        
     def run(self):
 
         if (self.updates_started): # fix strange problem where run command is started twice by QThread
@@ -103,29 +105,29 @@ class HenonUpdate(QtCore.QThread):
     def perform_update(self):
 
         #print("[" + self.name + "] Copying results and sending screen re-draw signal")
-       
-        arr = np.frombuffer(self.array, dtype=np.byte) # get calculation result
+        
+        # get copy of calculation result as fast as possible
+        # do not apply directly to window as this would delay workers        
+        local_array = mp.RawArray(ctypes.c_bool, self.window_width*self.window_height) 
+        ctypes.memmove(local_array, self.array, self.window_width*self.window_height)
 
-        if not self.stop:
+        if not self.stop: # restart all workers 
             if not self.opencl_enabled:
-                self.interval_flags[:] = [False]*self.thread_count # restart all workers 
+                self.interval_flags[:] = [False]*self.thread_count 
             else:                
-                self.interval_flags.value = False # restart all workers               
-        
-        arr = arr.reshape((self.window_height,self.window_width))
-        arr = arr*255
-        
-        if self.enlarge_rare_pixels:
-            arr = arr.reshape((self.window_height,self.window_width)) # deflatten array            
-            # enlarge pixels if there are very few of them
-            pixel_number = np.count_nonzero(arr)
-            if (pixel_number < 17) and (pixel_number > 0):
-                arr = arr + np.roll(arr,1,0) + np.roll(arr,-1,0) + np.roll(arr,1,1) + np.roll(arr,-1,1)
+                self.interval_flags.value = False
 
-        if self.animation_running:
-            np.copyto(self.window_representation,arr)
-        else: 
-            self.window_representation[arr == 255] = 255
+        if self.animation_running: # get calculation result
+            self.window_representation[:] = 0 # statement has near-zero time-cost; whether bool or byte
+
+        np.copyto(self.window_representation,np.frombuffer(local_array, dtype=np.byte).reshape((self.window_height,self.window_width))) # statement has near-zero time-cost
+        
+        #if self.enlarge_rare_pixels:
+        #    arr = arr.reshape((self.window_height,self.window_width)) # deflatten array            
+            # enlarge pixels if there are very few of them
+        #    pixel_number = np.count_nonzero(arr)
+        #    if (pixel_number < 17) and (pixel_number > 0):
+        #        arr = arr + np.roll(arr,1,0) + np.roll(arr,-1,0) + np.roll(arr,1,1) + np.roll(arr,-1,1)
 
         ##print("[" + self.name + "] Pixels in screen window: " + str(self.window_width*self.window_height))
         ##print("[" + self.name + "] Pixels in copied array: " + str(np.count_nonzero(arr))) 
