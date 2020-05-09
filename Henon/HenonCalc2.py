@@ -51,7 +51,10 @@ class HenonCalc2(QtCore.QThread):
         else:
             self.worker = WorkerProcessOrbit(args=([self.settings, shared_tuple]))
 
-        self.worker.start()
+        try:
+            self.worker.start()
+        except:
+            pass
 
         self.workers_started = True
 
@@ -102,7 +105,9 @@ class WorkerProcess(QtCore.QThread):
         drop_iter = self.settings['drop_iter']       
         animation_running = self.settings['animation_running']
         window_width = self.settings['window_width']
-        window_height = self.settings['window_height']        
+        window_height = self.settings['window_height']
+        initial_conditions_multiplier = self.settings['initial_conditions_multiplier']
+        initial_conditions_additive = self.settings['initial_conditions_additive']         
         
         # ensures dtype and c-type contiguous, but does not seem to be necessary
         #self.array = np.require(self.array, np.uint16, 'C') 
@@ -125,7 +130,6 @@ class WorkerProcess(QtCore.QThread):
             henb_anim = self.settings['henb_anim']
             max_iter = self.settings['max_iter_anim']
             plot_interval = self.settings['plot_interval_anim']
-            empty_array = mp.RawArray(ctypes.c_bool, window_width*window_height) # needed for emptying self.array
             
             if hena_anim:
                 hena = hena_start
@@ -142,10 +146,8 @@ class WorkerProcess(QtCore.QThread):
         # random x,y values in (-0.1,0.1) range for each GPU thread
         # opencl-float2 does not exist in current pyopencl version, but complex does
         # so we'll use that for now to pass along x,y values
-        #xx = ((np.random.random_sample(global_work_size)-0.5)/5)
-        xx = ((self.randomizer.random(global_work_size)-0.5)/5)
-        #yy = ((np.random.random_sample(global_work_size)-0.5)/5) * 1j
-        yy = ((self.randomizer.random(global_work_size)-0.5)/5) * 1j
+        xx = (((self.randomizer.random(global_work_size)-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier    
+        yy = (((self.randomizer.random(global_work_size)-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier * 1j
         queue = xx+yy
         first_run = True
 
@@ -154,12 +156,14 @@ class WorkerProcess(QtCore.QThread):
         float_params = np.array([hena,henb,xleft,ybottom,xratio,yratio],dtype=np.float64)
 
         while not self.exit.is_set():
-    
+
             # allocate memory for buffers and copy contents
             int_params_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=int_params)    
             float_params_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=float_params)
             queue_buffer = cl.Buffer(self.context, self.mem_flags.READ_WRITE | self.mem_flags.COPY_HOST_PTR, hostbuf=queue)
-            array_buffer = cl.Buffer(self.context, self.mem_flags.WRITE_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=local_array) #self.array)
+            
+            if first_run:
+                array_buffer = cl.Buffer(self.context, self.mem_flags.WRITE_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=local_array)
 
             # run calculations
             self.program.henon(self.command_queue, queue.shape, None, queue_buffer, array_buffer,\
@@ -175,8 +179,7 @@ class WorkerProcess(QtCore.QThread):
                 #print("[" + self.name + "] Sent signal to HenonUpdate")
 
                 if first_run: # set drop_iter to zero after first calculation run
-                    int_params = np.array([plot_interval,0,window_height,window_width],dtype=np.uint32)            
-                    first_run = False
+                    int_params = np.array([plot_interval,0,window_height,window_width],dtype=np.uint32)
             else:
                 while not self.exit.is_set(): # wait until previous data was updated on screen
                     if self.interval_flags.value:
@@ -196,7 +199,8 @@ class WorkerProcess(QtCore.QThread):
 
                 # erase image array for next animation frame
                 #ctypes.memmove(self.array, empty_array, window_width*window_height)                             
-                ctypes.memmove(local_array, empty_array, window_width*window_height)                 
+                #ctypes.memmove(local_array, empty_array, window_width*window_height) 
+                array_buffer = cl.Buffer(self.context, self.mem_flags.WRITE_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=local_array)                
 
                 if hena_anim:                    
                     new_hena = np.round(hena + hena_increment,4)
@@ -218,6 +222,9 @@ class WorkerProcess(QtCore.QThread):
 
             # copy x,y values from buffer memory to re-use as queue
             cl.enqueue_copy(self.command_queue, queue, queue_buffer).wait()
+
+            if first_run:
+                first_run = False
 
             if (iter_count >= max_iter):
                 break
@@ -252,6 +259,8 @@ class WorkerProcessOrbit(WorkerProcess):
         window_width = self.settings['window_width']
         window_height = self.settings['window_height']
         orbit_multiplier = pow(2,self.settings['orbit_multiplier'])      
+        initial_conditions_multiplier = self.settings['initial_conditions_multiplier']        
+        initial_conditions_additive = self.settings['initial_conditions_additive']       
     
         iter_count = 0
 
@@ -268,7 +277,6 @@ class WorkerProcessOrbit(WorkerProcess):
             henb_increment = self.settings['henb_increment']
             henb_anim = self.settings['henb_anim']
             max_iter_orbit = self.settings['max_iter_anim']
-            empty_array = mp.RawArray(ctypes.c_bool, window_width*window_height) # needed for emptying self.array
             
             if hena_anim:
                 hena = hena_start
@@ -289,24 +297,24 @@ class WorkerProcessOrbit(WorkerProcess):
             
         # random x,y values in (-0.1,0.1) range for each thread
         # one thread per pixel along screen width
-        xx = ((self.randomizer.random(window_width*orbit_multiplier)-0.5)/5)     
-        #xx = np.full(window_width,0.01)
-        yy = ((self.randomizer.random(window_width*orbit_multiplier)-0.5)/5) * 1j           
-        #yy = np.full(window_width,0.01j)
+        xx = (((self.randomizer.random(window_width*orbit_multiplier)-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier    
+        yy = (((self.randomizer.random(window_width*orbit_multiplier)-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier * 1j           
         queue = xx+yy
+        first_run = True
         
         local_array = mp.RawArray(ctypes.c_bool, window_width*window_height)
-        #int_params = np.array([plot_interval_orbit,drop_iter,window_height,window_width,orbit_parameter,orbit_coordinate],dtype=np.uint32)
         int_params = np.array([plot_interval_orbit,drop_iter,window_height,window_width,orbit_parameter,orbit_coordinate,orbit_multiplier],dtype=np.uint32)        
         float_params = np.array([hena,henb,xleft,ybottom,xratio,yratio],dtype=np.float64)
 
         while not self.exit.is_set():
-    
+            
             # allocate memory for buffers and copy contents
             int_params_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=int_params)    
             float_params_buffer = cl.Buffer(self.context, self.mem_flags.READ_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=float_params)
             queue_buffer = cl.Buffer(self.context, self.mem_flags.READ_WRITE | self.mem_flags.COPY_HOST_PTR, hostbuf=queue)
-            array_buffer = cl.Buffer(self.context, self.mem_flags.WRITE_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=local_array) #self.array)
+            
+            if first_run:
+                array_buffer = cl.Buffer(self.context, self.mem_flags.WRITE_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=local_array)
 
             # run calculations
             self.program.henon(self.command_queue, queue.shape, None, queue_buffer, array_buffer,\
@@ -319,6 +327,9 @@ class WorkerProcessOrbit(WorkerProcess):
                 cl.enqueue_copy(self.command_queue, self.array, array_buffer).wait() 
                 
                 self.interval_flags.value = True
+                
+                if first_run: # set drop_iter to zero after first calculation run
+                    int_params = np.array([plot_interval_orbit,0,window_height,window_width,orbit_parameter,orbit_coordinate,orbit_multiplier],dtype=np.uint32)               
             else:
                 while not self.exit.is_set(): # wait until previous data was updated on screen
                     if self.interval_flags.value:
@@ -337,7 +348,8 @@ class WorkerProcessOrbit(WorkerProcess):
                     break
 
                 # erase image array for next animation frame               
-                ctypes.memmove(local_array, empty_array, window_width*window_height)                             
+                #ctypes.memmove(local_array, empty_array, window_width*window_height) 
+                array_buffer = cl.Buffer(self.context, self.mem_flags.WRITE_ONLY | self.mem_flags.COPY_HOST_PTR, hostbuf=local_array)                            
 
                 if orbit_parameter:                    
                     new_henb = np.round(henb + henb_increment,4)
@@ -358,6 +370,9 @@ class WorkerProcessOrbit(WorkerProcess):
 
             # copy x,y values from buffer memory to re-use as queue
             cl.enqueue_copy(self.command_queue, queue, queue_buffer).wait()
+
+            if first_run:
+                first_run = False
 
             if (iter_count >= max_iter_orbit):
                 break

@@ -23,11 +23,8 @@ class HenonSettings(QtWidgets.QDialog):
         ### Tab general ###
         vbox_tab_general = QtWidgets.QVBoxLayout() 
 
-        hbox = QtWidgets.QHBoxLayout()       
-        spec = QtWidgets.QLabel("<b>H\xe9non parameter settings<b>")
-        hbox.addWidget(spec)
-        hbox.addStretch(1)
-        vbox_tab_general.addLayout(hbox)        
+        group_henon_parameter = QtWidgets.QGroupBox("H\xe9non parameter settings")
+        vbox = QtWidgets.QVBoxLayout()       
         
         hbox = QtWidgets.QHBoxLayout()
         description = QtWidgets.QLabel("Parameter 'a'")
@@ -41,7 +38,7 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.hena) 
         hbox.addWidget(description)
         hbox.addStretch(1)
-        vbox_tab_general.addLayout(hbox)          
+        vbox.addLayout(hbox)          
 
         hbox = QtWidgets.QHBoxLayout()
         description = QtWidgets.QLabel("Parameter 'b'")
@@ -55,13 +52,13 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.henb) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
-        vbox_tab_general.addLayout(hbox) 
+        vbox.addLayout(hbox) 
 
-        hbox = QtWidgets.QHBoxLayout()           
-        spec = QtWidgets.QLabel("<b>Number of iterations</b>")
-        hbox.addWidget(spec)
-        hbox.addStretch(1)
-        vbox_tab_general.addLayout(hbox)
+        group_henon_parameter.setLayout(vbox)        
+        vbox_tab_general.addWidget(group_henon_parameter)
+
+        group_henon_iter = QtWidgets.QGroupBox("Number of iterations")
+        vbox = QtWidgets.QVBoxLayout()
 
         hbox = QtWidgets.QHBoxLayout()
         description = QtWidgets.QLabel("Auto-mode")
@@ -72,7 +69,7 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.iter_auto_mode)
         hbox.addWidget(description)
         hbox.addStretch(1)                
-        vbox_tab_general.addLayout(hbox)
+        vbox.addLayout(hbox)
 
         hbox = QtWidgets.QHBoxLayout()
         description = QtWidgets.QLabel("Max iterations per thread")
@@ -86,7 +83,7 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.max_iter) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
-        vbox_tab_general.addLayout(hbox)
+        vbox.addLayout(hbox)
         
         hbox = QtWidgets.QHBoxLayout()
         description = QtWidgets.QLabel("Plot interval per thread")
@@ -100,7 +97,13 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.plot_interval) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
-        vbox_tab_general.addLayout(hbox)         
+        vbox.addLayout(hbox)         
+
+        group_henon_iter.setLayout(vbox)        
+        vbox_tab_general.addWidget(group_henon_iter)
+
+        group_henon_appear = QtWidgets.QGroupBox("Appearance")
+        vbox = QtWidgets.QVBoxLayout()
 
         hbox = QtWidgets.QHBoxLayout()
         description = QtWidgets.QLabel("Pixel color")        
@@ -111,10 +114,10 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.color_combobox) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
-        vbox_tab_general.addLayout(hbox)
+        vbox.addLayout(hbox)
 
         hbox = QtWidgets.QHBoxLayout()
-        description = QtWidgets.QLabel("Super sampling")        
+        description = QtWidgets.QLabel("Supersampling")        
         self.sampling_combobox = QtWidgets.QComboBox(self)
         for i in self.parent.super_sampling_options:
             self.sampling_combobox.addItem(i)               
@@ -122,7 +125,7 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.sampling_combobox) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
-        vbox_tab_general.addLayout(hbox)
+        vbox.addLayout(hbox)
 
         #hbox = QtWidgets.QHBoxLayout()
         #description = QtWidgets.QLabel("Image resize method")        
@@ -133,7 +136,10 @@ class HenonSettings(QtWidgets.QDialog):
         #hbox.addWidget(self.resize_method_combobox) 
         #hbox.addWidget(description)
         #hbox.addStretch(1)                
-        #vbox_tab_general.addLayout(hbox)
+        #vbox.addLayout(hbox)
+
+        group_henon_appear.setLayout(vbox)        
+        vbox_tab_general.addWidget(group_henon_appear)
 
         vbox_tab_general.addStretch(1)
         generic_widget_general = QtWidgets.QWidget()
@@ -142,12 +148,9 @@ class HenonSettings(QtWidgets.QDialog):
 
         ### Tab animation ###
         vbox_tab_animation = QtWidgets.QVBoxLayout()
-        
-        hbox = QtWidgets.QHBoxLayout()           
-        spec = QtWidgets.QLabel("<b>Animation settings</b>")
-        hbox.addWidget(spec)
-        hbox.addStretch(1)
-        vbox_tab_animation.addLayout(hbox)  
+
+        group_henon_anim = QtWidgets.QGroupBox("H\xe9non parameter animation settings")
+        vbox = QtWidgets.QVBoxLayout() 
                 
         vbox_anim_left = QtWidgets.QVBoxLayout()
         vbox_anim_right = QtWidgets.QVBoxLayout()
@@ -265,10 +268,16 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addSpacing(10)      
         hbox.addLayout(vbox_anim_right)
         hbox.addStretch(1)
-        vbox_tab_animation.addLayout(hbox)
+        vbox.addLayout(hbox)
+
+        group_henon_anim.setLayout(vbox)        
+        vbox_tab_animation.addWidget(group_henon_anim)
+
+        group_henon_anim_iter = QtWidgets.QGroupBox("Iteration settings for each frame")
+        vbox = QtWidgets.QVBoxLayout() 
 
         hbox = QtWidgets.QHBoxLayout()
-        description = QtWidgets.QLabel("Number of iterations per frame")
+        description = QtWidgets.QLabel("Number of iterations (not for orbit mode)")
         self.plot_interval_anim = QtWidgets.QSpinBox()
         self.plot_interval_anim.setAccelerated(True)
         self.plot_interval_anim.setMaximum(99999)
@@ -278,7 +287,7 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.plot_interval_anim) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
-        vbox_tab_animation.addLayout(hbox)
+        vbox.addLayout(hbox)
 
         hbox = QtWidgets.QHBoxLayout()
         description = QtWidgets.QLabel("Animation time delay [ms]")
@@ -291,7 +300,7 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.animation_delay) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
-        vbox_tab_animation.addLayout(hbox)
+        vbox.addLayout(hbox)
 
         #hbox = QtWidgets.QHBoxLayout()
         #description = QtWidgets.QLabel("Enlarge rare pixels")
@@ -301,7 +310,10 @@ class HenonSettings(QtWidgets.QDialog):
         #hbox.addWidget(self.enlarge_rare_pixels)
         #hbox.addWidget(description)
         #hbox.addStretch(1)                
-        #vbox_tab_animation.addLayout(hbox)
+        #vbox.addLayout(hbox)
+
+        group_henon_anim_iter.setLayout(vbox)        
+        vbox_tab_animation.addWidget(group_henon_anim_iter)
         
         vbox_tab_animation.addStretch(1)
         generic_widget_animation = QtWidgets.QWidget()
@@ -312,32 +324,35 @@ class HenonSettings(QtWidgets.QDialog):
         vbox_tab_orbit = QtWidgets.QVBoxLayout()  
 
         group_parameter = QtWidgets.QGroupBox("Parameter selection")
-        vbox_parameter = QtWidgets.QVBoxLayout()
+        vbox = QtWidgets.QVBoxLayout()
 
         self.orbit_parameter_a = QtWidgets.QRadioButton("Parameter 'a'")
         self.orbit_parameter_a.setChecked(self.parent.orbit_parameter)       
-        vbox_parameter.addWidget(self.orbit_parameter_a)
+        vbox.addWidget(self.orbit_parameter_a)
 
         self.orbit_parameter_b = QtWidgets.QRadioButton("Parameter 'b'")
         self.orbit_parameter_b.setChecked(not self.parent.orbit_parameter)      
-        vbox_parameter.addWidget(self.orbit_parameter_b)
+        vbox.addWidget(self.orbit_parameter_b)
 
-        group_parameter.setLayout(vbox_parameter)        
+        group_parameter.setLayout(vbox)        
         vbox_tab_orbit.addWidget(group_parameter)
         
         group_coordinate = QtWidgets.QGroupBox("Coordinate selection")
-        vbox_coordinate = QtWidgets.QVBoxLayout()
+        vbox = QtWidgets.QVBoxLayout()
 
         self.orbit_coordinate_x = QtWidgets.QRadioButton("x-coordinate")
         self.orbit_coordinate_x.setChecked(not self.parent.orbit_coordinate)
-        vbox_coordinate.addWidget(self.orbit_coordinate_x)              
+        vbox.addWidget(self.orbit_coordinate_x)              
 
         self.orbit_coordinate_y = QtWidgets.QRadioButton("y-coordinate")
         self.orbit_coordinate_y.setChecked(self.parent.orbit_coordinate)
-        vbox_coordinate.addWidget(self.orbit_coordinate_y)
+        vbox.addWidget(self.orbit_coordinate_y)
 
-        group_coordinate.setLayout(vbox_coordinate)        
+        group_coordinate.setLayout(vbox)        
         vbox_tab_orbit.addWidget(group_coordinate)
+
+        group_orbit_iter = QtWidgets.QGroupBox("Number of iterations")
+        vbox = QtWidgets.QVBoxLayout()
 
         hbox = QtWidgets.QHBoxLayout()
         description = QtWidgets.QLabel("Auto-mode")
@@ -348,7 +363,7 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.iter_auto_mode_orbit)
         hbox.addWidget(description)
         hbox.addStretch(1)                
-        vbox_tab_orbit.addLayout(hbox)
+        vbox.addLayout(hbox)
 
         hbox = QtWidgets.QHBoxLayout()
         description = QtWidgets.QLabel("Max iterations per pixel along screen width")
@@ -362,7 +377,7 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.max_iter_orbit) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
-        vbox_tab_orbit.addLayout(hbox)
+        vbox.addLayout(hbox)
 
         hbox = QtWidgets.QHBoxLayout()
         description = QtWidgets.QLabel("Plot interval per pixel along screen width")
@@ -376,21 +391,22 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.plot_interval_orbit) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
-        vbox_tab_orbit.addLayout(hbox)
+        vbox.addLayout(hbox)
+
+        group_orbit_iter.setLayout(vbox)        
+        vbox_tab_orbit.addWidget(group_orbit_iter)
 
         vbox_tab_orbit.addStretch(1)
         generic_widget_animation = QtWidgets.QWidget()
         generic_widget_animation.setLayout(vbox_tab_orbit)
         tabwidget.addTab(generic_widget_animation, "Orbit map")
 
-        ### Tab calculation ###
+        ### Tab calculation ###      
+        
         vbox_tab_calculation = QtWidgets.QVBoxLayout()
 
-        hbox = QtWidgets.QHBoxLayout()       
-        spec = QtWidgets.QLabel("<b>Calculation settings</b>")
-        hbox.addWidget(spec)
-        hbox.addStretch(1)
-        vbox_tab_calculation.addLayout(hbox)
+        group_init = QtWidgets.QGroupBox("Initial conditions")
+        vbox = QtWidgets.QVBoxLayout()
 
         hbox = QtWidgets.QHBoxLayout()
         description = QtWidgets.QLabel("Drop iterations")
@@ -403,7 +419,41 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.drop_iter) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
-        vbox_tab_calculation.addLayout(hbox)
+        vbox.addLayout(hbox)     
+
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("x[0],y[0] additive (n + random(-0.1,0.1))")
+        self.initial_conditions_additive = QtWidgets.QDoubleSpinBox()
+        self.initial_conditions_additive.setDecimals(1)
+        self.initial_conditions_additive.setAccelerated(True)
+        self.initial_conditions_additive.setMaximum(1)
+        self.initial_conditions_additive.setMinimum(-1)
+        self.initial_conditions_additive.setValue(self.parent.initial_conditions_additive)
+        self.initial_conditions_additive.setSingleStep(0.1)           
+        hbox.addWidget(self.initial_conditions_additive) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox.addLayout(hbox)
+
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("x[0],y[0] multiplier (m*(n+random(-0.1,0.1)))")
+        self.initial_conditions_multiplier = QtWidgets.QDoubleSpinBox()
+        self.initial_conditions_multiplier.setDecimals(1)
+        self.initial_conditions_multiplier.setAccelerated(True)
+        self.initial_conditions_multiplier.setMaximum(100)
+        self.initial_conditions_multiplier.setMinimum(0)
+        self.initial_conditions_multiplier.setValue(self.parent.initial_conditions_multiplier)
+        self.initial_conditions_multiplier.setSingleStep(0.1)           
+        hbox.addWidget(self.initial_conditions_multiplier) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox.addLayout(hbox)
+
+        group_init.setLayout(vbox)        
+        vbox_tab_calculation.addWidget(group_init)
+
+        group_multi = QtWidgets.QGroupBox("Multithreading")
+        vbox = QtWidgets.QVBoxLayout()
 
         hbox = QtWidgets.QHBoxLayout()
         description = QtWidgets.QLabel("Thread count")
@@ -416,42 +466,44 @@ class HenonSettings(QtWidgets.QDialog):
         hbox.addWidget(self.thread_count) 
         hbox.addWidget(description)
         hbox.addStretch(1)                
+        vbox.addLayout(hbox)
+
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("OpenCL global work size (2^n)")
+        self.global_work_size = QtWidgets.QSpinBox()
+        self.global_work_size.setAccelerated(True)
+        self.global_work_size.setMaximum(16)
+        self.global_work_size.setMinimum(0)
+        self.global_work_size.setValue(self.parent.global_work_size)           
+        hbox.addWidget(self.global_work_size) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox.addLayout(hbox)
+
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("OpenCL orbit work size multiplier (2^n)")
+        self.orbit_multiplier = QtWidgets.QSpinBox()
+        self.orbit_multiplier.setAccelerated(True)
+        self.orbit_multiplier.setMaximum(16)  # max allowed n is 32 due to uint32
+        self.orbit_multiplier.setMinimum(0)
+        self.orbit_multiplier.setValue(self.parent.orbit_multiplier)           
+        hbox.addWidget(self.orbit_multiplier) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox.addLayout(hbox)
+
+        group_multi.setLayout(vbox)        
+        vbox_tab_calculation.addWidget(group_multi)
+
+        hbox = QtWidgets.QHBoxLayout()
+        self.opencl_enabled = QtWidgets.QCheckBox("Enable OpenCL")
+        self.opencl_enabled.setDisabled(not self.parent.module_opencl_present)
+        self.opencl_enabled.setChecked(self.parent.opencl_enabled)
+        hbox.addWidget(self.opencl_enabled)
+        hbox.addStretch(1)                
         vbox_tab_calculation.addLayout(hbox)
 
-
-
         if self.parent.module_opencl_present:
-            hbox = QtWidgets.QHBoxLayout()
-            self.opencl_enabled = QtWidgets.QCheckBox("Enable OpenCL")
-            self.opencl_enabled.setChecked(self.parent.opencl_enabled)
-            hbox.addWidget(self.opencl_enabled)
-            hbox.addStretch(1)                
-            vbox_tab_calculation.addLayout(hbox)             
-
-            hbox = QtWidgets.QHBoxLayout()
-            description = QtWidgets.QLabel("Global work size (2^n)")
-            self.global_work_size = QtWidgets.QSpinBox()
-            self.global_work_size.setAccelerated(True)
-            self.global_work_size.setMaximum(16)
-            self.global_work_size.setMinimum(0)
-            self.global_work_size.setValue(self.parent.global_work_size)           
-            hbox.addWidget(self.global_work_size) 
-            hbox.addWidget(description)
-            hbox.addStretch(1)                
-            vbox_tab_calculation.addLayout(hbox)
-
-            hbox = QtWidgets.QHBoxLayout()
-            description = QtWidgets.QLabel("Orbit work size multiplier (2^n)")
-            self.orbit_multiplier = QtWidgets.QSpinBox()
-            self.orbit_multiplier.setAccelerated(True)
-            self.orbit_multiplier.setMaximum(16)  # max allowed n is 32 due to uint32
-            self.orbit_multiplier.setMinimum(0)
-            self.orbit_multiplier.setValue(self.parent.orbit_multiplier)           
-            hbox.addWidget(self.orbit_multiplier) 
-            hbox.addWidget(description)
-            hbox.addStretch(1)                
-            vbox_tab_calculation.addLayout(hbox)
-
             self.scroll_area = QtWidgets.QScrollArea()
             checkbox_widget = QtWidgets.QWidget()
             checkbox_vbox = QtWidgets.QVBoxLayout()
@@ -460,8 +512,8 @@ class HenonSettings(QtWidgets.QDialog):
 
             num = 0
             for platform in cl.get_platforms():
-                platform_name = QtWidgets.QLabel("Platform: " + platform.name)
-                checkbox_vbox.addWidget(platform_name)
+                #platform_name = QtWidgets.QLabel("Platform: " + platform.name)
+                #checkbox_vbox.addWidget(platform_name)
                 for device in platform.get_devices():
                     self.devices_cb.append(QtWidgets.QCheckBox(device.name))
                     self.devices_cb[num].setMinimumWidth(400) # prevent obscured text
@@ -575,6 +627,8 @@ class HenonSettings(QtWidgets.QDialog):
         ### Calculation settings ###
         self.parent.drop_iter = self.drop_iter.value()
         self.parent.thread_count = self.thread_count.value()            
+        self.parent.initial_conditions_multiplier = self.initial_conditions_multiplier.value()
+        self.parent.initial_conditions_additive = self.initial_conditions_additive.value()
 
         if self.parent.module_opencl_present:
             self.parent.opencl_enabled = self.opencl_enabled.isChecked()            

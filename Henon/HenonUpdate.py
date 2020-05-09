@@ -94,10 +94,9 @@ class HenonUpdate(QtCore.QThread):
             #print("[" + self.name + "] Received interval signal")
             self.perform_update()
                    
-            if self.animation_running:                                  
-                QtCore.QTimer.singleShot(self.animation_delay, self.check_for_update)
-            
-            return
+            if self.animation_running:
+                QtCore.QTimer.singleShot(self.animation_delay, self.check_for_update)            
+                return
         
         if not self.stop:
             QtCore.QTimer.singleShot(20, self.check_for_update)
@@ -112,8 +111,8 @@ class HenonUpdate(QtCore.QThread):
         ctypes.memmove(local_array, self.array, self.window_width*self.window_height)
 
         if not self.stop: # restart all workers 
-            if not self.opencl_enabled:
-                self.interval_flags[:] = [False]*self.thread_count 
+            if not self.opencl_enabled:            
+                self.interval_flags[:] = [False]*self.thread_count
             else:                
                 self.interval_flags.value = False
 

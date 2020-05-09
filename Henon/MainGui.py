@@ -94,7 +94,11 @@ class MainGui(QtWidgets.QMainWindow):
         self.default_settings['benchmark'] = self.benchmark
         self.orbit_multiplier = 0
         self.default_settings['orbit_multiplier'] = self.orbit_multiplier
-        
+        self.initial_conditions_multiplier = 1
+        self.default_settings['initial_conditions_multiplier'] = self.initial_conditions_multiplier
+        self.initial_conditions_additive = 0
+        self.default_settings['initial_conditions_additive'] = self.initial_conditions_additive
+
         # animation settings
         self.hena_start = 0.8
         self.default_settings['hena_start'] = self.hena_start
@@ -790,6 +794,8 @@ class MainGui(QtWidgets.QMainWindow):
             settings['iter_auto_mode_orbit'] = self.iter_auto_mode_orbit
             settings['orbit_multiplier'] = self.orbit_multiplier
             settings['resize_method'] = self.resize_method
+            settings['initial_conditions_multiplier'] = self.initial_conditions_multiplier            
+            settings['initial_conditions_additive'] = self.initial_conditions_additive             
         except:
             msg = self.tr("An error occurred while retrieving settings.")
             QtWidgets.QMessageBox.about(self, self.tr("Warning"), msg)
@@ -840,6 +846,8 @@ class MainGui(QtWidgets.QMainWindow):
             self.iter_auto_mode_orbit = settings['iter_auto_mode_orbit']       
             self.orbit_multiplier = settings['orbit_multiplier']
             self.resize_method = settings['resize_method']
+            self.initial_conditions_multiplier = settings['initial_conditions_multiplier']
+            self.initial_conditions_additive = settings['initial_conditions_additive']            
         except:
             msg = self.tr("An error occurred while implementing settings.")
             QtWidgets.QMessageBox.about(self, self.tr("Warning"), msg)                

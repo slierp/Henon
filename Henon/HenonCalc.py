@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore
-from random import uniform
 import multiprocessing as mp
 #from datetime import datetime
 import numpy as np
@@ -50,12 +49,18 @@ class HenonCalc(QtCore.QThread):
         shared_tuple = self.array, self.interval_flags, self.stop_signal
         self.worker_list = []
         for i in range(self.thread_count):
+            
             if not self.orbit_mode:
                 w = WorkerProcess(args=([i, self.settings, shared_tuple]))
             else:
                 w = WorkerProcessOrbit(args=([i, self.settings, shared_tuple]))
+                
             self.worker_list.append(w)
-            w.start()
+            
+            try:
+                w.start()
+            except:
+                pass
            
         self.workers_started = True
 
@@ -85,28 +90,34 @@ class WorkerProcess(mp.Process):
         self.run_number = args[0]        
         self.settings = args[1]            
         self.array, self.interval_flags, self.stop_signal = args[2]
+        self.randomizer = np.random.default_rng()        
         #print("[" + self.name + "] Worker " + str(self.run_number) + " initialization")        
 
     def shutdown(self):
         #print("[" + self.name + "] Worker " + str(self.run_number) + " shutdown initiated")
         self.exit.set()
 
-    def drop_iterations(self,drop_iter,hena,henb,henx,heny):        
-        try:            
-            for _ in repeat(None, drop_iter): # prevent drawing first iterations
-                henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
-            return henx,heny
-        except: # if x,y results move towards infinity
-            #print("[" + self.name + "] Worker " + str(self.run_number) + " overflow")
-            return 100,100 # return some number that will not be drawn on screen
+    def fixed_points(self,a,b,point):
+        
+        a0 = pow(1-b,2)/4
+        
+        if a > a0:      
+            x0 = (1/(2*a))*(-(1-b) + pow(pow(1-b,2) + 4*a,0.5))
+            y0= b*x0
+            x1 = (1/(2*a))*(-(1-b) - pow(pow(1-b,2) + 4*a,0.5))
+            y1= b*x1
+        else:
+            x0 = y0 = x1 = y0 = 0
+       
+        if not point:
+            return x0,y0
+        else:
+            return x1,y1
 
     def run(self):
         
         #start_time = datetime.now()
         #print("[" + self.name + "] Worker " + str(self.run_number) + " has started")
-        
-        henx = uniform(-0.1,0.1) # generate random starting points
-        heny = uniform(-0.1,0.1)
 
         iter_count = 0
 
@@ -122,10 +133,16 @@ class WorkerProcess(mp.Process):
         window_width = self.settings['window_width']
         window_height = self.settings['window_height']
         drop_iter = self.settings['drop_iter']
+        initial_conditions_multiplier = self.settings['initial_conditions_multiplier']
+        initial_conditions_additive = self.settings['initial_conditions_additive']
 
         animation_running = self.settings['animation_running']
         xratio = window_width/(xright-xleft)
         yratio = window_height/(ytop-ybottom)
+
+        henx = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
+        heny = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier
+        #henx,heny = self.fixed_points(hena,henb,0)
 
         run_number = self.run_number
 
@@ -141,6 +158,7 @@ class WorkerProcess(mp.Process):
             plot_interval = self.settings['plot_interval_anim']
             max_iter = self.settings['max_iter_anim']
             empty_array = mp.RawArray(ctypes.c_bool, window_width*window_height) # needed for emptying self.array
+            empty_array[:] = [False]*window_width*window_height            
 
             if hena_anim:
                 hena = hena_start
@@ -154,12 +172,17 @@ class WorkerProcess(mp.Process):
             if henb_stop < henb_start:
                 henb_increment = - henb_increment
 
-        henx,heny = self.drop_iterations(drop_iter,hena,henb,henx,heny)
-
         # make local array for storing pixel during each iteration
         local_array = np.zeros(window_width*window_height,dtype=np.bool)
         
         while not self.exit.is_set():
+ 
+            try:            
+                for _ in repeat(None, drop_iter): # prevent drawing first iterations
+                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+            except: # if x,y results move towards infinity
+                #print("[" + self.name + "] Worker " + str(self.run_number) + " overflow")
+                pass
 
             try:
                 for _ in repeat(None, plot_interval):
@@ -169,8 +192,9 @@ class WorkerProcess(mp.Process):
                     #if (0 < x_draw < window_width) and (0 < y_draw < window_height):
                     if (xleft < henx < xright) and (ybottom < heny < ytop):                        
                         # draw pixel if it is inside the current display area
-                        x_draw = int((henx-xleft) * xratio) # adding rounding here is slightly more correct
-                        y_draw = int((heny-ybottom) * yratio) # but takes considerably more time
+                        #x_draw = int(round((henx-xleft) * xratio)) # adding rounding here is slightly more correct
+                        x_draw = int((henx-xleft) * xratio) # but takes considerably more time
+                        y_draw = int((heny-ybottom) * yratio) 
 
                         #local_array[(y_draw*window_width) + x_draw] = True # for bottom-left origin
                         
@@ -192,19 +216,23 @@ class WorkerProcess(mp.Process):
                 # indicate to HenonUpdate that we have some new pixels to draw
                 self.interval_flags[run_number] = True                
             else:
+
                 while not self.exit.is_set(): # wait until previous data was updated
-                    if self.interval_flags[run_number]:
-                        sleep(0.01)
-                    else:
+                    sleep(0.01)
+                    if not self.interval_flags[run_number]:
                         break
 
-                if (run_number == 0): # empty current array if you are worker 0
+                if (run_number == 0): # empty current array and copy new data if you are worker 0
                     ctypes.memmove(self.array, empty_array, window_width*window_height)
-
-                #np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
-                np.frombuffer(self.array, dtype=ctypes.c_bool)[local_array == True] = True
-                
-                self.interval_flags[run_number] = True            
+                    np.frombuffer(self.array, dtype=ctypes.c_bool)[local_array == True] = True
+                    self.interval_flags[run_number] = True
+                else:
+                    while not self.exit.is_set(): # wait until worker 0 is finished 
+                        sleep(0.01)
+                        if self.interval_flags[0]:
+                            np.frombuffer(self.array, dtype=ctypes.c_bool)[local_array == True] = True
+                            self.interval_flags[run_number] = True
+                            break           
 
                 if hena_anim:                    
                     new_hena = np.round(hena + hena_increment,4)
@@ -220,9 +248,7 @@ class WorkerProcess(mp.Process):
                     if henb_stop >= henb_start and new_henb <= henb_stop:
                         henb = new_henb
                     elif henb_stop <= henb_start and new_henb >= henb_stop:
-                        henb = new_henb                     
-                
-                henx,heny = self.drop_iterations(drop_iter,hena,henb,henx,heny)
+                        henb = new_henb
                 
                 local_array.fill(False)
             
@@ -243,9 +269,6 @@ class WorkerProcessOrbit(WorkerProcess):
         self.name= "WorkerProcessOrbit"
         
         #print("[" + self.name + "] Worker " + str(self.run_number) + " has started")
-        
-        henx = uniform(-0.1,0.1) # generate random starting points
-        heny = uniform(-0.1,0.1)
 
         iter_count = 0
         
@@ -264,7 +287,9 @@ class WorkerProcessOrbit(WorkerProcess):
         thread_count = self.settings['thread_count']
         orbit_parameter = self.settings['orbit_parameter']
         orbit_coordinate = self.settings['orbit_coordinate']
-        animation_running = self.settings['animation_running']
+        animation_running = self.settings['animation_running'] 
+        initial_conditions_multiplier = self.settings['initial_conditions_multiplier']        
+        initial_conditions_additive = self.settings['initial_conditions_additive']
         
         xratio = window_width/(xright-xleft)
         yratio = window_height/(ytop-ybottom)
@@ -291,6 +316,7 @@ class WorkerProcessOrbit(WorkerProcess):
             max_iter = self.settings['max_iter_anim']
             #empty_array = mp.RawArray(ctypes.c_byte, window_width*window_height) # needed for emptying self.array
             empty_array = mp.RawArray(ctypes.c_bool, window_width*window_height) # needed for emptying self.array
+            empty_array[:] = [False]*window_width*window_height
 
             if hena_anim:
                 hena = hena_start
@@ -313,25 +339,32 @@ class WorkerProcessOrbit(WorkerProcess):
         #local_array = mp.RawArray(ctypes.c_bool, window_width*window_height)
         local_array = np.zeros(window_width*window_height,dtype=np.bool)
 
+        henx_start = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
+        heny_start = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier
+        #henx_start,heny_start = self.fixed_points(hena,henb,0)        
+        henx,heny = henx_start,heny_start
+
         while not self.exit.is_set():
 
             try:
                 for _ in repeat(None, drop_iter): # prevent drawing first iterations
                     henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
-            except: # OverFlowError
-                henx,heny = 100,100 # return some number that will not be drawn on screen
+            except: #OverFlowError          
+                pass
             
             try:
-                for _ in repeat(None, plot_interval):                
+                for _ in repeat(None, plot_interval):             
                     henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
                     if orbit_coordinate:
+                        #y_draw = int(round((heny-ybottom) * yratio)) # adding rounding here is slightly more correct
                         y_draw = int((heny-ybottom) * yratio)
                     else:
+                        #y_draw = int(round((henx-ybottom) * yratio))
                         y_draw = int((henx-ybottom) * yratio)
                         
                     if (0 < y_draw < window_height):                  
-                        local_array[(window_height-y_draw)*window_width + x_draw] = True                            
-            except: # OverFlowError
+                        local_array[(window_height-y_draw)*window_width + x_draw] = True                     
+            except: #OverFlowError
                 pass
             
             x_draw += thread_count
@@ -351,9 +384,9 @@ class WorkerProcessOrbit(WorkerProcess):
                     self.interval_flags[run_number] = True
                     
                     iter_count += plot_interval
-                    x_draw = run_number
-                    henx = uniform(-0.1,0.1)
-                    heny = uniform(-0.1,0.1)
+                    x_draw = run_number 
+
+                    henx,heny = henx_start,heny_start
                     
                     if orbit_parameter:
                         hena = xleft
@@ -363,23 +396,28 @@ class WorkerProcessOrbit(WorkerProcess):
                         henb += run_number/xratio                
 
                 else:
+
                     while not self.exit.is_set(): # wait until previous data was updated
-                        if self.interval_flags[run_number]:
-                            sleep(0.01)
-                        else:
+                        sleep(0.01)
+                        if not self.interval_flags[run_number]:
                             break
-    
-                    if (run_number == 0): # empty current array if you are worker 0
+
+                    if (run_number == 0): # empty current array and copy new data if you are worker 0
                         ctypes.memmove(self.array, empty_array, window_width*window_height)
-    
-                    #np.frombuffer(self.array, dtype=ctypes.c_byte)[local_array == True] = True
-                    np.frombuffer(self.array, dtype=ctypes.c_bool)[local_array == True] = True
-                    self.interval_flags[run_number] = True            
+                        np.frombuffer(self.array, dtype=ctypes.c_bool)[local_array == True] = True
+                        self.interval_flags[run_number] = True
+                    else:
+                        while not self.exit.is_set(): # wait until worker 0 is finished 
+                            sleep(0.01)
+                            if self.interval_flags[0]:
+                                np.frombuffer(self.array, dtype=ctypes.c_bool)[local_array == True] = True
+                                self.interval_flags[run_number] = True
+                                break
                                        
                     iter_count += plot_interval
-                    x_draw = run_number
-                    henx = uniform(-0.1,0.1)
-                    heny = uniform(-0.1,0.1)                                        
+                    x_draw = run_number                                       
+
+                    henx,heny = henx_start,heny_start
 
                     if orbit_parameter:
                         hena = xleft
