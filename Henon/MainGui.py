@@ -748,9 +748,13 @@ class MainGui(QtWidgets.QMainWindow):
         if not save_path:
             return
         
-        self.Henon_widget.save_image(save_path,self.color)
+        success = self.Henon_widget.save_image(save_path)
         
-        self.statusBar().showMessage(self.tr("File saved"),1000)
+        if success:
+            self.statusBar().showMessage(self.tr("File saved"),1000)
+        else:
+            msg = self.tr("Error while saving image.\n\nImage was not saved.")
+            QtWidgets.QMessageBox.about(self, self.tr("Warning"), msg)             
 
     def get_settings(self):
 

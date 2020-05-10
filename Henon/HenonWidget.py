@@ -225,8 +225,10 @@ class HenonWidget(QtWidgets.QLabel):
         resize = QtGui.QResizeEvent(size, old_size)
         self.resizeEvent(resize)
         
-    def save_image(self,save_path,color):        
-        array = np.zeros([self.window_height,self.window_width,3],dtype='uint8')
-        array[self.window_representation == True] = self.color_options[color]
-        img = Image.fromarray(array, mode= "RGB")        
-        img.save(save_path)
+    def save_image(self,save_path):       
+        r,g,b = self.color_options[self.parent.color][0], self.color_options[self.parent.color][1],self.color_options[self.parent.color][2]
+        
+        image=QtGui.QImage(self.window_representation.data, self.window_width, self.window_height, self.window_width, QtGui.QImage.Format_Indexed8)
+        image.setColor(1,QtGui.qRgb(r,g,b))
+        
+        return image.save(save_path)

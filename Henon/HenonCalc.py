@@ -180,6 +180,9 @@ class WorkerProcess(mp.Process):
             try:            
                 for _ in repeat(None, drop_iter): # prevent drawing first iterations
                     henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+                    #henx, heny = heny,  -0.2*henx + (2.75*heny) - pow(heny,3) # Duffing
+                    #henx, heny = pow(henx,2)-pow(heny,2)+(0.9*henx)+(-0.6013*heny),\
+                    #    (2*henx*heny)+(2.0*henx)+(0.5*heny) # Tinkerbell                        
             except: # if x,y results move towards infinity
                 #print("[" + self.name + "] Worker " + str(self.run_number) + " overflow")
                 pass
@@ -187,8 +190,10 @@ class WorkerProcess(mp.Process):
             try:
                 for _ in repeat(None, plot_interval):
 
-                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
-
+                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+                    #henx, heny = heny,  -0.2*henx + (2.75*heny) - pow(heny,3) # Duffing
+                    #henx, heny = pow(henx,2)-pow(heny,2)+(0.9*henx)+(-0.6013*heny),\
+                    #    (2*henx*heny)+(2.0*henx)+(0.5*heny) # Tinkerbell                      
                     #if (0 < x_draw < window_width) and (0 < y_draw < window_height):
                     if (xleft < henx < xright) and (ybottom < heny < ytop):                        
                         # draw pixel if it is inside the current display area
@@ -349,12 +354,18 @@ class WorkerProcessOrbit(WorkerProcess):
             try:
                 for _ in repeat(None, drop_iter): # prevent drawing first iterations
                     henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+                    #henx, heny = heny,  -0.2*henx + (2.75*heny) - pow(heny,3) # Duffing
+                    #henx, heny = pow(henx,2)-pow(heny,2)+(0.9*henx)+(-0.6013*heny),\
+                    #    (2*henx*heny)+(2.0*henx)+(0.5*heny) # Tinkerbell                     
             except: #OverFlowError          
                 pass
             
             try:
                 for _ in repeat(None, plot_interval):             
-                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx            
+                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx 
+                    #henx, heny = heny,  -0.2*henx + (2.75*heny) - pow(heny,3) # Duffing
+                    #henx, heny = pow(henx,2)-pow(heny,2)+(0.9*henx)+(-0.6013*heny),\
+                    #   (2*henx*heny)+(2.0*henx)+(0.5*heny) # Tinkerbell                     
                     if orbit_coordinate:
                         #y_draw = int(round((heny-ybottom) * yratio)) # adding rounding here is slightly more correct
                         y_draw = int((heny-ybottom) * yratio)
