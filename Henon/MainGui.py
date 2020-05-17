@@ -148,7 +148,8 @@ class MainGui(QtWidgets.QMainWindow):
         self.demo_mode = False        
         self.demox,self.demoy = 0.1, 0.1
         self.demo_old_xy = self.xleft,self.xright,self.ybottom,self.ytop
-        self.demo_xrange,self.demo_yrange = 0.3, 0.08        
+        self.demo_xrange,self.demo_yrange = 0.3, 0.08
+        self.demo_wait_next_frame = False
 
         self.create_menu()
         self.create_main_frame()
@@ -200,7 +201,8 @@ class MainGui(QtWidgets.QMainWindow):
             
         self.animation_running = False
 
-        if self.demo_mode:
+        if self.demo_mode and not self.demo_wait_next_frame:
+            self.demo_wait_next_frame = True
             QtCore.QTimer.singleShot(1000, self.demo_mode_next)
 
     def initialize_calculation(self):
@@ -746,11 +748,13 @@ class MainGui(QtWidgets.QMainWindow):
         self.ybottom = self.demoy - self.demo_yrange
         self.ytop = self.demoy + self.demo_yrange
         
-        self.initialize_calculation()        
+        self.initialize_calculation()
+        self.demo_wait_next_frame = False        
 
     def demo_mode_stop(self):
         self.xleft,self.xright,self.ybottom,self.ytop = self.demo_old_xy
         self.demo_mode = False
+        self.demo_wait_next_frame = False
 
     def closeEvent(self, event):
         # call stop function in order to terminate calculation processes
