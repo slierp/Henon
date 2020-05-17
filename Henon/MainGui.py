@@ -144,7 +144,12 @@ class MainGui(QtWidgets.QMainWindow):
         self.animation_running = False
         self.module_opencl_present = module_opencl_present
         self.enable_arrow_keys = False
-        
+
+        self.demo_mode = False        
+        self.demox,self.demoy = 0.1, 0.1
+        self.demo_old_xy = self.xleft,self.xright,self.ybottom,self.ytop
+        self.demo_xrange,self.demo_yrange = 0.3, 0.08        
+
         self.create_menu()
         self.create_main_frame()
 
@@ -189,13 +194,14 @@ class MainGui(QtWidgets.QMainWindow):
     @QtCore.pyqtSlot(str)
     def updates_stopped(self,result):          
         
-        message = "Computation finished"
-        
         if self.benchmark:
             message = "Computation finished in " + str(result)
-        
-        self.statusBar().showMessage(message,1000)
-        self.animation_running = False            
+            self.statusBar().showMessage(message,1000)
+            
+        self.animation_running = False
+
+        if self.demo_mode:
+            QtCore.QTimer.singleShot(1000, self.demo_mode_next)
 
     def initialize_calculation(self):
         
@@ -456,6 +462,9 @@ class MainGui(QtWidgets.QMainWindow):
         
         if self.animation_running:
             return
+        
+        if self.demo_mode:
+            self.demo_mode_stop()
 
         if (not self.hena_anim) and (not self.henb_anim):
             # cannot animate if no variables are selected for animation
@@ -498,6 +507,9 @@ class MainGui(QtWidgets.QMainWindow):
 
         if self.animation_running:
             self.animation_running = False
+
+        if self.demo_mode:
+            self.demo_mode_stop()
 
         if not self.orbit_mode:
             self.xleft = -1.5
@@ -548,6 +560,9 @@ class MainGui(QtWidgets.QMainWindow):
 
         if self.animation_running:
             self.animation_running = False
+            
+        if self.demo_mode:
+            self.demo_mode_stop()
 
         self.xleft = self.previous_views[-1][0]
         self.xright = self.previous_views[-1][1]
@@ -573,16 +588,19 @@ class MainGui(QtWidgets.QMainWindow):
         self.statusBar().showMessage(self.tr("Restarting..."), 1000)
         self.initialize_calculation()
 
-    def stop_calculation(self):
+    def stop_calculation(self):        
         if not self.first_run:
             self.stop_signal.sig.emit()
 
     def stop_user_command(self):
         self.statusBar().showMessage(self.tr("Sending stop signal..."), 1000)
-        
+
         if self.animation_running:
             self.animation_running = False
-            
+
+        if self.demo_mode:
+            self.demo_mode_stop()
+        
         self.stop_calculation()       
 
     def toggle_benchmark(self):
@@ -600,6 +618,9 @@ class MainGui(QtWidgets.QMainWindow):
 
         if self.animation_running:
             return
+
+        if self.demo_mode:
+            self.demo_mode_stop()
 
         self.previous_views = [] # empty previous zoom-in view list
         
@@ -648,6 +669,9 @@ class MainGui(QtWidgets.QMainWindow):
         if self.animation_running:
             return
         
+        if self.demo_mode:
+            self.demo_mode_stop()
+        
         if not self.orbit_mode:
             self.xleft = -3
             self.ytop = 0.8
@@ -662,6 +686,71 @@ class MainGui(QtWidgets.QMainWindow):
                 self.ybottom = -3        
         
         self.restart_calculation()
+
+    def show_scale(self):   
+        if self.animation_running:
+            return
+
+        if not self.orbit_mode:       
+            message = "x-axis = [" + str(self.xleft) + "," + str(self.xright) + "]; "
+            message += "y-axis = [" + str(self.ybottom) + "," + str(self.ytop) + "]"
+        else:
+            if self.orbit_parameter:
+                message = "x-axis = a = [" + str(self.xleft) + "," + str(self.xright) + "]; "
+            else:
+                message = "x-axis = b = [" + str(self.xleft) + "," + str(self.xright) + "]; "
+                                
+            if self.orbit_coordinate:
+                message += "y-axis = y[n] = [" + str(self.ybottom) + "," + str(self.ytop) + "]"
+            else:
+                message += "y-axis = x[n] = [" + str(self.ybottom) + "," + str(self.ytop) + "]"          
+        
+        self.statusBar().showMessage(message,3000)        
+
+    def demo_mode_init(self):
+        if self.orbit_mode or self.animation_running:
+            return
+
+        self.demo_old_xy = self.xleft,self.xright,self.ybottom,self.ytop
+        
+        hena = self.hena
+        henb = self.henb
+        demox = self.demox
+        demoy = self.demoy
+        
+        for i in range(100):
+            demox, demoy = 1 + demoy - (hena*(demox**2)), henb * demox
+
+        self.demox = demox
+        self.demoy = demoy
+        
+        self.demo_xrange = (self.xright - self.xleft)/10
+        self.demo_yrange = (self.ytop - self.ybottom)/10
+        self.xleft = demox - self.demo_xrange
+        self.xright = demox + self.demo_xrange
+        self.ybottom = demoy - self.demo_yrange
+        self.ytop = demoy + self.demo_yrange
+        
+        self.demo_mode = True
+        
+        self.initialize_calculation()
+
+    def demo_mode_next(self):
+        if not self.demo_mode:
+            return
+        
+        self.demox, self.demoy = 1 + self.demoy - (self.hena*(self.demox**2)), self.henb * self.demox
+        
+        self.xleft = self.demox - self.demo_xrange
+        self.xright = self.demox + self.demo_xrange
+        self.ybottom = self.demoy - self.demo_yrange
+        self.ytop = self.demoy + self.demo_yrange
+        
+        self.initialize_calculation()        
+
+    def demo_mode_stop(self):
+        self.xleft,self.xright,self.ybottom,self.ytop = self.demo_old_xy
+        self.demo_mode = False
 
     def closeEvent(self, event):
         # call stop function in order to terminate calculation processes
@@ -679,7 +768,7 @@ class MainGui(QtWidgets.QMainWindow):
         settings_dialog.show() 
 
     def load_settings(self):
-        if self.animation_running:
+        if self.animation_running or self.demo_mode:
             self.stop_user_command()
         
         filename = QtWidgets.QFileDialog.getOpenFileName(self,self.tr("Open file"), self.prev_dir_path, "Settings Files (*.conf)")
@@ -709,7 +798,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.statusBar().showMessage(self.tr("New settings loaded"),1000)
     
     def save_settings(self):
-        if self.animation_running:
+        if self.animation_running or self.demo_mode:
             self.stop_user_command()        
         
         filename = QtWidgets.QFileDialog.getSaveFileName(self,self.tr("Save file"), self.prev_dir_path, "Settings Files (*.conf)")
@@ -739,7 +828,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.statusBar().showMessage(self.tr("Default settings loaded"),1000)
 
     def save_image(self):
-        if self.animation_running:
+        if self.animation_running or self.demo_mode:
             self.stop_user_command()
         
         save_path = QtWidgets.QFileDialog.getSaveFileName(self,self.tr("Save file"), "", "PNG File (*.png)")
@@ -977,7 +1066,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.run_menu.addAction(start_action)
         self.run_menu.addAction(stop_action)        
         self.run_menu.addAction(arrow_keys_action)        
-        self.run_menu.addAction(animate_action)
+        self.run_menu.addAction(animate_action)        
         self.run_menu.addAction(benchmark_action)
 
         self.view_menu = self.menuBar().addMenu(self.tr("View"))
@@ -1012,10 +1101,27 @@ class MainGui(QtWidgets.QMainWindow):
         zoomout_action.setStatusTip(tip)
         zoomout_action.setShortcut('Z')        
 
+        tip = self.tr("x,y-scale")        
+        scale_action = QtWidgets.QAction(self.tr("x,y-scale"), self)
+        scale_action.triggered.connect(self.show_scale)         
+        scale_action.setToolTip(tip)
+        scale_action.setStatusTip(tip)
+        scale_action.setShortcut('W')  
+
+        tip = self.tr("Demo")        
+        demo_action = QtWidgets.QAction(self.tr("Demo"), self)
+        demo_action.setIcon(QtGui.QIcon(":play.png"))
+        demo_action.triggered.connect(self.demo_mode_init)        
+        demo_action.setToolTip(tip)
+        demo_action.setStatusTip(tip)
+        demo_action.setShortcut('D')
+
         self.view_menu.addAction(reset_action)
         self.view_menu.addAction(orbit_action)
         self.view_menu.addAction(fullscreen_action)
         self.view_menu.addAction(zoomout_action)
+        self.view_menu.addAction(scale_action)
+        self.view_menu.addAction(demo_action)
            
         self.help_menu = self.menuBar().addMenu(self.tr("Help"))
 
