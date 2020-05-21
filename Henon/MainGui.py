@@ -701,7 +701,23 @@ class MainGui(QtWidgets.QMainWindow):
         else: # x-coordinate
             self.ytop = 1.5
             self.ybottom = -1.5    
+    
+    def zoom_out(self):
+        if self.animation_running:
+            return
 
+        if self.demo_mode:
+            self.demo_mode_stop()
+
+        self.xleft = self.ybottom = -10
+        self.xright = self.ytop = 10
+        
+        if self.orbit_mode:
+            self.xleft = -2
+            self.xright = 2       
+
+        self.restart_calculation()
+        
     def demo_mode_init(self):
         if self.orbit_mode or self.animation_running:
             return
@@ -1101,6 +1117,13 @@ class MainGui(QtWidgets.QMainWindow):
         scale_action.setStatusTip(tip)
         scale_action.setShortcut('W')  
 
+        tip = self.tr("Zoom out")        
+        zoomout_action = QtWidgets.QAction(self.tr("Zoom out"), self)
+        zoomout_action.triggered.connect(self.zoom_out)         
+        zoomout_action.setToolTip(tip)
+        zoomout_action.setStatusTip(tip)
+        zoomout_action.setShortcut('Z')
+
         tip = self.tr("Demo")        
         demo_action = QtWidgets.QAction(self.tr("Demo"), self)
         demo_action.setIcon(QtGui.QIcon(":play.png"))
@@ -1113,6 +1136,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.view_menu.addAction(orbit_action)
         self.view_menu.addAction(fullscreen_action)
         self.view_menu.addAction(scale_action)
+        self.view_menu.addAction(zoomout_action)
         self.view_menu.addAction(demo_action)
            
         self.help_menu = self.menuBar().addMenu(self.tr("Help"))
