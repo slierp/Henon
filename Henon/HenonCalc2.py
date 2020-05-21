@@ -180,6 +180,9 @@ class WorkerProcess(QtCore.QThread):
 
                 if first_run: # set drop_iter to zero after first calculation run
                     int_params = np.array([plot_interval,0,window_height,window_width],dtype=np.uint32)
+                    
+                # copy x,y values from buffer memory to re-use as queue
+                cl.enqueue_copy(self.command_queue, queue, queue_buffer).wait()                    
             else:
                 while not self.exit.is_set(): # wait until previous data was updated on screen
                     if self.interval_flags.value:
@@ -219,9 +222,6 @@ class WorkerProcess(QtCore.QThread):
                         henb = new_henb
                 
                 float_params = np.array([hena,henb,xleft,ybottom,xratio,yratio],dtype=np.float64)
-
-            # copy x,y values from buffer memory to re-use as queue
-            cl.enqueue_copy(self.command_queue, queue, queue_buffer).wait()
 
             if first_run:
                 first_run = False
@@ -330,6 +330,9 @@ class WorkerProcessOrbit(WorkerProcess):
                 
                 if first_run: # set drop_iter to zero after first calculation run
                     int_params = np.array([plot_interval_orbit,0,window_height,window_width,orbit_parameter,orbit_coordinate,orbit_multiplier],dtype=np.uint32)               
+                    
+                # copy x,y values from buffer memory to re-use as queue
+                cl.enqueue_copy(self.command_queue, queue, queue_buffer).wait()                    
             else:
                 while not self.exit.is_set(): # wait until previous data was updated on screen
                     if self.interval_flags.value:
@@ -367,9 +370,6 @@ class WorkerProcessOrbit(WorkerProcess):
                         hena = new_hena
                     
                 float_params = np.array([hena,henb,xleft,ybottom,xratio,yratio],dtype=np.float64)
-
-            # copy x,y values from buffer memory to re-use as queue
-            cl.enqueue_copy(self.command_queue, queue, queue_buffer).wait()
 
             if first_run:
                 first_run = False

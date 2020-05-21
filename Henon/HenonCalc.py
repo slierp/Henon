@@ -140,8 +140,12 @@ class WorkerProcess(mp.Process):
         xratio = window_width/(xright-xleft)
         yratio = window_height/(ytop-ybottom)
 
+        attempts = 0
         while not self.exit.is_set():
- 
+            
+            if attempts > 10:
+                break
+            
             henx = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
             heny = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier           
  
@@ -150,6 +154,7 @@ class WorkerProcess(mp.Process):
                     henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
                 break
             except: # if x,y results move towards infinity
+                attempts += 1            
                 pass
 
         run_number = self.run_number
@@ -264,6 +269,23 @@ class WorkerProcess(mp.Process):
                         henb = new_henb
                 
                 local_array.fill(False)
+
+                attempts = 0
+                while not self.exit.is_set():
+                    
+                    if attempts > 10:
+                        break
+         
+                    henx = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
+                    heny = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier           
+         
+                    try:
+                        for _ in repeat(None, 100): # check whether points will diverge to infinity
+                            henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+                        break
+                    except: # if x,y results move towards infinity
+                        attempts += 1
+                        pass
             
             if (iter_count >= max_iter):
                 break
@@ -353,20 +375,23 @@ class WorkerProcessOrbit(WorkerProcess):
         local_array = np.zeros(window_width*window_height,dtype=np.bool)
 
         while not self.exit.is_set():
- 
-            henx_start = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
-            heny_start = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier           
- 
-            try:
-                for _ in repeat(None, 100): # check whether points will diverge to infinity
-                    henx_start, heny_start = 1 + heny_start - (hena*(henx_start**2)), henb * henx_start
-                break
-            except: # if x,y results move towards infinity
-                pass
-       
-        henx,heny = henx_start,heny_start
 
-        while not self.exit.is_set():
+            attempts = 0
+            while not self.exit.is_set():
+                
+                if attempts > 10:
+                    break
+     
+                henx = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
+                heny = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier           
+     
+                try:
+                    for _ in repeat(None, 100): # check whether points will diverge to infinity
+                        henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+                    break
+                except: # if x,y results move towards infinity
+                    attempts += 1
+                    pass            
 
             try:
                 for _ in repeat(None, drop_iter): # prevent drawing first iterations
@@ -412,16 +437,14 @@ class WorkerProcessOrbit(WorkerProcess):
                     self.interval_flags[run_number] = True
                     
                     iter_count += plot_interval
-                    x_draw = run_number 
-
-                    henx,heny = henx_start,heny_start
+                    x_draw = run_number
                     
                     if orbit_parameter:
                         hena = xleft
                         hena += run_number/xratio           
                     else:
                         henb = xleft
-                        henb += run_number/xratio                
+                        henb += run_number/xratio
 
                 else:
 
@@ -443,9 +466,7 @@ class WorkerProcessOrbit(WorkerProcess):
                                 break
                                        
                     iter_count += plot_interval
-                    x_draw = run_number                                       
-
-                    henx,heny = henx_start,heny_start
+                    x_draw = run_number
 
                     if orbit_parameter:
                         hena = xleft

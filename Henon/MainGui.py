@@ -6,6 +6,7 @@ from HenonUpdate import HenonUpdate
 from HenonCalc import HenonCalc
 from HenonHelp import HenonHelp
 from HenonSettings import HenonSettings
+from HenonSettings2 import HenonSettings2
 from multiprocessing import cpu_count
 import ntpath, pickle
 from math import ceil
@@ -699,49 +700,7 @@ class MainGui(QtWidgets.QMainWindow):
             self.ybottom = -0.4
         else: # x-coordinate
             self.ytop = 1.5
-            self.ybottom = -1.5        
-
-    def zoom_out(self):
-        if self.animation_running:
-            return
-        
-        if self.demo_mode:
-            self.demo_mode_stop()
-        
-        if not self.orbit_mode:
-            self.xleft = -3
-            self.ytop = 0.8
-            self.xright = 3
-            self.ybottom = -0.8
-        else:
-            if self.orbit_coordinate: # y-coordinate
-                self.ytop = 0.8
-                self.ybottom = -0.8
-            else: # x-coordinate
-                self.ytop = 3
-                self.ybottom = -3        
-        
-        self.restart_calculation()
-
-    def show_scale(self):   
-        if self.animation_running:
-            return
-
-        if not self.orbit_mode:       
-            message = "x-axis = [" + str(self.xleft) + "," + str(self.xright) + "]; "
-            message += "y-axis = [" + str(self.ybottom) + "," + str(self.ytop) + "]"
-        else:
-            if self.orbit_parameter:
-                message = "x-axis = a = [" + str(self.xleft) + "," + str(self.xright) + "]; "
-            else:
-                message = "x-axis = b = [" + str(self.xleft) + "," + str(self.xright) + "]; "
-                                
-            if self.orbit_coordinate:
-                message += "y-axis = y[n] = [" + str(self.ybottom) + "," + str(self.ytop) + "]"
-            else:
-                message += "y-axis = x[n] = [" + str(self.ybottom) + "," + str(self.ytop) + "]"          
-        
-        self.statusBar().showMessage(message,3000)        
+            self.ybottom = -1.5    
 
     def demo_mode_init(self):
         if self.orbit_mode or self.animation_running:
@@ -800,6 +759,11 @@ class MainGui(QtWidgets.QMainWindow):
 
     def open_settings_dialog(self):            
         settings_dialog = HenonSettings(self)
+        settings_dialog.setModal(True)
+        settings_dialog.show() 
+
+    def open_settings_dialog2(self):            
+        settings_dialog = HenonSettings2(self)
         settings_dialog.setModal(True)
         settings_dialog.show() 
 
@@ -1129,17 +1093,10 @@ class MainGui(QtWidgets.QMainWindow):
         fullscreen_action.setToolTip(tip)
         fullscreen_action.setStatusTip(tip)
         fullscreen_action.setShortcut('F')
-        
-        tip = self.tr("Zoom out")        
-        zoomout_action = QtWidgets.QAction(self.tr("Zoom out"), self)
-        zoomout_action.triggered.connect(self.zoom_out)         
-        zoomout_action.setToolTip(tip)
-        zoomout_action.setStatusTip(tip)
-        zoomout_action.setShortcut('Z')        
 
         tip = self.tr("x,y-scale")        
         scale_action = QtWidgets.QAction(self.tr("x,y-scale"), self)
-        scale_action.triggered.connect(self.show_scale)         
+        scale_action.triggered.connect(self.open_settings_dialog2)         
         scale_action.setToolTip(tip)
         scale_action.setStatusTip(tip)
         scale_action.setShortcut('W')  
@@ -1155,7 +1112,6 @@ class MainGui(QtWidgets.QMainWindow):
         self.view_menu.addAction(reset_action)
         self.view_menu.addAction(orbit_action)
         self.view_menu.addAction(fullscreen_action)
-        self.view_menu.addAction(zoomout_action)
         self.view_menu.addAction(scale_action)
         self.view_menu.addAction(demo_action)
            

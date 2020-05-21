@@ -146,6 +146,87 @@ class HenonSettings(QtWidgets.QDialog):
         generic_widget_general.setLayout(vbox_tab_general)
         tabwidget.addTab(generic_widget_general, "General")
 
+        ### Orbit map tab ###
+        vbox_tab_orbit = QtWidgets.QVBoxLayout()  
+
+        group_parameter = QtWidgets.QGroupBox("Parameter selection for x-axis")
+        vbox = QtWidgets.QVBoxLayout()
+
+        self.orbit_parameter_a = QtWidgets.QRadioButton("Parameter 'a'")
+        self.orbit_parameter_a.setChecked(self.parent.orbit_parameter)       
+        vbox.addWidget(self.orbit_parameter_a)
+
+        self.orbit_parameter_b = QtWidgets.QRadioButton("Parameter 'b'")
+        self.orbit_parameter_b.setChecked(not self.parent.orbit_parameter)      
+        vbox.addWidget(self.orbit_parameter_b)
+
+        group_parameter.setLayout(vbox)        
+        vbox_tab_orbit.addWidget(group_parameter)
+        
+        group_coordinate = QtWidgets.QGroupBox("Coordinate selection for y-axis")
+        vbox = QtWidgets.QVBoxLayout()
+
+        self.orbit_coordinate_x = QtWidgets.QRadioButton("x-coordinate")
+        self.orbit_coordinate_x.setChecked(not self.parent.orbit_coordinate)
+        vbox.addWidget(self.orbit_coordinate_x)              
+
+        self.orbit_coordinate_y = QtWidgets.QRadioButton("y-coordinate")
+        self.orbit_coordinate_y.setChecked(self.parent.orbit_coordinate)
+        vbox.addWidget(self.orbit_coordinate_y)
+
+        group_coordinate.setLayout(vbox)        
+        vbox_tab_orbit.addWidget(group_coordinate)
+
+        group_orbit_iter = QtWidgets.QGroupBox("Number of iterations")
+        vbox = QtWidgets.QVBoxLayout()
+
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Auto-mode")
+        self.iter_auto_mode_orbit = QtWidgets.QCheckBox()
+        self.iter_auto_mode_orbit.setChecked(self.parent.iter_auto_mode_orbit)
+        self.iter_auto_mode_orbit.mouseReleaseEvent = self.switch_iter_auto_mode_orbit
+        description.mouseReleaseEvent = self.switch_iter_auto_mode_orbit
+        hbox.addWidget(self.iter_auto_mode_orbit)
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox.addLayout(hbox)
+
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Max iterations per pixel along screen width")
+        self.max_iter_orbit = QtWidgets.QSpinBox()
+        self.max_iter_orbit.setAccelerated(True)
+        self.max_iter_orbit.setMaximum(99999)
+        self.max_iter_orbit.setMinimum(1)
+        self.max_iter_orbit.setValue(self.parent.max_iter_orbit)
+        self.max_iter_orbit.setSingleStep(100)
+        self.max_iter_orbit.setDisabled(self.parent.iter_auto_mode_orbit)
+        hbox.addWidget(self.max_iter_orbit) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox.addLayout(hbox)
+
+        hbox = QtWidgets.QHBoxLayout()
+        description = QtWidgets.QLabel("Plot interval per pixel along screen width")
+        self.plot_interval_orbit = QtWidgets.QSpinBox()
+        self.plot_interval_orbit.setAccelerated(True)
+        self.plot_interval_orbit.setMaximum(99999)
+        self.plot_interval_orbit.setMinimum(1)
+        self.plot_interval_orbit.setValue(self.parent.plot_interval_orbit)
+        self.plot_interval_orbit.setSingleStep(100)
+        self.plot_interval_orbit.setDisabled(self.parent.iter_auto_mode_orbit)
+        hbox.addWidget(self.plot_interval_orbit) 
+        hbox.addWidget(description)
+        hbox.addStretch(1)                
+        vbox.addLayout(hbox)
+
+        group_orbit_iter.setLayout(vbox)        
+        vbox_tab_orbit.addWidget(group_orbit_iter)
+
+        vbox_tab_orbit.addStretch(1)
+        generic_widget_animation = QtWidgets.QWidget()
+        generic_widget_animation.setLayout(vbox_tab_orbit)
+        tabwidget.addTab(generic_widget_animation, "Orbit map")
+
         ### Tab animation ###
         vbox_tab_animation = QtWidgets.QVBoxLayout()
 
@@ -319,87 +400,6 @@ class HenonSettings(QtWidgets.QDialog):
         generic_widget_animation = QtWidgets.QWidget()
         generic_widget_animation.setLayout(vbox_tab_animation)
         tabwidget.addTab(generic_widget_animation, "Animation")
-
-        ### Orbit map tab ###
-        vbox_tab_orbit = QtWidgets.QVBoxLayout()  
-
-        group_parameter = QtWidgets.QGroupBox("Parameter selection")
-        vbox = QtWidgets.QVBoxLayout()
-
-        self.orbit_parameter_a = QtWidgets.QRadioButton("Parameter 'a'")
-        self.orbit_parameter_a.setChecked(self.parent.orbit_parameter)       
-        vbox.addWidget(self.orbit_parameter_a)
-
-        self.orbit_parameter_b = QtWidgets.QRadioButton("Parameter 'b'")
-        self.orbit_parameter_b.setChecked(not self.parent.orbit_parameter)      
-        vbox.addWidget(self.orbit_parameter_b)
-
-        group_parameter.setLayout(vbox)        
-        vbox_tab_orbit.addWidget(group_parameter)
-        
-        group_coordinate = QtWidgets.QGroupBox("Coordinate selection")
-        vbox = QtWidgets.QVBoxLayout()
-
-        self.orbit_coordinate_x = QtWidgets.QRadioButton("x-coordinate")
-        self.orbit_coordinate_x.setChecked(not self.parent.orbit_coordinate)
-        vbox.addWidget(self.orbit_coordinate_x)              
-
-        self.orbit_coordinate_y = QtWidgets.QRadioButton("y-coordinate")
-        self.orbit_coordinate_y.setChecked(self.parent.orbit_coordinate)
-        vbox.addWidget(self.orbit_coordinate_y)
-
-        group_coordinate.setLayout(vbox)        
-        vbox_tab_orbit.addWidget(group_coordinate)
-
-        group_orbit_iter = QtWidgets.QGroupBox("Number of iterations")
-        vbox = QtWidgets.QVBoxLayout()
-
-        hbox = QtWidgets.QHBoxLayout()
-        description = QtWidgets.QLabel("Auto-mode")
-        self.iter_auto_mode_orbit = QtWidgets.QCheckBox()
-        self.iter_auto_mode_orbit.setChecked(self.parent.iter_auto_mode_orbit)
-        self.iter_auto_mode_orbit.mouseReleaseEvent = self.switch_iter_auto_mode_orbit
-        description.mouseReleaseEvent = self.switch_iter_auto_mode_orbit
-        hbox.addWidget(self.iter_auto_mode_orbit)
-        hbox.addWidget(description)
-        hbox.addStretch(1)                
-        vbox.addLayout(hbox)
-
-        hbox = QtWidgets.QHBoxLayout()
-        description = QtWidgets.QLabel("Max iterations per pixel along screen width")
-        self.max_iter_orbit = QtWidgets.QSpinBox()
-        self.max_iter_orbit.setAccelerated(True)
-        self.max_iter_orbit.setMaximum(99999)
-        self.max_iter_orbit.setMinimum(1)
-        self.max_iter_orbit.setValue(self.parent.max_iter_orbit)
-        self.max_iter_orbit.setSingleStep(100)
-        self.max_iter_orbit.setDisabled(self.parent.iter_auto_mode_orbit)
-        hbox.addWidget(self.max_iter_orbit) 
-        hbox.addWidget(description)
-        hbox.addStretch(1)                
-        vbox.addLayout(hbox)
-
-        hbox = QtWidgets.QHBoxLayout()
-        description = QtWidgets.QLabel("Plot interval per pixel along screen width")
-        self.plot_interval_orbit = QtWidgets.QSpinBox()
-        self.plot_interval_orbit.setAccelerated(True)
-        self.plot_interval_orbit.setMaximum(99999)
-        self.plot_interval_orbit.setMinimum(1)
-        self.plot_interval_orbit.setValue(self.parent.plot_interval_orbit)
-        self.plot_interval_orbit.setSingleStep(100)
-        self.plot_interval_orbit.setDisabled(self.parent.iter_auto_mode_orbit)
-        hbox.addWidget(self.plot_interval_orbit) 
-        hbox.addWidget(description)
-        hbox.addStretch(1)                
-        vbox.addLayout(hbox)
-
-        group_orbit_iter.setLayout(vbox)        
-        vbox_tab_orbit.addWidget(group_orbit_iter)
-
-        vbox_tab_orbit.addStretch(1)
-        generic_widget_animation = QtWidgets.QWidget()
-        generic_widget_animation.setLayout(vbox_tab_orbit)
-        tabwidget.addTab(generic_widget_animation, "Orbit map")
 
         ### Tab calculation ###      
         
