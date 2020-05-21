@@ -140,9 +140,17 @@ class WorkerProcess(mp.Process):
         xratio = window_width/(xright-xleft)
         yratio = window_height/(ytop-ybottom)
 
-        henx = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
-        heny = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier
-        #henx,heny = self.fixed_points(hena,henb,0)
+        while not self.exit.is_set():
+ 
+            henx = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
+            heny = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier           
+ 
+            try:
+                for _ in repeat(None, 100): # check whether points will diverge to infinity
+                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+                break
+            except: # if x,y results move towards infinity
+                pass
 
         run_number = self.run_number
 
@@ -344,9 +352,18 @@ class WorkerProcessOrbit(WorkerProcess):
         #local_array = mp.RawArray(ctypes.c_bool, window_width*window_height)
         local_array = np.zeros(window_width*window_height,dtype=np.bool)
 
-        henx_start = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
-        heny_start = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier
-        #henx_start,heny_start = self.fixed_points(hena,henb,0)        
+        while not self.exit.is_set():
+ 
+            henx_start = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
+            heny_start = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier           
+ 
+            try:
+                for _ in repeat(None, 100): # check whether points will diverge to infinity
+                    henx_start, heny_start = 1 + heny_start - (hena*(henx_start**2)), henb * henx_start
+                break
+            except: # if x,y results move towards infinity
+                pass
+       
         henx,heny = henx_start,heny_start
 
         while not self.exit.is_set():

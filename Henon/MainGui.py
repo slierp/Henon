@@ -144,6 +144,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.animation_running = False
         self.module_opencl_present = module_opencl_present
         self.enable_arrow_keys = False
+        self.arrow_key_delay = False
 
         self.demo_mode = False        
         self.demox,self.demoy = 0.1, 0.1
@@ -166,16 +167,20 @@ class MainGui(QtWidgets.QMainWindow):
             else:
                 self.stop_user_command()
         elif (e.key() == QtCore.Qt.Key_Up):
-            if self.enable_arrow_keys:
+            if self.enable_arrow_keys and not self.arrow_key_delay:
+                self.arrow_key_delay = True
                 self.increase_hena()
         elif (e.key() == QtCore.Qt.Key_Down):
-            if self.enable_arrow_keys:
+            if self.enable_arrow_keys and not self.arrow_key_delay:
+                self.arrow_key_delay = True                
                 self.decrease_hena()
         elif (e.key() == QtCore.Qt.Key_Left):
-            if self.enable_arrow_keys:
+            if self.enable_arrow_keys and not self.arrow_key_delay:
+                self.arrow_key_delay = True                
                 self.decrease_henb()
         elif (e.key() == QtCore.Qt.Key_Right):
-            if self.enable_arrow_keys:
+            if self.enable_arrow_keys and not self.arrow_key_delay:
+                self.arrow_key_delay = True
                 self.increase_henb()        
 
     @QtCore.pyqtSlot()
@@ -343,9 +348,21 @@ class MainGui(QtWidgets.QMainWindow):
                                     __global uint const *int_params, __global double const *float_params)
                 {
                     int gid = get_global_id(0);
-                    double x,y,xtemp,x_draw,y_draw;
+                    double x,y,xtemp,x_draw,y_draw,x_test,y_test;
                     x = q[gid].x;
                     y = q[gid].y;
+                    x_test = x;
+                    y_test = y;
+
+                    for(int curiter = 0; curiter < 100; curiter++) { // test x,y 
+                        xtemp = x_test;
+                        x_test = 1 + y_test - (float_params[0] * x_test * x_test);
+                        y_test = float_params[1] * xtemp;
+                    }
+
+                    if (x_test < -100 || x_test > 100) { // if x goes to infinity
+                        return;
+                    }
         
                     // drop first set of iterations
                     for(int curiter = 0; curiter < int_params[1]; curiter++) {
@@ -396,7 +413,7 @@ class MainGui(QtWidgets.QMainWindow):
                                     __global uint const *int_params, __global double const *float_params)
                 {
                     int gid = get_global_id(0);
-                    double x,y,xtemp,y_draw;
+                    double x,y,xtemp,y_draw,x_test,y_test;
                     x = q[gid].x;
                     y = q[gid].y;
     
@@ -416,6 +433,16 @@ class MainGui(QtWidgets.QMainWindow):
                         a = float_params[0];
                         b = float_params[2];
                         b = b + pos/float_params[4];
+                    }
+
+                    for(int curiter = 0; curiter < 100; curiter++) { // test x,y 
+                        xtemp = x_test;
+                        x_test = 1 + y_test - (a * x_test * x_test);
+                        y_test = b * xtemp;
+                    }
+
+                    if (x_test < -100 || x_test > 100) { // if x goes to infinity
+                        return;
                     }
         
                     // drop first set of iterations
@@ -525,35 +552,42 @@ class MainGui(QtWidgets.QMainWindow):
 
     def increase_hena(self):        
 
-        if not round(self.hena+0.05,3) > 2:
-            self.hena = round(self.hena+0.05,3)        
+        if not self.hena+0.01 > 2:
+            self.hena = round(self.hena + 0.01,4)
             self.initialize_calculation()
-        
+       
         self.statusBar().showMessage("a = " + str(self.hena), 1000)
+        QtCore.QTimer.singleShot(1000, self.arrow_key_delay_false) 
 
     def decrease_hena(self):        
 
-        if not round(self.hena-0.05,3) < 0:
-            self.hena = round(self.hena-0.05,3)        
+        if not self.hena-0.01 < -2:
+            self.hena = round(self.hena - 0.01,4)
             self.initialize_calculation()
         
         self.statusBar().showMessage("a = " + str(self.hena), 1000)
+        QtCore.QTimer.singleShot(1000, self.arrow_key_delay_false)         
 
     def increase_henb(self):        
 
-        if not round(self.henb+0.05,3) > 1:
-            self.henb = round(self.henb+0.05,3)        
+        if not self.henb+0.01 > 2:
+            self.henb = round(self.henb + 0.01,4)
             self.initialize_calculation()
         
         self.statusBar().showMessage("b = " + str(self.henb), 1000)
+        QtCore.QTimer.singleShot(1000, self.arrow_key_delay_false)         
 
     def decrease_henb(self):        
 
-        if not round(self.henb-0.05,3) < -1:
-            self.henb = round(self.henb-0.05,3)        
+        if not self.henb-0.01 < -2:
+            self.henb = round(self.henb - 0.01,4)
             self.initialize_calculation()
         
         self.statusBar().showMessage("b = " + str(self.henb), 1000)
+        QtCore.QTimer.singleShot(1000, self.arrow_key_delay_false)         
+
+    def arrow_key_delay_false(self):
+        self.arrow_key_delay = False
 
     def previous_view(self):
         if not len(self.previous_views):
@@ -726,8 +760,6 @@ class MainGui(QtWidgets.QMainWindow):
         self.demox = demox
         self.demoy = demoy
         
-        self.demo_xrange = (self.xright - self.xleft)/10
-        self.demo_yrange = (self.ytop - self.ybottom)/10
         self.xleft = demox - self.demo_xrange
         self.xright = demox + self.demo_xrange
         self.ybottom = demoy - self.demo_yrange
