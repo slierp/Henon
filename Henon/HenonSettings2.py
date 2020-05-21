@@ -20,19 +20,20 @@ class HenonSettings2(QtWidgets.QDialog):
         if not self.parent.orbit_mode:
             xleft_str = "lowest x value on x-axis"
             xright_str = "highest x value on x-axis"
-            xleft_min = xright_min = -100
+            xleft_min = xright_min = -10
             xleft_max = xright_max = 10            
             ybottom_str = "lowest y value on y-axis"
             ytop_str = "highest y value on y-axis"
 
-        else:
-            xleft_min = xright_min = -2
-            xleft_max = xright_max = 2            
-            
+        else:            
             if self.parent.orbit_parameter: # parameter a
+                xleft_min = xright_min = -4
+                xleft_max = xright_max = 4           
                 xleft_str = "lowest 'a' value on x-axis"
                 xright_str = "highest 'a' value on x-axis"
             else:
+                xleft_min = xright_min = -2
+                xleft_max = xright_max = 2                
                 xleft_str = "lowest 'b' value on x-axis"
                 xright_str = "highest 'b' value on x-axis"
         

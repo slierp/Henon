@@ -553,7 +553,7 @@ class MainGui(QtWidgets.QMainWindow):
 
     def increase_hena(self):        
 
-        if not self.hena+0.01 > 2:
+        if not self.hena+0.01 > 4:
             self.hena = round(self.hena + 0.01,4)
             self.initialize_calculation()
        
@@ -562,7 +562,7 @@ class MainGui(QtWidgets.QMainWindow):
 
     def decrease_hena(self):        
 
-        if not self.hena-0.01 < -2:
+        if not self.hena-0.01 < -4:
             self.hena = round(self.hena - 0.01,4)
             self.initialize_calculation()
         
