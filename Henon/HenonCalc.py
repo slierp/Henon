@@ -140,22 +140,23 @@ class WorkerProcess(mp.Process):
         xratio = window_width/(xright-xleft)
         yratio = window_height/(ytop-ybottom)
 
-        attempts = 0
-        while not self.exit.is_set():
-            
-            if attempts > 10:
-                break
-            
-            henx = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
-            heny = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier           
- 
-            try:
+        try:
+            for _ in repeat(None, 10): # max attempts to find suitable starting points
+                
+                henx = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
+                heny = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier
+                x_test, y_test = henx, heny
+        
                 for _ in repeat(None, 100): # check whether points will diverge to infinity
-                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
-                break
-            except: # if x,y results move towards infinity
-                attempts += 1            
-                pass
+                    x_test, y_test = 1 + y_test - (hena*(x_test**2)), henb * x_test
+                    
+                    if x_test < -100 or x_test > 100:
+                        break
+
+                if x_test > -100 and x_test < 100: 
+                    break
+        except:
+            pass
 
         run_number = self.run_number
 
@@ -189,39 +190,47 @@ class WorkerProcess(mp.Process):
         local_array = np.zeros(window_width*window_height,dtype=np.bool)
         
         while not self.exit.is_set():
- 
-            try:            
-                for _ in repeat(None, drop_iter): # prevent drawing first iterations
-                    henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
-                    #henx, heny = heny,  -0.2*henx + (2.75*heny) - pow(heny,3) # Duffing
-                    #henx, heny = pow(henx,2)-pow(heny,2)+(0.9*henx)+(-0.6013*heny),\
-                    #    (2*henx*heny)+(2.0*henx)+(0.5*heny) # Tinkerbell                        
-            except: # if x,y results move towards infinity
-                #print("[" + self.name + "] Worker " + str(self.run_number) + " overflow")
-                pass
 
             try:
-                for _ in repeat(None, plot_interval):
+                for _ in repeat(None, drop_iter): # prevent drawing first iterations
+                    
+                        henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+                        #henx, heny = heny,  -0.2*henx + (2.75*heny) - pow(heny,3) # Duffing
+                        #henx, heny = pow(henx,2)-pow(heny,2)+(0.9*henx)+(-0.6013*heny),\
+                        #    (2*henx*heny)+(2.0*henx)+(0.5*heny) # Tinkerbell
+        
+                        if henx < -100 or henx > 100:
+                            break
+            except:
+                pass
 
+            try:            
+                for _ in repeat(None, plot_interval):
+    
+                    if henx < -100 or henx > 100:
+                        #print("[WorkerProcess] Worker " + str(run_number) + " overflow")
+                        break 
+                    
                     henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
+    
                     #henx, heny = heny,  -0.2*henx + (2.75*heny) - pow(heny,3) # Duffing
                     #henx, heny = pow(henx,2)-pow(heny,2)+(0.9*henx)+(-0.6013*heny),\
                     #    (2*henx*heny)+(2.0*henx)+(0.5*heny) # Tinkerbell                      
                     #if (0 < x_draw < window_width) and (0 < y_draw < window_height):
-                    if (xleft < henx < xright) and (ybottom < heny < ytop):                        
-                        # draw pixel if it is inside the current display area
-                        #x_draw = int(round((henx-xleft) * xratio)) # adding rounding here is slightly more correct
-                        x_draw = int((henx-xleft) * xratio) # but takes considerably more time
-                        y_draw = int((heny-ybottom) * yratio) 
-
+                    
+                    #x_draw = int(round((henx-xleft) * xratio)) # adding rounding here is slightly more correct                  
+                    x_draw = int((henx-xleft) * xratio) # but takes considerably more time
+                    y_draw = int((heny-ybottom) * yratio)
+                           
+                    if x_draw >= 0 and x_draw <= window_width and y_draw >= 0 and y_draw <= window_height:
                         #local_array[(y_draw*window_width) + x_draw] = True # for bottom-left origin
                         
                         # for top-left origin
                         # +0 is there in case of common bug in drawing method that returns invalid window width;
-                        # in combination with array flattening such bugs give very distorted images                    
-                        local_array[(window_height-y_draw)*(window_width+0) + x_draw] = True
-            except: # OverFlowError
-                #print("[WorkerProcess] Worker " + str(run_number) + " overflow")
+                        # in combination with array flattening such bugs give very distorted images
+                        location = (window_height-y_draw)*(window_width+0) + x_draw
+                        local_array[location] = True
+            except:
                 pass
                 
             iter_count += plot_interval
@@ -270,23 +279,24 @@ class WorkerProcess(mp.Process):
                 
                 local_array.fill(False)
 
-                attempts = 0
-                while not self.exit.is_set():
-                    
-                    if attempts > 10:
-                        break
-         
-                    henx = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
-                    heny = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier           
-         
-                    try:
+                try:
+                    for _ in repeat(None,10):
+             
+                        henx = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
+                        heny = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier           
+                        x_test, y_test = henx, heny
+             
                         for _ in repeat(None, 100): # check whether points will diverge to infinity
-                            henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
-                        break
-                    except: # if x,y results move towards infinity
-                        attempts += 1
-                        pass
+                            x_test, y_test = 1 + y_test - (hena*(x_test**2)), henb * x_test
+                            
+                            if x_test < -100 or x_test > 100:
+                                break
             
+                        if x_test > -100 and x_test < 100: 
+                            break
+                except:
+                    pass
+                
             if (iter_count >= max_iter):
                 break
                     
@@ -376,38 +386,45 @@ class WorkerProcessOrbit(WorkerProcess):
 
         while not self.exit.is_set():
 
-            attempts = 0
-            while not self.exit.is_set():
-                
-                if attempts > 10:
-                    break
-     
-                henx = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
-                heny = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier           
-     
-                try:
+            try:
+                for _ in repeat(None,10):
+         
+                    henx = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier # generate random starting points
+                    heny = (((self.randomizer.random()-0.5)/5) + initial_conditions_additive) * initial_conditions_multiplier           
+                    x_test, y_test = henx, heny                
+         
                     for _ in repeat(None, 100): # check whether points will diverge to infinity
-                        henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
-                    break
-                except: # if x,y results move towards infinity
-                    attempts += 1
-                    pass            
+                        x_test, y_test = 1 + y_test - (hena*(x_test**2)), henb * x_test
+                        
+                        if x_test < -100 or x_test > 100:
+                            break
+            except:
+                pass
 
             try:
                 for _ in repeat(None, drop_iter): # prevent drawing first iterations
                     henx, heny = 1 + heny - (hena*(henx**2)), henb * henx
                     #henx, heny = heny,  -0.2*henx + (2.75*heny) - pow(heny,3) # Duffing
                     #henx, heny = pow(henx,2)-pow(heny,2)+(0.9*henx)+(-0.6013*heny),\
-                    #    (2*henx*heny)+(2.0*henx)+(0.5*heny) # Tinkerbell                     
+                    #    (2*henx*heny)+(2.0*henx)+(0.5*heny) # Tinkerbell
+
+                    if henx < -100 or henx > 100:
+                        break
+                     
             except: #OverFlowError          
                 pass
             
             try:
-                for _ in repeat(None, plot_interval):             
+                for _ in repeat(None, plot_interval):   
+                    
+                    if henx < -100 or henx > 100:
+                        break
+                    
                     henx, heny = 1 + heny - (hena*(henx**2)), henb * henx 
                     #henx, heny = heny,  -0.2*henx + (2.75*heny) - pow(heny,3) # Duffing
                     #henx, heny = pow(henx,2)-pow(heny,2)+(0.9*henx)+(-0.6013*heny),\
-                    #   (2*henx*heny)+(2.0*henx)+(0.5*heny) # Tinkerbell                     
+                    #   (2*henx*heny)+(2.0*henx)+(0.5*heny) # Tinkerbell
+                 
                     if orbit_coordinate:
                         #y_draw = int(round((heny-ybottom) * yratio)) # adding rounding here is slightly more correct
                         y_draw = int((heny-ybottom) * yratio)
@@ -415,8 +432,10 @@ class WorkerProcessOrbit(WorkerProcess):
                         #y_draw = int(round((henx-ybottom) * yratio))
                         y_draw = int((henx-ybottom) * yratio)
                         
-                    if (0 < y_draw < window_height):                  
-                        local_array[(window_height-y_draw)*window_width + x_draw] = True                     
+                    if y_draw >= 0 and y_draw <= window_height:
+                        location = (window_height-y_draw)*window_width + x_draw
+                        local_array[location] = True
+                        
             except: #OverFlowError
                 pass
             
