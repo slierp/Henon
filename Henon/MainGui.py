@@ -68,7 +68,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.super_sampling = 0
         self.default_settings['super_sampling'] = self.super_sampling
         self.super_sampling_options = ['1x','2x','4x','8x']
-        self.resize_method = 0
+        self.resize_method = 0 # currently obsolete
         self.default_settings['resize_method'] = self.resize_method
         
         # calculation settings        
@@ -124,7 +124,7 @@ class MainGui(QtWidgets.QMainWindow):
         self.animation_delay = 20
         self.default_settings['animation_delay'] = self.animation_delay
 
-        # orbit mode settings
+        # Bifurcation map mode settings
         self.orbit_mode = False
         self.default_settings['orbit_mode'] = self.orbit_mode
         self.orbit_parameter = True # true is parameter a; false is parameter b
@@ -674,7 +674,7 @@ class MainGui(QtWidgets.QMainWindow):
             self.initialize_opencl()
 
         self.initialize_calculation()
-        self.statusBar().showMessage(self.tr("Press O to exit orbit map mode"),1000)
+        self.statusBar().showMessage(self.tr("Press O to exit bifurcation map mode"),1000)
 
     def toggle_arrow_keys(self):
         if self.animation_running:
@@ -1095,8 +1095,8 @@ class MainGui(QtWidgets.QMainWindow):
         reset_action.setStatusTip(tip)
         reset_action.setShortcut('F5')
 
-        tip = self.tr("Orbit map")        
-        orbit_action = QtWidgets.QAction(self.tr("Orbit map"), self)
+        tip = self.tr("Bifurcation map")        
+        orbit_action = QtWidgets.QAction(self.tr("Bifurcation map"), self)
         orbit_action.triggered.connect(self.toggle_orbit_mode)         
         orbit_action.setToolTip(tip)
         orbit_action.setStatusTip(tip)

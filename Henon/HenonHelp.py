@@ -10,7 +10,7 @@ help_text = """
 <h1>H&eacute;non map browser</h1>
 <a href="#keyboard" style="color:#ff4f00;">Keyboard shortcuts</a><br>
 <a href="#settings" style="color:#ff4f00;">Settings window</a><br> 
-<a href="#orbit" style="color:#ff4f00;">Orbit map mode</a><br>
+<a href="#bifurcation" style="color:#ff4f00;">Bifurcation map</a><br>
 <a href="#animations" style="color:#ff4f00;">Animations</a>
 
 <p>This program was made for exploring the H&eacute;non map, which is defined by:</p><br>
@@ -43,12 +43,14 @@ on the screen will increase sharply with zoom-factor. The OpenCL functionality c
 
 - Press W to open a settings window for the scale of the x- and y-axis<br>
 
-- Press O to toggle between orbit map and standard mode<br>
+- Press O to toggle between bifurcation map and standard mode<br>
 
 - Press A to start animations. See the Animation section for details.
 
+- Press B to toggle benchmark mode.
+
 <p><h2><a name="settings">Settings window</a></h2></p>
-Here you can define the H&eacute;non parameter values that you would like to try, define orbit mode and animations and set some calculation parameters.
+Here you can define the H&eacute;non parameter values that you would like to try, define bifurcation map mode and animations and set some calculation parameters.
 
 <p><b>General settings</b></p>
 <p>The definition of parameters a and b is straightforward, but keep in mind that some settings may not yield a stable attractor or not even any periodic behaviour, so the screen may remain empty.</p>
@@ -61,8 +63,8 @@ entered settings.</p>
 <p>Supersampling can increase the image quality greatly by generating 2-8x the amount of pixels on the x- and y-axis, after which the image is scaled down to the window dimensions.
 A high supersampling setting will increase the calculation time significantly so it is recommended to use the OpenCL functionality to compensate for that.</p>
 
-<p><b>Orbit map settings</b></p>
-In orbit map mode the horizonal axis represents a parameter (a or b) and the vertical axis a coordinate (x or y). In this screen one can choose the parameter and coordinate to use and
+<p><b>Bifurcation map settings</b></p>
+In bifurcation map mode the horizonal axis represents a parameter (a or b) and the vertical axis a coordinate (x or y). In this screen one can choose the parameter and coordinate to use and
 one can set some calculation settings. It is possible to change the plot interval and the max iterations that will be used for each pixel/parameter value along the screen width.
 The plot interval value only does something when OpenCL is enabled.
 
@@ -88,16 +90,16 @@ The program runs several threads at the same time by default in order to speed u
 By default the thread count is equal to the number of CPU's detected.</p>
 
 <p>It is also possible to define the number of threads in OpenCL mode. In standard mode it is equal to the OpenCL global work size and has a default value of 256 (2^8).
-In orbit mode it is equal to the entered value times the amount of pixels along the x-axis.
+In bifurcation map mode it is equal to the entered value times the amount of pixels along the x-axis.
 
 <p>Enable OpenCL<br>
 There is support for OpenCL for CPU/GPU multithreading to enable a much shorter calculation time. The OpenCL functionality can be enabled if the PyOpenCL Python module can be loaded successfully, 
 which may require installing appropriate drivers (from Intel/AMD/NVIDIA). One or more devices can be selected to run the calculations on. Not all devices or device combinations may work well,
 but the program will give a message if this occurs.</p>
 
-<p><h2><a name="orbit">Orbit map mode</a></h2></p>
+<p><h2><a name="bifurcation">Bifurcation map</a></h2></p>
 
-<p>In orbit map mode the horizontal axis represents a parameter (a or b) and the vertical axis a coordinate (x or y). It is another way of visualizing the H&eacute;non
+<p>In bifurcation map mode the horizontal axis represents a parameter (a or b) and the vertical axis a coordinate (x or y). It is another way of visualizing the H&eacute;non
 attractor and is especially suited for showing the bifurcations and appearance and disappearance of chaotic behaviour. By default, the selected parameter is 'a' and the vertical coordinate is 'y'.
 It is possible to zoom-in on the image by selecting an area with the mouse.</p>
 

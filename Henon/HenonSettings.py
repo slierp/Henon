@@ -146,7 +146,7 @@ class HenonSettings(QtWidgets.QDialog):
         generic_widget_general.setLayout(vbox_tab_general)
         tabwidget.addTab(generic_widget_general, "General")
 
-        ### Orbit map tab ###
+        ### Bifurcation map tab ###
         vbox_tab_orbit = QtWidgets.QVBoxLayout()  
 
         group_parameter = QtWidgets.QGroupBox("Parameter selection for x-axis")
@@ -225,7 +225,7 @@ class HenonSettings(QtWidgets.QDialog):
         vbox_tab_orbit.addStretch(1)
         generic_widget_animation = QtWidgets.QWidget()
         generic_widget_animation.setLayout(vbox_tab_orbit)
-        tabwidget.addTab(generic_widget_animation, "Orbit map")
+        tabwidget.addTab(generic_widget_animation, "Bifurcation map")
 
         ### Tab animation ###
         vbox_tab_animation = QtWidgets.QVBoxLayout()
@@ -358,7 +358,7 @@ class HenonSettings(QtWidgets.QDialog):
         vbox = QtWidgets.QVBoxLayout() 
 
         hbox = QtWidgets.QHBoxLayout()
-        description = QtWidgets.QLabel("Number of iterations (not for orbit mode)")
+        description = QtWidgets.QLabel("Number of iterations (not for bifurcation map)")
         self.plot_interval_anim = QtWidgets.QSpinBox()
         self.plot_interval_anim.setAccelerated(True)
         self.plot_interval_anim.setMaximum(99999)
@@ -481,7 +481,7 @@ class HenonSettings(QtWidgets.QDialog):
         vbox.addLayout(hbox)
 
         hbox = QtWidgets.QHBoxLayout()
-        description = QtWidgets.QLabel("OpenCL orbit work size multiplier (2^n)")
+        description = QtWidgets.QLabel("OpenCL work size for bifurcation map (2^n)")
         self.orbit_multiplier = QtWidgets.QSpinBox()
         self.orbit_multiplier.setAccelerated(True)
         self.orbit_multiplier.setMaximum(16)  # max allowed n is 32 due to uint32
