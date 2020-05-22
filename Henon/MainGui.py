@@ -1124,20 +1124,20 @@ class MainGui(QtWidgets.QMainWindow):
         zoomout_action.setStatusTip(tip)
         zoomout_action.setShortcut('Z')
 
-        tip = self.tr("Demo")        
-        demo_action = QtWidgets.QAction(self.tr("Demo"), self)
-        demo_action.setIcon(QtGui.QIcon(":play.png"))
-        demo_action.triggered.connect(self.demo_mode_init)        
-        demo_action.setToolTip(tip)
-        demo_action.setStatusTip(tip)
-        demo_action.setShortcut('D')
+        #tip = self.tr("Demo")        
+        #demo_action = QtWidgets.QAction(self.tr("Demo"), self)
+        #demo_action.setIcon(QtGui.QIcon(":play.png"))
+        #demo_action.triggered.connect(self.demo_mode_init)        
+        #demo_action.setToolTip(tip)
+        #demo_action.setStatusTip(tip)
+        #demo_action.setShortcut('D')
 
         self.view_menu.addAction(reset_action)
         self.view_menu.addAction(orbit_action)
         self.view_menu.addAction(fullscreen_action)
         self.view_menu.addAction(scale_action)
         self.view_menu.addAction(zoomout_action)
-        self.view_menu.addAction(demo_action)
+        #self.view_menu.addAction(demo_action)
            
         self.help_menu = self.menuBar().addMenu(self.tr("Help"))
 
